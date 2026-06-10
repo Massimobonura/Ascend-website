@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Join Ascend — Faith & Fitness</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://js.stripe.com/v3/"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy: #0D1B2A;
+      --navy-dark: #080F17;
+      --orange: #E87722;
+      --orange-dark: #C9641A;
+      --white: #FFFFFF;
+      --off-white: #F8F9FA;
+      --gray-200: #E5E7EB;
+      --gray-400: #9CA3AF;
+      --gray-600: #6B7280;
+      --gray-800: #1F2937;
+      --red: #EF4444;
+      --green: #22C55E;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Inter', sans-serif; background: var(--navy); min-height: 100vh; display: flex; flex-direction: column; }
+
+    nav {
+      background: var(--navy-dark);
+      padding: 0 32px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .nav-logo { text-decoration: none; }
+    .nav-logo img { height: 44px; width: auto; mix-blend-mode: screen; }
+    .nav-link { color: rgba(255,255,255,0.6); text-decoration: none; font-size: 14px; font-weight: 500; }
+    .nav-link:hover { color: white; }
+
+    .page-wrap {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 24px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 20px;
+      padding: 48px 40px;
+      width: 100%;
+      max-width: 480px;
+    }
+
+    .card-header { text-align: center; margin-bottom: 32px; }
+    .card-header h1 { font-size: 26px; font-weight: 800; color: var(--navy); margin-bottom: 8px; }
+    .card-header p { font-size: 15px; color: var(--gray-600); }
+
+    /* Plan selector */
+    .plan-selector { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 28px; }
+    .plan-option { border: 2px solid var(--gray-200); border-radius: 12px; padding: 16px 14px; cursor: pointer; transition: all 0.2s; position: relative; }
+    .plan-option:hover { border-color: var(--orange); }
+    .plan-option.selected { border-color: var(--orange); background: #FFF8F3; }
+    .plan-option .plan-name { font-size: 13px; font-weight: 700; color: var(--navy); margin-bottom: 4px; }
+    .plan-option .plan-price { font-size: 22px; font-weight: 800; color: var(--navy); }
+    .plan-option .plan-price span { font-size: 12px; color: var(--gray-400); font-weight: 400; }
+    .plan-option .plan-badge { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: var(--orange); color: white; font-size: 9px; font-weight: 700; padding: 2px 10px; border-radius: 20px; white-space: nowrap; letter-spacing: 0.08em; }
+    .plan-check { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--gray-200); margin-top: 8px; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+    .plan-option.selected .plan-check { background: var(--orange); border-color: var(--orange); }
+
+    /* Form */
+    .form-group { margin-bottom: 18px; }
+    .form-group label { display: block; font-size: 13px; font-weight: 600; color: var(--gray-800); margin-bottom: 6px; }
+    .form-group input { width: 100%; padding: 12px 16px; border: 1.5px solid var(--gray-200); border-radius: 10px; font-size: 15px; font-family: 'Inter', sans-serif; color: var(--gray-800); outline: none; transition: border-color 0.2s; }
+    .form-group input:focus { border-color: var(--orange); }
+    .form-group input.error { border-color: var(--red); }
+
+    .terms-check { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 24px; }
+    .terms-check input[type="checkbox"] { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--orange); flex-shrink: 0; cursor: pointer; }
+    .terms-check label { font-size: 13px; color: var(--gray-600); line-height: 1.5; cursor: pointer; }
+    .terms-check a { color: var(--orange); text-decoration: none; font-weight: 600; }
+
+    .submit-btn {
+      width: 100%;
+      background: var(--orange);
+      color: white;
+      border: none;
+      padding: 16px;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      transition: background 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .submit-btn:hover { background: var(--orange-dark); }
+    .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .divider { text-align: center; font-size: 13px; color: var(--gray-400); margin: 20px 0; }
+    .login-link { text-align: center; font-size: 14px; color: var(--gray-600); }
+    .login-link a { color: var(--orange); text-decoration: none; font-weight: 600; }
+
+    .error-msg { background: #FEF2F2; border: 1px solid #FECACA; border-radius: 8px; padding: 12px 16px; font-size: 13px; color: #DC2626; margin-bottom: 18px; display: none; }
+    .success-msg { background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 8px; padding: 12px 16px; font-size: 13px; color: #16A34A; margin-bottom: 18px; display: none; }
+
+    .spinner { width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.4); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 520px) {
+      .card { padding: 32px 24px; }
+      .plan-selector { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-logo">
+    <img src="Ascend_logo_.png" alt="Ascend Faith & Fitness" />
+  </a>
+  <a href="/login.html" class="nav-link">Already a member? Sign in</a>
+</nav>
+
+<div class="page-wrap">
+  <div class="card">
+    <div class="card-header">
+      <h1>Start your journey</h1>
+      <p>Choose your plan and create your account below.</p>
+    </div>
+
+    <!-- Plan selector -->
+    <div class="plan-selector">
+      <div class="plan-option selected" data-plan="monthly" data-price="price_monthly" onclick="selectPlan(this)">
+        <div class="plan-name">Monthly</div>
+        <div class="plan-price">$50<span>/mo</span></div>
+        <div class="plan-check">
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5L4 7L8 3" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </div>
+      <div class="plan-option" data-plan="lifetime" data-price="price_lifetime" onclick="selectPlan(this)">
+        <div class="plan-badge">BEST VALUE</div>
+        <div class="plan-name">Lifetime</div>
+        <div class="plan-price">$500<span> once</span></div>
+        <div class="plan-check">
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5L4 7L8 3" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <div id="error-msg" class="error-msg"></div>
+    <div id="success-msg" class="success-msg"></div>
+
+    <form id="signup-form">
+      <div class="form-group">
+        <label for="email">Email address</label>
+        <input type="email" id="email" placeholder="you@email.com" required />
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" placeholder="At least 8 characters" required minlength="8" />
+      </div>
+      <div class="form-group">
+        <label for="password2">Confirm password</label>
+        <input type="password" id="password2" placeholder="Repeat your password" required />
+      </div>
+
+      <div class="terms-check">
+        <input type="checkbox" id="terms" required />
+        <label for="terms">I have read and agree to the <a href="/terms.html" target="_blank">Terms & Conditions and Liability Waiver</a>. I understand all sales are final.</label>
+      </div>
+
+      <button type="submit" class="submit-btn" id="submit-btn">
+        <span id="btn-text">Continue to payment</span>
+        <div class="spinner" id="spinner"></div>
+      </button>
+    </form>
+
+    <div class="divider">— or —</div>
+    <div class="login-link">Already have an account? <a href="/login.html">Sign in</a></div>
+  </div>
+</div>
+
+<script>
+  const SUPABASE_URL = 'https://ohzgachjklmtoovjjmqx.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9oemdhY2hqa2xtdG9vdmpqbXF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5NTA1NDYsImV4cCI6MjA5NjUyNjU0Nn0.IbhlirdBScnEbghjsUgn4UgXWovHihVJ_TOqFT32144';
+  const STRIPE_KEY = 'pk_test_51SkptCJ0GAtDMdjAoaU6yr9faPt40fSaIpDT9r2yXP0RjVSez3BX733t20NIHbbC0ifbf2AY8rtRgun4O6Z1kiIf00RyF9DhFo';
+
+  const { createClient } = supabase;
+  const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+  const stripe = Stripe(STRIPE_KEY);
+
+  let selectedPlan = 'monthly';
+
+  function selectPlan(el) {
+    document.querySelectorAll('.plan-option').forEach(p => p.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedPlan = el.dataset.plan;
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('error-msg');
+    el.textContent = msg;
+    el.style.display = 'block';
+    document.getElementById('success-msg').style.display = 'none';
+  }
+
+  function showSuccess(msg) {
+    const el = document.getElementById('success-msg');
+    el.textContent = msg;
+    el.style.display = 'block';
+    document.getElementById('error-msg').style.display = 'none';
+  }
+
+  function setLoading(loading) {
+    const btn = document.getElementById('submit-btn');
+    const text = document.getElementById('btn-text');
+    const spinner = document.getElementById('spinner');
+    btn.disabled = loading;
+    text.textContent = loading ? 'Creating your account...' : 'Continue to payment';
+    spinner.style.display = loading ? 'block' : 'none';
+  }
+
+  document.getElementById('signup-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    document.getElementById('error-msg').style.display = 'none';
+
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const password2 = document.getElementById('password2').value;
+
+    if (password !== password2) { showError('Passwords do not match.'); return; }
+    if (password.length < 8) { showError('Password must be at least 8 characters.'); return; }
+    if (!document.getElementById('terms').checked) { showError('Please agree to the Terms & Conditions.'); return; }
+
+    setLoading(true);
+
+    try {
+      // Sign up with Supabase
+      const { data, error } = await sb.auth.signUp({ email, password });
+      if (error) throw error;
+
+      const userId = data.user.id;
+
+      // Create checkout session
+      document.getElementById('btn-text').textContent = 'Redirecting to payment...';
+      const response = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: selectedPlan, userId, email })
+      });
+
+      const { url, error: checkoutError } = await response.json();
+      if (checkoutError) throw new Error(checkoutError);
+
+      // Redirect to Stripe checkout
+      window.location.href = url;
+
+    } catch (err) {
+      showError(err.message || 'Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  });
+</script>
+</body>
+</html>
