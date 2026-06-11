@@ -323,22 +323,16 @@
     <!-- WORKOUT PLANS -->
     <div class="page" id="page-plans">
       <div class="page-title">Workout Plans</div>
-      <div class="page-sub">Your programs are being added. Check back soon!</div>
-      <div class="log-card" style="text-align:center;padding:48px;">
-        <div style="font-size:48px;margin-bottom:16px;">💪</div>
-        <div style="font-size:18px;font-weight:700;color:var(--navy);margin-bottom:8px;">Plans coming soon</div>
-        <div style="font-size:14px;color:var(--gray-600);">Your workout plans are being uploaded. They'll appear here once published.</div>
-      </div>
+      <div class="page-sub">Choose a plan that fits your goals and schedule.</div>
+      <div id="plans-container"><div style="text-align:center;padding:40px;color:var(--gray-600);">Loading plans...</div></div>
     </div>
 
     <!-- NUTRITION GUIDE -->
     <div class="page" id="page-nutrition-guide">
       <div class="page-title">Nutrition Guide</div>
-      <div class="page-sub">Everything you need to know about fueling your body.</div>
-      <div class="log-card" style="text-align:center;padding:48px;">
-        <div style="font-size:48px;margin-bottom:16px;">🥗</div>
-        <div style="font-size:18px;font-weight:700;color:var(--navy);margin-bottom:8px;">Guide coming soon</div>
-        <div style="font-size:14px;color:var(--gray-600);">Your full nutrition guide including TDEE calculator, macros, and grocery list is being finalized.</div>
+      <div class="page-sub">Calculate your calories and learn how to fuel your body properly.</div>
+      <div class="log-card" style="padding:0;overflow:hidden;margin-bottom:20px;">
+        <iframe src="https://ascendtdeecalculator.netlify.app/" style="width:100%;height:700px;border:none;display:block;" title="TDEE Calculator"></iframe>
       </div>
     </div>
 
@@ -346,13 +340,11 @@
     <div class="page" id="page-faith">
       <div class="page-title">Faith & Devotionals</div>
       <div class="page-sub">Daily scripture and devotionals to strengthen your spirit.</div>
-      <div class="verse-card" style="margin-bottom:20px;">
+      <div class="verse-card" style="margin-bottom:24px;">
         <div class="verse-text">"I can do all things through Christ who strengthens me."</div>
         <div class="verse-ref">— Philippians 4:13</div>
       </div>
-      <div class="verse-card" style="background:var(--off-white);border:1px solid var(--gray-200);">
-        <div class="verse-text" style="color:var(--navy);font-size:15px;">More devotionals coming soon. Check back daily for new scripture and reflections.</div>
-      </div>
+      <div id="devotionals-container"></div>
     </div>
 
   </div>
@@ -552,6 +544,67 @@
       window.history.replaceState({}, '', '/dashboard.html');
     }, 1000);
   }
+
+  // Load workout plans
+  async function loadPlans() {
+    const { data } = await sb.from('workout_plans').select('*').order('created_at', { ascending: false });
+    const el = document.getElementById('plans-container');
+    if (!data || !data.length) {
+      el.innerHTML = '<div style="text-align:center;padding:48px;"><div style="font-size:48px;margin-bottom:16px;">💪</div><div style="font-size:18px;font-weight:700;color:var(--navy);margin-bottom:8px;">Plans coming soon</div><div style="font-size:14px;color:var(--gray-600);">Your workout plans are being finalized. Check back soon!</div></div>';
+      return;
+    }
+    el.innerHTML = data.map(p => `
+      <div style="background:white;border:1px solid var(--gray-200);border-radius:14px;padding:24px;margin-bottom:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px;">
+          <div>
+            <div style="font-size:18px;font-weight:700;color:var(--navy);">${p.name}</div>
+            <div style="font-size:13px;color:var(--gray-600);margin-top:3px;">${p.description||''}</div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <span style="background:#F0FDF4;color:#16A34A;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;">${p.gender}</span>
+            <span style="background:#EFF6FF;color:#1D4ED8;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;">${p.days_per_week} days/week</span>
+            <span style="background:#FFF7ED;color:var(--orange);font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;">${p.focus}</span>
+          </div>
+        </div>
+        ${p.plan_days ? p.plan_days.map(day => `
+          <div style="background:var(--off-white);border-radius:10px;padding:16px;margin-top:12px;">
+            <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:10px;">Day ${day.day}</div>
+            ${day.exercises.map(ex => `
+              <div style="display:flex;gap:16px;font-size:13px;padding:6px 0;border-bottom:1px solid var(--gray-200);">
+                <span style="font-weight:600;flex:2;">${ex.exercise}</span>
+                <span style="color:var(--gray-600);">${ex.sets} sets</span>
+                <span style="color:var(--gray-600);">${ex.reps} reps</span>
+                ${ex.notes ? `<span style="color:var(--gray-400);font-style:italic;">${ex.notes}</span>` : ''}
+              </div>`).join('')}
+          </div>`).join('') : ''}
+      </div>`).join('');
+  }
+
+  // Load devotionals
+  async function loadDevotionals() {
+    const { data } = await sb.from('devotionals').select('*').order('created_at', { ascending: false });
+    const el = document.getElementById('devotionals-container');
+    if (!el) return;
+    if (!data || !data.length) {
+      el.innerHTML = '<div style="background:var(--off-white);border:1px solid var(--gray-200);border-radius:14px;padding:28px;text-align:center;"><p style="font-size:15px;color:var(--gray-600);">More devotionals coming soon. Check back daily!</p></div>';
+      return;
+    }
+    el.innerHTML = data.map(d => `
+      <div style="background:var(--off-white);border:1px solid var(--gray-200);border-radius:14px;padding:28px;margin-bottom:16px;">
+        <div style="font-size:18px;font-weight:700;color:var(--navy);margin-bottom:12px;">${d.title}</div>
+        <div style="font-size:17px;font-style:italic;color:var(--navy);line-height:1.6;margin-bottom:6px;">"${d.scripture_text}"</div>
+        <div style="font-size:13px;color:var(--orange);font-weight:600;margin-bottom:16px;">— ${d.scripture_ref}</div>
+        <div style="font-size:15px;color:var(--gray-600);line-height:1.7;">${d.message}</div>
+      </div>`).join('');
+  }
+
+  // Patch showPage to load dynamic content
+  const _baseShowPage = showPage;
+  showPage = function(name) {
+    _baseShowPage(name);
+    if (name === 'plans') loadPlans();
+    if (name === 'faith') loadDevotionals();
+  };
 
   init();
 </script>
