@@ -1,0 +1,1348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard — Ascend Faith & Fitness</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy: #0D1B2A;
+      --navy-dark: #080F17;
+      --orange: #E87722;
+      --orange-dark: #C9641A;
+      --white: #ffffff;
+      --off: #F8F9FA;
+      --g200: #E5E7EB;
+      --g400: #9CA3AF;
+      --g600: #6B7280;
+      --g800: #1F2937;
+    }
+    html, body { height: 100%; }
+    body { font-family: 'Inter', sans-serif; background: var(--off); display: flex; flex-direction: column; }
+
+    /* NAV */
+    nav {
+      background: var(--navy);
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      flex-shrink: 0;
+    }
+    nav img { height: 44px; width: auto; mix-blend-mode: screen; cursor: pointer; }
+    .nav-right { display: flex; align-items: center; gap: 12px; }
+    .nav-email { font-size: 13px; color: rgba(255,255,255,0.5); }
+    .signout-btn {
+      background: transparent;
+      color: rgba(255,255,255,0.6);
+      border: 1px solid rgba(255,255,255,0.2);
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+    }
+    .signout-btn:hover { color: white; }
+
+    /* LAYOUT */
+    .layout { display: flex; flex: 1; overflow: hidden; }
+
+    /* SIDEBAR */
+    .sidebar {
+      width: 220px;
+      background: var(--navy-dark);
+      flex-shrink: 0;
+      overflow-y: auto;
+      padding: 24px 0;
+    }
+    .sb-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      color: rgba(255,255,255,0.3);
+      padding: 0 20px;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+    }
+    .sb-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 20px;
+      color: rgba(255,255,255,0.6);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      border-left: 3px solid transparent;
+      transition: all 0.15s;
+      text-decoration: none;
+      background: none;
+      border-top: none;
+      border-right: none;
+      border-bottom: none;
+      width: 100%;
+      text-align: left;
+      font-family: 'Inter', sans-serif;
+    }
+    .sb-item:hover { color: white; background: rgba(255,255,255,0.05); }
+    .sb-item.active { color: white; background: rgba(232,119,34,0.15); border-left-color: var(--orange); }
+    .sb-section { margin-bottom: 8px; }
+
+    /* MAIN */
+    .main { flex: 1; overflow-y: auto; padding: 32px 28px; }
+
+    /* PAGES */
+    .page { display: none; }
+    .page.active { display: block; }
+    .page-title { font-size: 24px; font-weight: 800; color: var(--navy); margin-bottom: 6px; }
+    .page-sub { font-size: 15px; color: var(--g600); margin-bottom: 28px; }
+
+    /* VERSE */
+    .verse-card {
+      background: var(--navy);
+      border-radius: 14px;
+      padding: 28px;
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .verse-text { font-size: 17px; font-style: italic; color: white; line-height: 1.6; margin-bottom: 10px; }
+    .verse-ref { font-size: 13px; color: var(--orange); font-weight: 600; }
+
+    /* CHECKLIST */
+    .checklist-card {
+      background: white;
+      border: 1px solid var(--g200);
+      border-radius: 14px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    .checklist-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .checklist-header h3 { font-size: 17px; font-weight: 800; color: var(--navy); }
+    .checklist-header p { font-size: 13px; color: var(--g600); margin-top: 2px; }
+    .checklist-pct { font-size: 22px; font-weight: 800; color: var(--orange); }
+    .progress-wrap { background: var(--g200); border-radius: 99px; height: 6px; margin-bottom: 20px; overflow: hidden; }
+    .progress-fill { background: var(--orange); height: 100%; border-radius: 99px; transition: width 0.5s; }
+    .checklist-items { display: flex; flex-direction: column; gap: 6px; }
+    .cl-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      cursor: pointer;
+      border: 1px solid var(--g200);
+      background: white;
+      transition: background 0.15s;
+    }
+    .cl-item:hover { background: var(--off); }
+    .cl-item.done { background: #F0FDF4; border-color: #BBF7D0; cursor: default; }
+    .cl-check {
+      width: 26px; height: 26px;
+      border-radius: 50%;
+      border: 2px solid var(--g200);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: white;
+    }
+    .cl-item.done .cl-check { background: #22C55E; border-color: #22C55E; }
+    .cl-label { font-size: 14px; font-weight: 500; color: var(--g800); }
+    .cl-item.done .cl-label { color: #16A34A; }
+    .cl-go { margin-left: auto; font-size: 12px; color: var(--orange); font-weight: 600; }
+    .celebration { text-align: center; padding: 20px 0 4px; display: none; }
+    .celebration .em { font-size: 32px; margin-bottom: 8px; }
+    .celebration h4 { font-size: 16px; font-weight: 800; color: var(--navy); }
+    .celebration p { font-size: 13px; color: var(--g600); margin-top: 4px; }
+
+    /* STATS */
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 28px; }
+    .stat { background: white; border: 1px solid var(--g200); border-radius: 14px; padding: 20px; }
+    .stat .label { font-size: 12px; font-weight: 600; color: var(--g400); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+    .stat .value { font-size: 28px; font-weight: 800; color: var(--navy); }
+    .stat .unit { font-size: 13px; color: var(--g400); }
+
+    /* LOG CARDS */
+    .log-card { background: white; border: 1px solid var(--g200); border-radius: 14px; padding: 24px; margin-bottom: 20px; }
+    .log-card h3 { font-size: 16px; font-weight: 700; color: var(--navy); margin-bottom: 18px; }
+    .log-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 14px; margin-bottom: 18px; }
+    .lg label { display: block; font-size: 12px; font-weight: 600; color: var(--g600); margin-bottom: 6px; }
+    .lg input, .lg select {
+      width: 100%; padding: 10px 12px;
+      border: 1.5px solid var(--g200); border-radius: 8px;
+      font-size: 14px; font-family: 'Inter', sans-serif;
+      color: var(--navy); outline: none; transition: border-color 0.2s;
+    }
+    .lg input:focus, .lg select:focus { border-color: var(--orange); }
+    .log-btn {
+      background: var(--orange); color: white; border: none;
+      padding: 11px 24px; border-radius: 8px; font-size: 14px;
+      font-weight: 700; cursor: pointer; font-family: 'Inter', sans-serif;
+    }
+    .log-btn:hover { background: var(--orange-dark); }
+
+    /* HISTORY */
+    .history-card { background: white; border: 1px solid var(--g200); border-radius: 14px; overflow: hidden; }
+    .history-card h3 { font-size: 15px; font-weight: 700; color: var(--navy); padding: 18px 20px; border-bottom: 1px solid var(--g200); }
+    table { width: 100%; border-collapse: collapse; }
+    th { font-size: 11px; font-weight: 700; color: var(--g400); text-transform: uppercase; letter-spacing: 0.08em; padding: 12px 20px; text-align: left; background: var(--off); }
+    td { font-size: 14px; color: var(--g800); padding: 12px 20px; border-top: 1px solid var(--g200); }
+    .empty { text-align: center; padding: 40px; color: var(--g400); font-size: 14px; }
+
+    /* HABITS */
+    .habits-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .habit-card { background: white; border: 1px solid var(--g200); border-radius: 14px; padding: 20px; text-align: center; }
+    .habit-name { font-size: 13px; font-weight: 700; color: var(--navy); margin-bottom: 12px; }
+    .ring-wrap { position: relative; width: 80px; height: 80px; margin: 0 auto 12px; }
+    .ring-wrap svg { transform: rotate(-90deg); }
+    .ring-bg { fill: none; stroke: var(--g200); stroke-width: 8; }
+    .ring-prog { fill: none; stroke: var(--orange); stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset 0.5s; }
+    .ring-label { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: var(--navy); }
+    .habit-input { display: flex; align-items: center; gap: 8px; justify-content: center; }
+    .habit-input input { width: 60px; padding: 6px 8px; border: 1.5px solid var(--g200); border-radius: 6px; font-size: 14px; text-align: center; font-family: 'Inter', sans-serif; outline: none; }
+    .habit-input input:focus { border-color: var(--orange); }
+    .habit-unit { font-size: 12px; color: var(--g400); }
+
+    /* PLANS */
+    .plan-card { background: white; border: 1px solid var(--g200); border-radius: 14px; padding: 24px; margin-bottom: 16px; }
+    .plan-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+    .badge { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; }
+    .badge-orange { background: #FFF7ED; color: var(--orange); }
+    .badge-blue { background: #EFF6FF; color: #1D4ED8; }
+    .day-block { background: var(--off); border-radius: 10px; padding: 16px; margin-top: 12px; }
+    .day-title { font-size: 14px; font-weight: 700; color: var(--navy); margin-bottom: 10px; }
+    .ex-row { display: flex; gap: 16px; font-size: 13px; padding: 6px 0; border-bottom: 1px solid var(--g200); }
+    .ex-name { font-weight: 600; flex: 2; }
+    .ex-detail { color: var(--g600); }
+    .ex-note { color: var(--g400); font-style: italic; }
+
+    /* DEVOTIONALS */
+    .devo-today { background: var(--navy); border-radius: 14px; padding: 28px; margin-bottom: 16px; }
+    .devo-tag { font-size: 10px; font-weight: 700; color: var(--orange); letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 12px; }
+    .devo-title { font-size: 18px; font-weight: 700; color: white; margin-bottom: 12px; }
+    .devo-verse { font-size: 17px; font-style: italic; color: rgba(255,255,255,0.9); line-height: 1.6; margin-bottom: 6px; }
+    .devo-ref { font-size: 13px; color: var(--orange); font-weight: 600; margin-bottom: 16px; }
+    .devo-msg { font-size: 15px; color: rgba(255,255,255,0.7); line-height: 1.7; }
+    .devo-past { background: var(--off); border: 1px solid var(--g200); border-radius: 14px; padding: 24px; margin-bottom: 12px; }
+    .devo-past .devo-title { color: var(--navy); }
+    .devo-past .devo-verse { color: var(--navy); }
+    .devo-past .devo-msg { color: var(--g600); }
+
+    /* RESOURCES */
+    .resource-item { background: white; border: 1px solid var(--g200); border-radius: 12px; padding: 20px 24px; display: flex; align-items: center; gap: 18px; margin-bottom: 14px; }
+    .resource-icon { width: 44px; height: 44px; background: var(--navy); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .resource-info h4 { font-size: 15px; font-weight: 700; color: var(--navy); margin-bottom: 3px; }
+    .resource-info p { font-size: 13px; color: var(--g600); }
+    .resource-link { margin-left: auto; background: var(--navy); color: white; font-size: 13px; font-weight: 600; padding: 9px 18px; border-radius: 8px; text-decoration: none; white-space: nowrap; }
+
+    /* MOBILE */
+    .mobile-nav { display: none; }
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .main { padding: 20px 16px 80px; }
+      .mobile-nav {
+        display: flex;
+        background: white;
+        border-top: 1px solid var(--g200);
+        position: fixed;
+        bottom: 0; left: 0; right: 0;
+        z-index: 99;
+      }
+      .mn-item {
+        flex: 1; display: flex; flex-direction: column; align-items: center;
+        padding: 10px 4px; font-size: 10px; color: var(--g400);
+        cursor: pointer; gap: 4px; border: none; background: none;
+        font-family: 'Inter', sans-serif;
+      }
+      .mn-item.active { color: var(--orange); }
+      .mn-item svg { width: 22px; height: 22px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <img src="Ascend_logo_.png" alt="Ascend" onclick="window.location='/'" />
+  <div class="nav-right">
+    <span class="nav-email" id="nav-email"></span>
+    <button class="signout-btn" onclick="signOut()">Sign out</button>
+  </div>
+</nav>
+
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sb-section">
+      <div class="sb-label">Overview</div>
+      <button class="sb-item active" id="sb-home" onclick="showPage('home')"><i class="ti ti-home" aria-hidden="true"></i>Dashboard</button>
+    </div>
+    <div class="sb-section">
+      <div class="sb-label">Track</div>
+      <button class="sb-item" id="sb-workouts" onclick="showPage('workouts')"><i class="ti ti-barbell" aria-hidden="true"></i>Workouts</button>
+      <button class="sb-item" id="sb-nutrition" onclick="showPage('nutrition')"><i class="ti ti-clock" aria-hidden="true"></i>Nutrition</button>
+      <button class="sb-item" id="sb-habits" onclick="showPage('habits')"><i class="ti ti-circle-check" aria-hidden="true"></i>Habits</button>
+      <button class="sb-item" id="sb-weight" onclick="showPage('weight')"><i class="ti ti-chart-line" aria-hidden="true"></i>Weight</button>
+    </div>
+    <div class="sb-section">
+      <div class="sb-label">Content</div>
+      <button class="sb-item" id="sb-plans" onclick="showPage('plans')"><i class="ti ti-list" aria-hidden="true"></i>Workout Plans</button>
+      <button class="sb-item" id="sb-tdee" onclick="showPage('tdee')"><i class="ti ti-apple" aria-hidden="true"></i>Nutrition Guide</button>
+      <button class="sb-item" id="sb-faith" onclick="showPage('faith')"><i class="ti ti-cross" aria-hidden="true"></i>Faith & Devotionals</button>
+      <button class="sb-item" id="sb-resources" onclick="showPage('resources')"><i class="ti ti-books" aria-hidden="true"></i>Resources</button>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- HOME -->
+    <div class="page active" id="page-home">
+      <div class="page-title" id="greeting">Good morning 👋</div>
+      <div class="page-sub" id="today-date"></div>
+
+      <!-- Getting started (new members) -->
+      <div id="getting-started" style="display:none; background:white; border:2px solid var(--orange); border-radius:14px; padding:24px; margin-bottom:24px;">
+        <div style="font-size:17px;font-weight:800;color:var(--navy);margin-bottom:4px;">🎉 Welcome to Ascend!</div>
+        <div style="font-size:13px;color:var(--g600);margin-bottom:16px;">Complete these steps to get started.</div>
+        <div class="progress-wrap"><div class="progress-fill" id="gs-bar" style="width:0%"></div></div>
+        <div id="gs-items"></div>
+      </div>
+
+      <!-- Verse -->
+      <div class="verse-card">
+        <div class="verse-text">"No discipline seems pleasant at the time, but painful. Later on, however, it produces a harvest of righteousness and peace for those who have been trained by it."</div>
+        <div class="verse-ref">— Hebrews 12:11</div>
+      </div>
+
+      <!-- Daily checklist -->
+      <div class="checklist-card">
+        <div class="checklist-header">
+          <div>
+            <h3>Today's checklist</h3>
+            <p>Check off each item as you complete it.</p>
+          </div>
+          <div class="checklist-pct" id="cl-pct">0%</div>
+        </div>
+        <div class="progress-wrap"><div class="progress-fill" id="cl-bar" style="width:0%"></div></div>
+        <div class="checklist-items" id="cl-items"></div>
+        <div class="celebration" id="cl-celebration">
+          <div class="em"><i class="ti ti-star" style="font-size:32px;color:var(--orange);" aria-hidden="true"></i></div>
+          <h4>You crushed today!</h4>
+          <p>Faith. Discipline. Consistency. That's Ascend.</p>
+        </div>
+      </div>
+
+      <!-- Stats row -->
+      <div class="stats" style="margin-bottom:24px;">
+        <div class="stat"><div class="label">Workouts logged</div><div class="value" id="s-workouts">0</div></div>
+        <div class="stat"><div class="label">Avg calories</div><div class="value" id="s-calories">—</div><div class="unit">kcal/day</div></div>
+        <div class="stat"><div class="label">Current weight</div><div class="value" id="s-weight">—</div><div class="unit">lbs</div></div>
+        <div class="stat"><div class="label">Day streak</div><div class="value" id="s-streak">0</div><div class="unit">days</div></div>
+      </div>
+
+      <!-- Weekly adherence -->
+      <div style="background:white;border:1px solid var(--g200);border-radius:14px;padding:24px;margin-bottom:24px;">
+        <div style="font-size:16px;font-weight:800;color:var(--navy);margin-bottom:4px;">This week at a glance</div>
+        <div style="font-size:13px;color:var(--g600);margin-bottom:20px;">How consistent you've been over the last 7 days.</div>
+        <div id="adherence-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px;"></div>
+      </div>
+    </div>
+
+    <!-- WORKOUTS -->
+    <div class="page" id="page-workouts">
+      <div class="page-title">Workout Log</div>
+      <div class="page-sub">Log your sets, reps, and weight for each exercise.</div>
+      <div class="log-card">
+        <h3>Log a workout</h3>
+        <div class="log-grid">
+          <div class="lg"><label>Date</label><input type="date" id="w-date" /></div>
+          <div class="lg"><label>Exercise</label><input type="text" id="w-exercise" placeholder="e.g. Squat" /></div>
+          <div class="lg"><label>Sets</label><input type="number" id="w-sets" placeholder="3" min="1" /></div>
+          <div class="lg"><label>Reps</label><input type="number" id="w-reps" placeholder="10" min="1" /></div>
+          <div class="lg"><label>Weight (lbs)</label><input type="number" id="w-weight" placeholder="135" min="0" /></div>
+          <div class="lg"><label>Notes</label><input type="text" id="w-notes" placeholder="Optional" /></div>
+        </div>
+        <button class="log-btn" onclick="logWorkout()">Log workout</button>
+      </div>
+      <div class="history-card">
+        <h3>Workout history</h3>
+        <div id="w-history"><div class="empty">No workouts logged yet. Add your first one above!</div></div>
+      </div>
+    </div>
+
+    <!-- NUTRITION -->
+    <div class="page" id="page-nutrition">
+      <div class="page-title">Nutrition Log</div>
+      <div class="page-sub">Track your daily calories and macros.</div>
+      <div class="log-card">
+        <h3>Log today's nutrition</h3>
+        <div class="log-grid">
+          <div class="lg"><label>Date</label><input type="date" id="n-date" /></div>
+          <div class="lg"><label>Calories</label><input type="number" id="n-calories" placeholder="2000" /></div>
+          <div class="lg"><label>Protein (g)</label><input type="number" id="n-protein" placeholder="150" /></div>
+          <div class="lg"><label>Carbs (g)</label><input type="number" id="n-carbs" placeholder="200" /></div>
+          <div class="lg"><label>Fats (g)</label><input type="number" id="n-fats" placeholder="65" /></div>
+          <div class="lg"><label>Calorie goal</label><input type="number" id="n-goal" placeholder="e.g. 2000" /></div>
+        </div>
+        <button class="log-btn" onclick="logNutrition()">Log nutrition</button>
+      </div>
+
+      <!-- Tabs -->
+      <div style="display:flex;gap:0;margin-bottom:0;border-bottom:2px solid var(--g200);">
+        <button id="ntab-chart" onclick="switchNTab('chart')" style="padding:12px 24px;border:none;background:none;font-family:Inter,sans-serif;font-size:14px;font-weight:700;color:var(--orange);border-bottom:2px solid var(--orange);margin-bottom:-2px;cursor:pointer;">Weekly Chart</button>
+        <button id="ntab-history" onclick="switchNTab('history')" style="padding:12px 24px;border:none;background:none;font-family:Inter,sans-serif;font-size:14px;font-weight:600;color:var(--g400);cursor:pointer;">History</button>
+      </div>
+
+      <!-- Chart tab -->
+      <div id="ntab-chart-content" style="background:white;border:1px solid var(--g200);border-top:none;border-radius:0 0 14px 14px;padding:28px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;">
+          <div style="font-size:16px;font-weight:700;color:var(--navy);">This week's macro breakdown</div>
+          <div style="display:flex;gap:16px;flex-wrap:wrap;">
+            <div style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--g600);">
+              <div style="width:12px;height:12px;border-radius:2px;background:#6366F1;"></div>Protein
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--g600);">
+              <div style="width:12px;height:12px;border-radius:2px;background:#F59E0B;"></div>Carbs
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--g600);">
+              <div style="width:12px;height:12px;border-radius:2px;background:#10B981;"></div>Fats
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--g600);">
+              <div style="width:12px;height:12px;border-radius:3px;border:2px solid var(--orange);background:transparent;"></div>Goal ±100 cal
+            </div>
+          </div>
+        </div>
+        <div id="n-chart-wrap" style="overflow-x:auto;">
+          <div id="n-chart" style="min-width:340px;"></div>
+        </div>
+      </div>
+
+      <!-- History tab -->
+      <div id="ntab-history-content" style="display:none;">
+        <div class="history-card" style="border-top:none;border-radius:0 0 14px 14px;">
+          <h3>Nutrition history</h3>
+          <div id="n-history"><div class="empty">No nutrition logged yet.</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HABITS -->
+    <div class="page" id="page-habits">
+      <div class="page-title">Habit Tracker</div>
+      <div class="page-sub">Track your daily habits. Consistency is everything.</div>
+
+      <!-- Core habits -->
+      <div style="font-size:13px;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:12px;">Core habits</div>
+      <div class="habits-grid" style="margin-bottom:24px;">
+        <div class="habit-card">
+          <div class="habit-name"><i class="ti ti-droplet" aria-hidden="true"></i> Water</div>
+          <div class="ring-wrap">
+            <svg viewBox="0 0 80 80"><circle class="ring-bg" cx="40" cy="40" r="32"/><circle class="ring-prog" id="ring-water" cx="40" cy="40" r="32" stroke-dasharray="201" stroke-dashoffset="201"/></svg>
+            <div class="ring-label" id="lbl-water">0</div>
+          </div>
+          <div class="habit-input">
+            <input type="number" id="h-water" placeholder="0" min="0" oninput="updateRing('water',this.value,64,'ring-water','lbl-water')" />
+            <span class="habit-unit">/ 64 oz</span>
+          </div>
+        </div>
+        <div class="habit-card">
+          <div class="habit-name"><i class="ti ti-shoe" aria-hidden="true"></i> Steps</div>
+          <div class="ring-wrap">
+            <svg viewBox="0 0 80 80"><circle class="ring-bg" cx="40" cy="40" r="32"/><circle class="ring-prog" id="ring-steps" cx="40" cy="40" r="32" stroke-dasharray="201" stroke-dashoffset="201"/></svg>
+            <div class="ring-label" id="lbl-steps">0</div>
+          </div>
+          <div class="habit-input">
+            <input type="number" id="h-steps" placeholder="0" min="0" oninput="updateRing('steps',this.value,10000,'ring-steps','lbl-steps')" />
+            <span class="habit-unit">/ 10k</span>
+          </div>
+        </div>
+        <div class="habit-card">
+          <div class="habit-name"><i class="ti ti-moon" aria-hidden="true"></i> Sleep</div>
+          <div class="ring-wrap">
+            <svg viewBox="0 0 80 80"><circle class="ring-bg" cx="40" cy="40" r="32"/><circle class="ring-prog" id="ring-sleep" cx="40" cy="40" r="32" stroke-dasharray="201" stroke-dashoffset="201"/></svg>
+            <div class="ring-label" id="lbl-sleep">0</div>
+          </div>
+          <div class="habit-input">
+            <input type="number" id="h-sleep" placeholder="0" min="0" max="12" step="0.5" oninput="updateRing('sleep',this.value,8,'ring-sleep','lbl-sleep')" />
+            <span class="habit-unit">/ 8 hrs</span>
+          </div>
+        </div>
+        <div class="habit-card">
+          <div class="habit-name"><i class="ti ti-cross" aria-hidden="true"></i> Devotional</div>
+          <div class="ring-wrap">
+            <svg viewBox="0 0 80 80"><circle class="ring-bg" cx="40" cy="40" r="32"/><circle class="ring-prog" id="ring-devo" cx="40" cy="40" r="32" stroke-dasharray="201" stroke-dashoffset="201"/></svg>
+            <div class="ring-label" id="lbl-devo">—</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;justify-content:center;">
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--g600);cursor:pointer;">
+              <input type="checkbox" id="h-devo" onchange="updateDevo(this.checked)" style="accent-color:var(--orange);" />
+              Done today
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Custom habits -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div style="font-size:13px;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:0.1em;">My habits</div>
+        <button onclick="showAddHabit()" style="background:var(--orange);color:white;border:none;padding:7px 16px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;display:flex;align-items:center;gap:6px;">
+          <i class="ti ti-plus" aria-hidden="true"></i> Add habit
+        </button>
+      </div>
+
+      <!-- Add habit panel -->
+      <div id="add-habit-panel" style="display:none;background:white;border:1px solid var(--g200);border-radius:14px;padding:20px;margin-bottom:16px;">
+        <div style="font-size:15px;font-weight:700;color:var(--navy);margin-bottom:16px;">Add a new habit</div>
+
+        <div style="margin-bottom:14px;">
+          <div style="font-size:12px;font-weight:600;color:var(--g600);margin-bottom:8px;">Quick suggestions</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;" id="habit-suggestions">
+            <button onclick="fillHabit('Prayer','ti-heart','1','x per day')" style="padding:6px 14px;border:1.5px solid var(--g200);border-radius:20px;font-size:13px;background:white;cursor:pointer;font-family:Inter,sans-serif;">Prayer</button>
+            <button onclick="fillHabit('Read Bible','ti-book','1','chapters')" style="padding:6px 14px;border:1.5px solid var(--g200);border-radius:20px;font-size:13px;background:white;cursor:pointer;font-family:Inter,sans-serif;">Read Bible</button>
+            <button onclick="fillHabit('Meditate','ti-brain','10','minutes')" style="padding:6px 14px;border:1.5px solid var(--g200);border-radius:20px;font-size:13px;background:white;cursor:pointer;font-family:Inter,sans-serif;">Meditate</button>
+            <button onclick="fillHabit('Stretch','ti-activity','10','minutes')" style="padding:6px 14px;border:1.5px solid var(--g200);border-radius:20px;font-size:13px;background:white;cursor:pointer;font-family:Inter,sans-serif;">Stretch</button>
+            <button onclick="fillHabit('Journaling','ti-pencil','1','x per day')" style="padding:6px 14px;border:1.5px solid var(--g200);border-radius:20px;font-size:13px;background:white;cursor:pointer;font-family:Inter,sans-serif;">Journaling</button>
+            <button onclick="fillHabit('No alcohol','ti-ban','1','x per day')" style="padding:6px 14px;border:1.5px solid var(--g200);border-radius:20px;font-size:13px;background:white;cursor:pointer;font-family:Inter,sans-serif;">No alcohol</button>
+            <button onclick="fillHabit('Cold shower','ti-droplet-off','1','x per day')" style="padding:6px 14px;border:1.5px solid var(--g200);border-radius:20px;font-size:13px;background:white;cursor:pointer;font-family:Inter,sans-serif;">Cold shower</button>
+            <button onclick="fillHabit('No social media','ti-device-mobile-off','1','x per day')" style="padding:6px 14px;border:1.5px solid var(--g200);border-radius:20px;font-size:13px;background:white;cursor:pointer;font-family:Inter,sans-serif;">No social media</button>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;">
+          <div>
+            <label style="display:block;font-size:12px;font-weight:600;color:var(--g600);margin-bottom:6px;">Habit name</label>
+            <input type="text" id="new-habit-name" placeholder="e.g. Read Bible" style="width:100%;padding:10px 12px;border:1.5px solid var(--g200);border-radius:8px;font-size:14px;font-family:Inter,sans-serif;outline:none;" onfocus="this.style.borderColor='var(--orange)'" onblur="this.style.borderColor='var(--g200)'" />
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;font-weight:600;color:var(--g600);margin-bottom:6px;">Daily goal</label>
+            <input type="number" id="new-habit-goal" placeholder="e.g. 10" style="width:100%;padding:10px 12px;border:1.5px solid var(--g200);border-radius:8px;font-size:14px;font-family:Inter,sans-serif;outline:none;" onfocus="this.style.borderColor='var(--orange)'" onblur="this.style.borderColor='var(--g200)'" />
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;font-weight:600;color:var(--g600);margin-bottom:6px;">Unit</label>
+            <input type="text" id="new-habit-unit" placeholder="e.g. minutes" style="width:100%;padding:10px 12px;border:1.5px solid var(--g200);border-radius:8px;font-size:14px;font-family:Inter,sans-serif;outline:none;" onfocus="this.style.borderColor='var(--orange)'" onblur="this.style.borderColor='var(--g200)'" />
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button onclick="addCustomHabit()" style="background:var(--orange);color:white;border:none;padding:10px 24px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">Save habit</button>
+          <button onclick="hideAddHabit()" style="background:white;color:var(--navy);border:1px solid var(--g200);padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;">Cancel</button>
+        </div>
+      </div>
+
+      <!-- Custom habits list -->
+      <div id="custom-habits-grid" class="habits-grid" style="margin-bottom:24px;"></div>
+      <div id="no-custom-habits" style="background:var(--off);border:1px dashed var(--g200);border-radius:12px;padding:24px;text-align:center;font-size:14px;color:var(--g400);margin-bottom:24px;">
+        No custom habits yet. Add one above to track anything that matters to you!
+      </div>
+
+      <button class="log-btn" onclick="saveHabits()">Save today's habits</button>
+    </div>
+
+    <!-- WEIGHT -->
+    <div class="page" id="page-weight">
+      <div class="page-title">Weight Tracker</div>
+      <div class="page-sub">Log your weight daily to track progress over time.</div>
+      <div class="log-card">
+        <h3>Log your weight</h3>
+        <div class="log-grid">
+          <div class="lg"><label>Date</label><input type="date" id="wt-date" /></div>
+          <div class="lg"><label>Weight (lbs)</label><input type="number" id="wt-weight" placeholder="175" step="0.1" /></div>
+          <div class="lg"><label>Notes</label><input type="text" id="wt-notes" placeholder="Optional" /></div>
+        </div>
+        <button class="log-btn" onclick="logWeight()">Log weight</button>
+      </div>
+
+      <!-- Weight chart -->
+      <div style="background:white;border:1px solid var(--g200);border-radius:14px;padding:24px;margin-bottom:20px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px;">
+          <div>
+            <div style="font-size:16px;font-weight:700;color:var(--navy);">Weight trend</div>
+            <div style="font-size:13px;color:var(--g600);margin-top:2px;">Last 30 days</div>
+          </div>
+          <div id="wt-change-badge" style="font-size:13px;font-weight:700;padding:6px 14px;border-radius:20px;display:none;"></div>
+        </div>
+        <div style="overflow-x:auto;">
+          <div id="wt-chart" style="min-width:300px;height:200px;position:relative;"></div>
+        </div>
+      </div>
+
+      <div class="history-card">
+        <h3>Weight history</h3>
+        <div id="wt-history"><div class="empty">No weight logged yet.</div></div>
+      </div>
+    </div>
+
+    <!-- WORKOUT PLANS -->
+    <div class="page" id="page-plans">
+      <div class="page-title">Workout Plans</div>
+      <div class="page-sub">Your programs — choose the one that fits your goals.</div>
+      <div id="plans-container"><div class="empty" style="padding:48px;text-align:center;">Loading plans...</div></div>
+    </div>
+
+    <!-- NUTRITION GUIDE / TDEE -->
+    <div class="page" id="page-tdee">
+      <div class="page-title">Nutrition Guide</div>
+      <div class="page-sub">Calculate your calories and learn how to fuel your body.</div>
+      <div style="background:white;border:1px solid var(--g200);border-radius:14px;overflow:hidden;">
+        <iframe src="https://ascendtdeecalculator.netlify.app/" style="width:100%;height:700px;border:none;display:block;" title="TDEE Calculator"></iframe>
+      </div>
+    </div>
+
+    <!-- FAITH & DEVOTIONALS -->
+    <div class="page" id="page-faith">
+      <div class="page-title">Faith & Devotionals</div>
+      <div class="page-sub">Daily scripture and devotionals to strengthen your spirit.</div>
+      <div class="verse-card" style="margin-bottom:24px;">
+        <div class="verse-text">"No discipline seems pleasant at the time, but painful. Later on, however, it produces a harvest of righteousness and peace for those who have been trained by it."</div>
+        <div class="verse-ref">— Hebrews 12:11</div>
+      </div>
+      <div id="devotionals-container"><div class="empty" style="padding:40px;text-align:center;">Loading devotionals...</div></div>
+    </div>
+
+    <!-- RESOURCES -->
+    <div class="page" id="page-resources">
+      <div class="page-title">Resources</div>
+      <div class="page-sub">Everything you need to learn, grow, and succeed.</div>
+      <div style="background:var(--navy);border-radius:14px;padding:28px;margin-bottom:24px;">
+        <div style="font-size:11px;font-weight:700;color:var(--orange);letter-spacing:0.18em;text-transform:uppercase;margin-bottom:12px;">Tutorial Videos</div>
+        <div style="font-size:16px;font-weight:700;color:white;margin-bottom:8px;">Video guides coming soon</div>
+        <div style="font-size:14px;color:rgba(255,255,255,0.6);line-height:1.6;">Step-by-step video guides are being recorded — how to use the workout system, the TDEE calculator, eating out and staying on track, and much more.</div>
+      </div>
+      <div class="resource-item">
+        <div class="resource-icon"><i class="ti ti-player-play" style="color:white;font-size:20px;" aria-hidden="true"></i></div>
+        <div class="resource-info">
+          <h4>The Mind Gains Podcast</h4>
+          <p>Hosted by Jessica Bonura · Faith, health & fitness on YouTube.</p>
+        </div>
+        <a href="https://www.youtube.com/@jessicabonurafit" target="_blank" class="resource-link">Listen →</a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MOBILE NAV -->
+<div class="mobile-nav">
+  <button class="mn-item active" id="mn-home" onclick="showPage('home')"><i class="ti ti-home" style="font-size:22px;" aria-hidden="true"></i>Home</button>
+  <button class="mn-item" id="mn-workouts" onclick="showPage('workouts')"><i class="ti ti-barbell" style="font-size:22px;" aria-hidden="true"></i>Workouts</button>
+  <button class="mn-item" id="mn-nutrition" onclick="showPage('nutrition')"><i class="ti ti-clock" style="font-size:22px;" aria-hidden="true"></i>Nutrition</button>
+  <button class="mn-item" id="mn-habits" onclick="showPage('habits')"><i class="ti ti-circle-check" style="font-size:22px;" aria-hidden="true"></i>Habits</button>
+  <button class="mn-item" id="mn-plans" onclick="showPage('plans')"><i class="ti ti-list" style="font-size:22px;" aria-hidden="true"></i>Plans</button>
+</div>
+
+<script>
+const SURL = 'https://ohzgachjklmtoovjjmqx.supabase.co';
+const SKEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9oemdhY2hqa2xtdG9vdmpqbXF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5NTA1NDYsImV4cCI6MjA5NjUyNjU0Nn0.IbhlirdBScnEbghjsUgn4UgXWovHihVJ_TOqFT32144';
+const { createClient } = supabase;
+const sb = createClient(SURL, SKEY);
+let user = null;
+
+// ── INIT ──
+async function init() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { window.location.href = '/login.html'; return; }
+  user = session.user;
+  document.getElementById('nav-email').textContent = user.email;
+
+  const h = new Date().getHours();
+  document.getElementById('greeting').textContent = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+  document.getElementById('today-date').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('w-date').value = today;
+  document.getElementById('n-date').value = today;
+  document.getElementById('wt-date').value = today;
+
+  loadStats();
+  loadDailyChecklist();
+  loadGettingStarted();
+  loadAdherence();
+}
+
+async function signOut() {
+  await sb.auth.signOut();
+  window.location.href = '/';
+}
+
+// ── PAGE NAV ──
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.sb-item').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.mn-item').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  const sb_el = document.getElementById('sb-' + name);
+  if (sb_el) sb_el.classList.add('active');
+  const mn_el = document.getElementById('mn-' + name);
+  if (mn_el) mn_el.classList.add('active');
+  if (name === 'workouts') loadWorkoutHistory();
+  if (name === 'nutrition') loadNutritionChart();
+  if (name === 'weight') { loadWeightHistory(); loadWeightChart(); }
+  if (name === 'plans') loadPlans();
+  if (name === 'faith') loadDevotionals();
+  if (name === 'habits') loadCustomHabits();
+}
+
+// ── DAILY CHECKLIST ──
+async function loadDailyChecklist() {
+  const today = new Date().toISOString().split('T')[0];
+  const [w, n, wt, h] = await Promise.all([
+    sb.from('workouts').select('id').eq('user_id', user.id).eq('date', today),
+    sb.from('nutrition').select('id').eq('user_id', user.id).eq('date', today),
+    sb.from('weight_logs').select('id').eq('user_id', user.id).eq('date', today),
+    sb.from('habits').select('*').eq('user_id', user.id).eq('date', today).maybeSingle()
+  ]);
+  const habits = h.data;
+  const items = [
+    { icon: '💪', label: 'Log today\'s workout', done: w.data && w.data.length > 0, page: 'workouts' },
+    { icon: '🥗', label: 'Log your nutrition', done: n.data && n.data.length > 0, page: 'nutrition' },
+    { icon: '⚖️', label: 'Log your weight', done: wt.data && wt.data.length > 0, page: 'weight' },
+    { icon: '💧', label: habits ? 'Water — ' + (habits.water_cups || 0) + ' oz logged' : 'Log your water intake', done: habits && habits.water_cups >= 64, page: 'habits' },
+    { icon: '👟', label: habits ? 'Steps — ' + (habits.steps || 0).toLocaleString() + ' logged' : 'Log your steps', done: habits && habits.steps >= 10000, page: 'habits' },
+    { icon: '😴', label: habits ? 'Sleep — ' + (habits.sleep_hrs || 0) + ' hrs logged' : 'Log your sleep', done: habits && habits.sleep_hrs > 0, page: 'habits' },
+    { icon: '✝️', label: 'Read today\'s devotional', done: habits && habits.devotional_done, page: 'faith' }
+  ];
+  const done = items.filter(i => i.done).length;
+  const pct = Math.round(done / items.length * 100);
+  document.getElementById('cl-pct').textContent = pct + '%';
+  document.getElementById('cl-bar').style.width = pct + '%';
+  if (pct === 100) document.getElementById('cl-celebration').style.display = 'block';
+  const container = document.getElementById('cl-items');
+  container.innerHTML = '';
+  items.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'cl-item' + (item.done ? ' done' : '');
+    if (!item.done) {
+      div.onclick = () => showPage(item.page);
+      div.onmouseover = () => { if (!item.done) div.style.background = 'var(--off)'; };
+      div.onmouseout = () => { if (!item.done) div.style.background = 'white'; };
+    }
+    div.innerHTML =
+      '<div class="cl-check">' +
+      (item.done ? '<i class="ti ti-check" style="font-size:12px;color:white;" aria-hidden="true"></i>' : '<i class="ti ' + item.icon + '" style="font-size:13px;color:#9CA3AF;" aria-hidden="true"></i>') +
+      '</div>' +
+      '<span class="cl-label">' + item.label + '</span>' +
+      (item.done ? '' : '<span class="cl-go">Go →</span>');
+    container.appendChild(div);
+  });
+}
+
+// ── GETTING STARTED ──
+async function loadGettingStarted() {
+  const { data: profile } = await sb.from('profiles').select('onboarding_complete').eq('id', user.id).single();
+  const { data: workouts } = await sb.from('workouts').select('id').eq('user_id', user.id).limit(1);
+  const { data: weights } = await sb.from('weight_logs').select('id').eq('user_id', user.id).limit(1);
+  const today = new Date().toISOString().split('T')[0];
+  const { data: devo } = await sb.from('habits').select('devotional_done').eq('user_id', user.id).eq('date', today).maybeSingle();
+
+  const items = [
+    { label: 'Complete your intake form', done: !!profile?.onboarding_complete, href: '/onboarding.html' },
+    { label: 'Log your first workout', done: workouts && workouts.length > 0, page: 'workouts' },
+    { label: 'Log your starting weight', done: weights && weights.length > 0, page: 'weight' },
+    { label: 'Read today\'s devotional', done: devo?.devotional_done, page: 'faith' },
+    { label: 'Explore the resources tab', done: false, page: 'resources' }
+  ];
+  const done = items.filter(i => i.done).length;
+  if (done === items.length) return;
+  document.getElementById('getting-started').style.display = 'block';
+  document.getElementById('gs-bar').style.width = Math.round(done / items.length * 100) + '%';
+  const el = document.getElementById('gs-items');
+  el.innerHTML = '';
+  items.forEach(item => {
+    const div = document.createElement('div');
+    div.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--g200);';
+    const check = document.createElement('div');
+    check.style.cssText = 'width:22px;height:22px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:' + (item.done ? 'var(--orange)' : 'white') + ';border:2px solid ' + (item.done ? 'var(--orange)' : 'var(--g200)') + ';';
+    if (item.done) check.innerHTML = '<svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5L4 7.5L8 2.5" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    const label = document.createElement('span');
+    label.style.cssText = 'font-size:14px;' + (item.done ? 'color:var(--g400);text-decoration:line-through;' : 'font-weight:500;color:var(--g800);');
+    label.textContent = item.label;
+    div.appendChild(check);
+    div.appendChild(label);
+    if (!item.done) {
+      const go = document.createElement('a');
+      go.style.cssText = 'margin-left:auto;color:var(--orange);font-size:13px;font-weight:600;text-decoration:none;cursor:pointer;';
+      go.textContent = 'Go →';
+      if (item.href) { go.href = item.href; }
+      else { go.onclick = () => showPage(item.page); }
+      div.appendChild(go);
+    }
+    el.appendChild(div);
+  });
+}
+
+// ── STATS ──
+async function loadStats() {
+  const { data: w } = await sb.from('workouts').select('id').eq('user_id', user.id);
+  if (w) document.getElementById('s-workouts').textContent = w.length;
+  const { data: n } = await sb.from('nutrition').select('calories').eq('user_id', user.id);
+  if (n && n.length) document.getElementById('s-calories').textContent = Math.round(n.reduce((s, r) => s + r.calories, 0) / n.length).toLocaleString();
+  const { data: wt } = await sb.from('weight_logs').select('weight_lbs').eq('user_id', user.id).order('date', { ascending: false }).limit(1);
+  if (wt && wt.length) document.getElementById('s-weight').textContent = wt[0].weight_lbs;
+}
+
+// ── WORKOUTS ──
+async function logWorkout() {
+  const exercise = document.getElementById('w-exercise').value.trim();
+  const date = document.getElementById('w-date').value;
+  if (!exercise || !date) { alert('Please enter at least the date and exercise.'); return; }
+  const { error } = await sb.from('workouts').insert({
+    user_id: user.id, date, exercise,
+    sets: parseInt(document.getElementById('w-sets').value) || 0,
+    reps: parseInt(document.getElementById('w-reps').value) || 0,
+    weight_lbs: parseFloat(document.getElementById('w-weight').value) || 0,
+    notes: document.getElementById('w-notes').value
+  });
+  if (!error) {
+    ['w-exercise','w-sets','w-reps','w-weight','w-notes'].forEach(id => document.getElementById(id).value = '');
+    loadWorkoutHistory();
+    loadStats();
+  } else alert('Error: ' + error.message);
+}
+
+async function loadWorkoutHistory() {
+  const { data } = await sb.from('workouts').select('*').eq('user_id', user.id).order('date', { ascending: false }).limit(30);
+  const el = document.getElementById('w-history');
+  if (!data || !data.length) { el.innerHTML = '<div class="empty">No workouts logged yet.</div>'; return; }
+  el.innerHTML = '<table><thead><tr><th>Date</th><th>Exercise</th><th>Sets</th><th>Reps</th><th>Weight</th><th>Notes</th></tr></thead><tbody>' +
+    data.map(w => '<tr><td>' + w.date + '</td><td>' + w.exercise + '</td><td>' + w.sets + '</td><td>' + w.reps + '</td><td>' + w.weight_lbs + ' lbs</td><td>' + (w.notes || '—') + '</td></tr>').join('') +
+    '</tbody></table>';
+}
+
+// ── NUTRITION ──
+async function logNutrition() {
+  const date = document.getElementById('n-date').value;
+  const calories = parseInt(document.getElementById('n-calories').value);
+  if (!date || !calories) { alert('Please fill in at least the date and calories.'); return; }
+  const { error } = await sb.from('nutrition').insert({
+    user_id: user.id, date, calories,
+    protein_g: parseInt(document.getElementById('n-protein').value) || 0,
+    carbs_g: parseInt(document.getElementById('n-carbs').value) || 0,
+    fats_g: parseInt(document.getElementById('n-fats').value) || 0,
+    calorie_goal: parseInt(document.getElementById('n-goal').value) || null
+  });
+  if (!error) {
+    ['n-calories','n-protein','n-carbs','n-fats'].forEach(id => document.getElementById(id).value = '');
+    loadNutritionHistory();
+    loadStats();
+  } else alert('Error: ' + error.message);
+}
+
+async function loadNutritionHistory() {
+  const { data } = await sb.from('nutrition').select('*').eq('user_id', user.id).order('date', { ascending: false }).limit(14);
+  const el = document.getElementById('n-history');
+  if (!data || !data.length) { el.innerHTML = '<div class="empty">No nutrition logged yet.</div>'; return; }
+  el.innerHTML = '<table><thead><tr><th>Date</th><th>Calories</th><th>Protein</th><th>Carbs</th><th>Fats</th></tr></thead><tbody>' +
+    data.map(n => '<tr><td>' + n.date + '</td><td>' + n.calories + ' kcal</td><td>' + n.protein_g + 'g</td><td>' + n.carbs_g + 'g</td><td>' + n.fats_g + 'g</td></tr>').join('') +
+    '</tbody></table>';
+}
+
+// ── WEIGHT ──
+async function logWeight() {
+  const date = document.getElementById('wt-date').value;
+  const weight = parseFloat(document.getElementById('wt-weight').value);
+  if (!date || !weight) { alert('Please fill in the date and weight.'); return; }
+  const { error } = await sb.from('weight_logs').insert({
+    user_id: user.id, date, weight_lbs: weight,
+    notes: document.getElementById('wt-notes').value
+  });
+  if (!error) {
+    document.getElementById('wt-weight').value = '';
+    document.getElementById('wt-notes').value = '';
+    loadWeightHistory();
+    loadStats();
+  } else alert('Error: ' + error.message);
+}
+
+async function loadWeightHistory() {
+  const { data } = await sb.from('weight_logs').select('*').eq('user_id', user.id).order('date', { ascending: false }).limit(30);
+  const el = document.getElementById('wt-history');
+  if (!data || !data.length) { el.innerHTML = '<div class="empty">No weight logged yet.</div>'; return; }
+  el.innerHTML = '<table><thead><tr><th>Date</th><th>Weight</th><th>Notes</th></tr></thead><tbody>' +
+    data.map(w => '<tr><td>' + w.date + '</td><td>' + w.weight_lbs + ' lbs</td><td>' + (w.notes || '—') + '</td></tr>').join('') +
+    '</tbody></table>';
+}
+
+// ── HABITS ──
+function updateRing(name, val, goal, ringId, lblId) {
+  const pct = Math.min(parseFloat(val) / goal, 1);
+  document.getElementById(ringId).style.strokeDashoffset = 201 - (201 * pct);
+  document.getElementById(lblId).textContent = val || 0;
+}
+
+function updateDevo(checked) {
+  document.getElementById('ring-devo').style.strokeDashoffset = checked ? 0 : 201;
+  document.getElementById('lbl-devo').textContent = checked ? '✓' : '—';
+}
+
+async function saveHabits() {
+  const today = new Date().toISOString().split('T')[0];
+  const { error } = await sb.from('habits').upsert({
+    user_id: user.id,
+    date: today,
+    water_cups: parseFloat(document.getElementById('h-water').value) || 0,
+    steps: parseInt(document.getElementById('h-steps').value) || 0,
+    sleep_hrs: parseFloat(document.getElementById('h-sleep').value) || 0,
+    devotional_done: document.getElementById('h-devo').checked
+  }, { onConflict: 'user_id,date' });
+  if (error) { alert('Error: ' + error.message); return; }
+
+  // Save custom habit logs
+  const logPromises = Object.entries(customHabitLogs).map(([habitId, value]) =>
+    sb.from('habit_logs').upsert({ user_id: user.id, habit_id: habitId, date: today, value }, { onConflict: 'user_id,habit_id,date' })
+  );
+  await Promise.all(logPromises);
+  alert('Habits saved!');
+  loadDailyChecklist();
+}
+
+// ── WORKOUT PLANS ──
+async function loadPlans() {
+  const { data } = await sb.from('workout_plans').select('*').order('created_at', { ascending: false });
+  const el = document.getElementById('plans-container');
+  if (!data || !data.length) {
+    el.innerHTML = '<div style="text-align:center;padding:48px;"><div style="font-size:48px;margin-bottom:16px;">💪</div><div style="font-size:18px;font-weight:700;color:var(--navy);margin-bottom:8px;">Plans coming soon</div><div style="font-size:14px;color:var(--g600);">Your workout plans are being finalized. Check back soon!</div></div>';
+    return;
+  }
+  el.innerHTML = data.map(p =>
+    '<div class="plan-card">' +
+    '<div style="font-size:18px;font-weight:700;color:var(--navy);margin-bottom:8px;">' + p.name + '</div>' +
+    (p.description ? '<div style="font-size:14px;color:var(--g600);margin-bottom:12px;">' + p.description + '</div>' : '') +
+    '<div class="plan-badges">' +
+    '<span class="badge badge-orange">' + (p.level === 'beginner' ? 'Beginner' : 'Intermediate') + '</span>' +
+    '<span class="badge badge-blue">' + p.days_per_week + ' days/week</span>' +
+    '</div>' +
+    (p.plan_days ? p.plan_days.map(day =>
+      '<div class="day-block">' +
+      '<div class="day-title">Day ' + day.day + (day.day_name ? ' — ' + day.day_name : '') + '</div>' +
+      day.exercises.map(ex =>
+        '<div class="ex-row"><span class="ex-name">' + ex.exercise + '</span>' +
+        '<span class="ex-detail">' + ex.sets + ' sets</span>' +
+        '<span class="ex-detail">' + ex.reps + ' reps</span>' +
+        (ex.notes ? '<span class="ex-note">' + ex.notes + '</span>' : '') +
+        '</div>'
+      ).join('') +
+      '</div>'
+    ).join('') : '') +
+    '</div>'
+  ).join('');
+}
+
+// ── DEVOTIONALS ──
+async function loadDevotionals() {
+  const today = new Date().toISOString().split('T')[0];
+  const { data } = await sb.from('devotionals').select('*').lte('publish_date', today).order('publish_date', { ascending: false });
+  const el = document.getElementById('devotionals-container');
+  if (!data || !data.length) {
+    el.innerHTML = '<div style="background:var(--off);border:1px solid var(--g200);border-radius:14px;padding:28px;text-align:center;"><p style="font-size:15px;color:var(--g600);">Devotionals coming soon. Check back daily!</p></div>';
+    return;
+  }
+  const todayDevo = data.find(d => d.publish_date === today);
+  const rest = data.filter(d => d.publish_date !== today);
+  let html = '';
+  if (todayDevo) {
+    html += '<div class="devo-today">' +
+      '<div class="devo-tag">Today\'s Devotional</div>' +
+      '<div class="devo-title">' + todayDevo.title + '</div>' +
+      '<div class="devo-verse">"' + todayDevo.scripture_text + '"</div>' +
+      '<div class="devo-ref">— ' + todayDevo.scripture_ref + '</div>' +
+      '<div class="devo-msg">' + todayDevo.message + '</div>' +
+      '</div>';
+  }
+  rest.forEach(d => {
+    html += '<div class="devo-past">' +
+      '<div class="devo-title">' + d.title + '</div>' +
+      '<div class="devo-verse">"' + d.scripture_text + '"</div>' +
+      '<div class="devo-ref">— ' + d.scripture_ref + '</div>' +
+      '<div class="devo-msg">' + d.message + '</div>' +
+      '</div>';
+  });
+  el.innerHTML = html;
+}
+
+// ── CUSTOM HABITS ──
+let customHabits = [];
+let customHabitLogs = {};
+
+function showAddHabit() {
+  document.getElementById('add-habit-panel').style.display = 'block';
+}
+
+function hideAddHabit() {
+  document.getElementById('add-habit-panel').style.display = 'none';
+  document.getElementById('new-habit-name').value = '';
+  document.getElementById('new-habit-goal').value = '';
+  document.getElementById('new-habit-unit').value = '';
+}
+
+function fillHabit(name, icon, goal, unit) {
+  document.getElementById('new-habit-name').value = name;
+  document.getElementById('new-habit-goal').value = goal;
+  document.getElementById('new-habit-unit').value = unit;
+}
+
+async function addCustomHabit() {
+  const name = document.getElementById('new-habit-name').value.trim();
+  const goal = parseFloat(document.getElementById('new-habit-goal').value) || 1;
+  const unit = document.getElementById('new-habit-unit').value.trim() || 'x per day';
+  if (!name) { alert('Please enter a habit name.'); return; }
+  const { error } = await sb.from('custom_habits').insert({
+    user_id: user.id, name, icon: 'ti-check', goal_value: goal, goal_unit: unit
+  });
+  if (!error) { hideAddHabit(); loadCustomHabits(); }
+  else alert('Error: ' + error.message);
+}
+
+async function deleteCustomHabit(id) {
+  if (!confirm('Remove this habit?')) return;
+  await sb.from('custom_habits').delete().eq('id', id);
+  loadCustomHabits();
+}
+
+async function loadCustomHabits() {
+  const { data } = await sb.from('custom_habits').select('*').eq('user_id', user.id).order('created_at');
+  customHabits = data || [];
+  const today = new Date().toISOString().split('T')[0];
+  const { data: logs } = await sb.from('habit_logs').select('*').eq('user_id', user.id).eq('date', today);
+  customHabitLogs = {};
+  (logs || []).forEach(l => { customHabitLogs[l.habit_id] = l.value; });
+
+  const grid = document.getElementById('custom-habits-grid');
+  const empty = document.getElementById('no-custom-habits');
+
+  if (!customHabits.length) {
+    grid.innerHTML = '';
+    grid.style.display = 'none';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  grid.style.display = 'grid';
+
+  grid.innerHTML = customHabits.map(h => {
+    const val = customHabitLogs[h.id] || 0;
+    const goal = h.goal_value || 1;
+    const pct = Math.min(val / goal, 1);
+    const circ = 201;
+    const offset = circ - circ * pct;
+    return '<div class="habit-card" style="position:relative;">' +
+      '<button onclick="deleteCustomHabit('' + h.id + '')" style="position:absolute;top:8px;right:8px;background:none;border:none;cursor:pointer;color:var(--g400);font-size:16px;line-height:1;" title="Remove"><i class="ti ti-x" aria-hidden="true"></i></button>' +
+      '<div class="habit-name"><i class="ti ' + h.icon + '" aria-hidden="true"></i> ' + h.name + '</div>' +
+      '<div class="ring-wrap">' +
+      '<svg viewBox="0 0 80 80"><circle class="ring-bg" cx="40" cy="40" r="32"/><circle class="ring-prog" id="ring-ch-' + h.id + '" cx="40" cy="40" r="32" stroke-dasharray="201" stroke-dashoffset="' + offset + '"/></svg>' +
+      '<div class="ring-label" id="lbl-ch-' + h.id + '">' + val + '</div>' +
+      '</div>' +
+      '<div class="habit-input">' +
+      '<input type="number" id="ch-' + h.id + '" value="' + val + '" min="0" oninput="updateCustomRing('' + h.id + '',this.value,' + goal + ')" style="width:60px;padding:6px 8px;border:1.5px solid var(--g200);border-radius:6px;font-size:14px;text-align:center;font-family:Inter,sans-serif;outline:none;" />' +
+      '<span class="habit-unit">/ ' + goal + ' ' + h.goal_unit + '</span>' +
+      '</div>' +
+      '</div>';
+  }).join('');
+}
+
+function updateCustomRing(id, val, goal) {
+  const pct = Math.min(parseFloat(val) / goal, 1);
+  const el = document.getElementById('ring-ch-' + id);
+  const lbl = document.getElementById('lbl-ch-' + id);
+  if (el) el.style.strokeDashoffset = 201 - 201 * pct;
+  if (lbl) lbl.textContent = val || 0;
+  customHabitLogs[id] = parseFloat(val) || 0;
+}
+
+// ── WEIGHT CHART ──
+async function loadWeightChart() {
+  const { data } = await sb.from('weight_logs').select('*').eq('user_id', user.id).order('date', { ascending: true }).limit(30);
+  const el = document.getElementById('wt-chart');
+  if (!data || data.length < 2) {
+    el.innerHTML = '<div class="empty" style="padding:40px;text-align:center;">Log at least 2 weigh-ins to see your trend chart!</div>';
+    return;
+  }
+
+  const weights = data.map(d => parseFloat(d.weight_lbs));
+  const dates = data.map(d => d.date);
+  const minW = Math.min(...weights) - 2;
+  const maxW = Math.max(...weights) + 2;
+  const range = maxW - minW;
+  const W = el.offsetWidth || 600;
+  const H = 180;
+  const padL = 48, padR = 16, padT = 16, padB = 28;
+  const chartW = W - padL - padR;
+  const chartH = H - padT - padB;
+
+  const xStep = chartW / (data.length - 1);
+  const yScale = chartH / range;
+
+  const toX = i => padL + i * xStep;
+  const toY = w => padT + chartH - (w - minW) * yScale;
+
+  // Build SVG
+  let svg = '<svg width="100%" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg">';
+
+  // Grid lines
+  const steps = 4;
+  for (let i = 0; i <= steps; i++) {
+    const w = minW + (range / steps) * i;
+    const y = toY(w);
+    svg += '<line x1="' + padL + '" y1="' + y + '" x2="' + (W - padR) + '" y2="' + y + '" stroke="#E5E7EB" stroke-width="1" stroke-dasharray="4 4"/>';
+    svg += '<text x="' + (padL - 6) + '" y="' + (y + 4) + '" text-anchor="end" font-size="10" fill="#9CA3AF">' + w.toFixed(1) + '</text>';
+  }
+
+  // Gradient fill under line
+  svg += '<defs><linearGradient id="wg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#E87722" stop-opacity="0.15"/><stop offset="100%" stop-color="#E87722" stop-opacity="0"/></linearGradient></defs>';
+
+  // Fill area
+  let fillPath = 'M ' + toX(0) + ' ' + toY(weights[0]);
+  for (let i = 1; i < weights.length; i++) {
+    const x0 = toX(i-1), y0 = toY(weights[i-1]);
+    const x1 = toX(i), y1 = toY(weights[i]);
+    const cx = (x0 + x1) / 2;
+    fillPath += ' C ' + cx + ' ' + y0 + ' ' + cx + ' ' + y1 + ' ' + x1 + ' ' + y1;
+  }
+  fillPath += ' L ' + toX(weights.length-1) + ' ' + (padT + chartH) + ' L ' + toX(0) + ' ' + (padT + chartH) + ' Z';
+  svg += '<path d="' + fillPath + '" fill="url(#wg)"/>';
+
+  // Line
+  let linePath = 'M ' + toX(0) + ' ' + toY(weights[0]);
+  for (let i = 1; i < weights.length; i++) {
+    const x0 = toX(i-1), y0 = toY(weights[i-1]);
+    const x1 = toX(i), y1 = toY(weights[i]);
+    const cx = (x0 + x1) / 2;
+    linePath += ' C ' + cx + ' ' + y0 + ' ' + cx + ' ' + y1 + ' ' + x1 + ' ' + y1;
+  }
+  svg += '<path d="' + linePath + '" fill="none" stroke="#E87722" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>';
+
+  // Dots + date labels
+  weights.forEach((w, i) => {
+    const x = toX(i), y = toY(w);
+    const isFirst = i === 0, isLast = i === weights.length - 1;
+    const showLabel = isFirst || isLast || data.length <= 10 || i % Math.ceil(data.length / 7) === 0;
+    svg += '<circle cx="' + x + '" cy="' + y + '" r="4" fill="white" stroke="#E87722" stroke-width="2"/>';
+    if (showLabel) {
+      const d = new Date(dates[i] + 'T12:00:00');
+      const label = (d.getMonth()+1) + '/' + d.getDate();
+      svg += '<text x="' + x + '" y="' + (padT + chartH + 18) + '" text-anchor="middle" font-size="10" fill="#9CA3AF">' + label + '</text>';
+    }
+  });
+
+  svg += '</svg>';
+  el.innerHTML = svg;
+
+  // Show change badge
+  const change = weights[weights.length-1] - weights[0];
+  const badge = document.getElementById('wt-change-badge');
+  badge.style.display = 'block';
+  if (Math.abs(change) < 0.1) {
+    badge.style.background = '#F3F4F6'; badge.style.color = '#6B7280';
+    badge.textContent = 'No change';
+  } else if (change < 0) {
+    badge.style.background = '#F0FDF4'; badge.style.color = '#16A34A';
+    badge.textContent = '▼ ' + Math.abs(change).toFixed(1) + ' lbs lost';
+  } else {
+    badge.style.background = '#FFF7ED'; badge.style.color = '#E87722';
+    badge.textContent = '▲ +' + change.toFixed(1) + ' lbs gained';
+  }
+}
+
+// ── WEEKLY ADHERENCE ──
+async function loadAdherence() {
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    days.push(d.toISOString().split('T')[0]);
+  }
+  const startDate = days[0];
+  const endDate = days[6];
+
+  const [workoutsRes, nutritionRes, habitsRes] = await Promise.all([
+    sb.from('workouts').select('date').eq('user_id', user.id).gte('date', startDate).lte('date', endDate),
+    sb.from('nutrition').select('date').eq('user_id', user.id).gte('date', startDate).lte('date', endDate),
+    sb.from('habits').select('*').eq('user_id', user.id).gte('date', startDate).lte('date', endDate)
+  ]);
+
+  const workoutDays = new Set((workoutsRes.data || []).map(r => r.date));
+  const nutritionDays = new Set((nutritionRes.data || []).map(r => r.date));
+  const habitsByDate = {};
+  (habitsRes.data || []).forEach(r => { habitsByDate[r.date] = r; });
+
+  // Calculate adherence %
+  const workoutPct = Math.round(workoutDays.size / 7 * 100);
+  const nutritionPct = Math.round(nutritionDays.size / 7 * 100);
+
+  let waterHit = 0, stepsHit = 0, sleepHit = 0, devoHit = 0;
+  days.forEach(d => {
+    const h = habitsByDate[d];
+    if (h) {
+      if (h.water_cups >= 64) waterHit++;
+      if (h.steps >= 10000) stepsHit++;
+      if (h.sleep_hrs >= 7) sleepHit++;
+      if (h.devotional_done) devoHit++;
+    }
+  });
+
+  const waterPct = Math.round(waterHit / 7 * 100);
+  const stepsPct = Math.round(stepsHit / 7 * 100);
+  const sleepPct = Math.round(sleepHit / 7 * 100);
+  const devoPct = Math.round(devoHit / 7 * 100);
+
+  const metrics = [
+    { label: 'Workouts', pct: workoutPct, icon: 'ti-barbell', color: '#6366F1' },
+    { label: 'Nutrition', pct: nutritionPct, icon: 'ti-clock', color: '#F59E0B' },
+    { label: 'Water', pct: waterPct, icon: 'ti-droplet', color: '#3B82F6' },
+    { label: 'Steps', pct: stepsPct, icon: 'ti-shoe', color: '#10B981' },
+    { label: 'Sleep', pct: sleepPct, icon: 'ti-moon', color: '#8B5CF6' },
+    { label: 'Devotional', pct: devoPct, icon: 'ti-cross', color: '#E87722' }
+  ];
+
+  const grid = document.getElementById('adherence-grid');
+  grid.innerHTML = metrics.map(m => {
+    const isGreat = m.pct >= 80;
+    const isOk = m.pct >= 50;
+    const statusColor = isGreat ? '#16A34A' : isOk ? '#E87722' : '#EF4444';
+    const statusLabel = isGreat ? 'Great' : isOk ? 'Keep going' : 'Needs work';
+    const circumference = 2 * Math.PI * 28;
+    const offset = circumference - (m.pct / 100 * circumference);
+    return '<div style="background:var(--off);border-radius:14px;padding:16px;text-align:center;">' +
+      '<div style="font-size:20px;margin-bottom:8px;"><i class="ti ' + m.icon + '" aria-hidden="true"></i></div>' +
+      '<div style="position:relative;width:72px;height:72px;margin:0 auto 10px;">' +
+      '<svg width="72" height="72" viewBox="0 0 72 72" style="transform:rotate(-90deg);">' +
+      '<circle cx="36" cy="36" r="28" fill="none" stroke="#E5E7EB" stroke-width="7"/>' +
+      '<circle cx="36" cy="36" r="28" fill="none" stroke="' + m.color + '" stroke-width="7" stroke-linecap="round"' +
+      ' stroke-dasharray="' + circumference + '" stroke-dashoffset="' + offset + '"' +
+      ' style="transition:stroke-dashoffset 0.8s ease;"/>' +
+      '</svg>' +
+      '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:var(--navy);">' + m.pct + '%</div>' +
+      '</div>' +
+      '<div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:4px;">' + m.label + '</div>' +
+      '<div style="font-size:11px;font-weight:600;color:' + statusColor + ';">' + statusLabel + '</div>' +
+      '</div>';
+  }).join('');
+}
+
+// ── NUTRITION TABS ──
+function switchNTab(tab) {
+  const isChart = tab === 'chart';
+  document.getElementById('ntab-chart-content').style.display = isChart ? 'block' : 'none';
+  document.getElementById('ntab-history-content').style.display = isChart ? 'none' : 'block';
+  document.getElementById('ntab-chart').style.color = isChart ? 'var(--orange)' : 'var(--g400)';
+  document.getElementById('ntab-chart').style.borderBottom = isChart ? '2px solid var(--orange)' : 'none';
+  document.getElementById('ntab-history').style.color = isChart ? 'var(--g400)' : 'var(--orange)';
+  document.getElementById('ntab-history').style.borderBottom = isChart ? 'none' : '2px solid var(--orange)';
+  if (!isChart) loadNutritionHistory();
+  else loadNutritionChart();
+}
+
+// ── NUTRITION CHART ──
+async function loadNutritionChart() {
+  // Get last 7 days
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    days.push(d.toISOString().split('T')[0]);
+  }
+
+  const { data } = await sb.from('nutrition').select('*').eq('user_id', user.id).gte('date', days[0]).lte('date', days[6]);
+
+  const wrap = document.getElementById('n-chart');
+  if (!data || !data.length) {
+    wrap.innerHTML = '<div class="empty" style="padding:40px;text-align:center;">Log some nutrition to see your weekly chart!</div>';
+    return;
+  }
+
+  // Map data by date
+  const byDate = {};
+  data.forEach(r => { byDate[r.date] = r; });
+
+  // Get max calories for scaling
+  const maxCal = Math.max(...data.map(r => r.calories), 2500);
+  const scale = 240 / maxCal; // chart height px
+
+  const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+  let html = '<div style="display:flex;align-items:flex-end;gap:8px;height:280px;padding-bottom:32px;position:relative;">';
+
+  // Y axis lines
+  html += '<div style="position:absolute;left:0;right:0;top:0;bottom:32px;pointer-events:none;">';
+  [0, 25, 50, 75, 100].forEach(pct => {
+    const cal = Math.round(maxCal * pct / 100);
+    const bottom = pct * 240 / 100;
+    html += '<div style="position:absolute;left:0;right:0;bottom:' + bottom + 'px;border-top:1px dashed var(--g200);display:flex;align-items:center;">';
+    html += '<span style="font-size:10px;color:var(--g400);background:white;padding-right:4px;position:absolute;left:0;transform:translateY(-50%);">' + cal.toLocaleString() + '</span>';
+    html += '</div>';
+  });
+  html += '</div>';
+
+  // Bars
+  html += '<div style="display:flex;align-items:flex-end;gap:8px;flex:1;height:240px;margin-left:36px;">';
+  days.forEach(date => {
+    const r = byDate[date];
+    const dayName = dayNames[new Date(date + 'T12:00:00').getDay()];
+    const isToday = date === new Date().toISOString().split('T')[0];
+
+    if (!r) {
+      html += '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;">' +
+        '<div style="flex:1;display:flex;align-items:flex-end;width:100%;">' +
+        '<div style="width:100%;height:4px;background:var(--g200);border-radius:4px;"></div>' +
+        '</div>' +
+        '<div style="font-size:11px;font-weight:' + (isToday ? '700' : '500') + ';color:' + (isToday ? 'var(--navy)' : 'var(--g400)') + ';">' + dayName + '</div>' +
+        '</div>';
+      return;
+    }
+
+    const totalCal = r.calories || 0;
+    const barH = Math.round(totalCal * scale);
+
+    // Calculate macro percentages of calories
+    const proteinCal = (r.protein_g || 0) * 4;
+    const carbsCal = (r.carbs_g || 0) * 4;
+    const fatsCal = (r.fats_g || 0) * 9;
+    const macroCal = proteinCal + carbsCal + fatsCal;
+
+    const pPct = macroCal > 0 ? proteinCal / macroCal : 0.33;
+    const cPct = macroCal > 0 ? carbsCal / macroCal : 0.34;
+    const fPct = macroCal > 0 ? fatsCal / macroCal : 0.33;
+
+    const pH = Math.round(barH * pPct);
+    const cH = Math.round(barH * cPct);
+    const fH = barH - pH - cH;
+
+    // Check if within goal (need stored goal - use profile recommended or default 2000)
+    const goal = r.calorie_goal || 2000;
+    const hitGoal = Math.abs(totalCal - goal) <= 100;
+
+    const border = hitGoal ? '2px solid var(--orange)' : 'none';
+    const shadow = hitGoal ? '0 0 0 2px rgba(232,119,34,0.3)' : 'none';
+
+    html += '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;">' +
+      '<div style="font-size:10px;color:var(--g600);font-weight:600;">' + totalCal.toLocaleString() + '</div>' +
+      '<div style="flex:1;display:flex;align-items:flex-end;width:100%;">' +
+      '<div style="width:100%;height:' + barH + 'px;border-radius:6px 6px 0 0;overflow:hidden;border:' + border + ';box-shadow:' + shadow + ';display:flex;flex-direction:column-reverse;">' +
+      '<div style="height:' + pH + 'px;background:#6366F1;flex-shrink:0;"></div>' +
+      '<div style="height:' + cH + 'px;background:#F59E0B;flex-shrink:0;"></div>' +
+      '<div style="height:' + Math.max(fH, 0) + 'px;background:#10B981;flex-shrink:0;"></div>' +
+      '</div>' +
+      '</div>' +
+      '<div style="font-size:11px;font-weight:' + (isToday ? '700' : '500') + ';color:' + (isToday ? 'var(--navy)' : 'var(--g400)') + ';">' + dayName + '</div>' +
+      '</div>';
+  });
+
+  html += '</div></div>';
+  wrap.innerHTML = html;
+}
+
+init();
+</script>
+</body>
+</html>
