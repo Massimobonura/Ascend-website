@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Admin — Ascend Faith & Fitness</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -115,20 +116,20 @@
   <div class="sidebar">
     <div class="sidebar-section">
       <div class="sidebar-label">Overview</div>
-      <a class="sidebar-item active" onclick="showPage('overview')" href="#">📊 Overview</a>
+      <a class="sidebar-item active" onclick="showPage('overview')" href="#"><i class="ti ti-chart-bar"></i> Overview</a>
     </div>
     <div class="sidebar-section">
       <div class="sidebar-label">Members</div>
-      <a class="sidebar-item" onclick="showPage('members')" href="#">👥 All Members</a>
-      <a class="sidebar-item" onclick="showPage('coaching-clients')" href="#">🏋️ Coaching Clients</a>
-      <a class="sidebar-item" onclick="showPage('inquiries')" href="#">📬 Coaching Inquiries</a>
-      <a class="sidebar-item" onclick="showPage('testimonials')" href="#">⭐ Testimonials</a>
+      <a class="sidebar-item" onclick="showPage('members')" href="#"><i class="ti ti-users"></i> All Members</a>
+      <a class="sidebar-item" onclick="showPage('coaching-clients')" href="#"><i class="ti ti-user-check"></i> Coaching Clients</a>
+      <a class="sidebar-item" onclick="showPage('inquiries')" href="#"><i class="ti ti-mail"></i> Coaching Inquiries</a>
+      <a class="sidebar-item" onclick="showPage('testimonials')" href="#"><i class="ti ti-star"></i> Testimonials</a>
     </div>
     <div class="sidebar-section">
       <div class="sidebar-label">Content</div>
-      <a class="sidebar-item" onclick="showPage('workouts')" href="#">💪 Workout Plans</a>
-      <a class="sidebar-item" onclick="showPage('devotionals')" href="#">✝️ Devotionals</a>
-      <a class="sidebar-item" onclick="showPage('announcements')" href="#">📣 Announcements</a>
+      <a class="sidebar-item" onclick="showPage('workouts')" href="#"><i class="ti ti-barbell"></i> Workout Plans</a>
+      <a class="sidebar-item" onclick="showPage('devotionals')" href="#"><i class="ti ti-cross"></i> Devotionals</a>
+      <a class="sidebar-item" onclick="showPage('announcements')" href="#"><i class="ti ti-speakerphone"></i> Announcements</a>
     </div>
   </div>
 
@@ -136,7 +137,7 @@
 
     <!-- OVERVIEW -->
     <div class="page active" id="page-overview">
-      <div class="page-title">Welcome back, Massimo 👋</div>
+      <div class="page-title">Welcome back, Massimo</div>
       <div class="page-sub">Here's what's happening with Ascend today.</div>
       <div class="stats-grid">
         <div class="stat-card"><div class="label">Total Members</div><div class="value" id="stat-members">—</div></div>
