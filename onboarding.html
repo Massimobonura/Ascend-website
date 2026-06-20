@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Get Started — Ascend Faith & Fitness</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#0D1B2A" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Ascend" />
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html {
+      background: #0D1B2A;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #0D1B2A;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: #080F17;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      padding: 0 32px;
+      justify-content: space-between;
+    }
+
+    header img { height: 44px; width: auto; mix-blend-mode: screen; }
+    header span { font-size: 13px; color: rgba(255,255,255,0.5); font-weight: 500; }
+
+    main {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 20px;
+      background: #0D1B2A;
+    }
+
+    .card {
+      background: #ffffff;
+      border-radius: 20px;
+      padding: 40px 36px;
+      width: 100%;
+      max-width: 560px;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.4);
+    }
+
+    .bar-wrap { background: #E5E7EB; border-radius: 99px; height: 5px; margin-bottom: 32px; }
+    .bar-fill { background: #E87722; height: 5px; border-radius: 99px; transition: width 0.4s; }
+
+    .eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 0.18em; color: #E87722; text-transform: uppercase; margin-bottom: 8px; }
+    h2 { font-size: 24px; font-weight: 800; color: #0D1B2A; margin-bottom: 6px; }
+    .sub { font-size: 14px; color: #6B7280; margin-bottom: 28px; line-height: 1.6; }
+
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 28px; }
+    .opt {
+      border: 2px solid #E5E7EB; border-radius: 12px; padding: 16px 10px;
+      cursor: pointer; text-align: center; background: white; transition: all 0.15s;
+    }
+    .opt:hover { border-color: #E87722; background: #FFF8F3; }
+    .opt.sel { border-color: #E87722; background: #FFF8F3; }
+    .opt .ico { font-size: 26px; margin-bottom: 8px; }
+    .opt .lbl { font-size: 13px; font-weight: 700; color: #0D1B2A; line-height: 1.3; }
+    .opt .sub2 { font-size: 11px; color: #9CA3AF; margin-top: 3px; line-height: 1.3; }
+
+    .fg { margin-bottom: 16px; }
+    .fg label { display: block; font-size: 13px; font-weight: 600; color: #1F2937; margin-bottom: 6px; }
+    .fg input, .fg select {
+      width: 100%; padding: 11px 14px; border: 1.5px solid #E5E7EB;
+      border-radius: 10px; font-size: 14px; font-family: 'Inter', sans-serif;
+      color: #1F2937; outline: none; background: white; transition: border-color 0.2s;
+    }
+    .fg input:focus, .fg select:focus { border-color: #E87722; }
+
+    .btns { display: flex; gap: 10px; margin-top: 28px; }
+    .btn-next {
+      flex: 1; background: #E87722; color: white; border: none;
+      padding: 14px; border-radius: 10px; font-size: 15px; font-weight: 700;
+      cursor: pointer; font-family: 'Inter', sans-serif;
+    }
+    .btn-next:hover { background: #C9641A; }
+    .btn-back {
+      background: white; color: #0D1B2A; border: 1.5px solid #E5E7EB;
+      padding: 14px 20px; border-radius: 10px; font-size: 15px;
+      font-weight: 600; cursor: pointer; font-family: 'Inter', sans-serif;
+    }
+
+    .step { display: none; }
+    .step.on { display: block; }
+
+    .rec { background: #0D1B2A; border-radius: 14px; padding: 24px; text-align: center; margin-bottom: 20px; }
+    .rec .rl { font-size: 10px; font-weight: 700; color: #E87722; letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 10px; }
+    .rec .rn { font-size: 20px; font-weight: 800; color: white; margin-bottom: 8px; line-height: 1.3; }
+    .rec .rd { font-size: 13px; color: rgba(255,255,255,0.65); line-height: 1.6; }
+
+    .nxt { background: #F8F9FA; border: 1px solid #E5E7EB; border-radius: 12px; padding: 20px; }
+    .nxt h4 { font-size: 14px; font-weight: 700; color: #0D1B2A; margin-bottom: 8px; }
+    .nxt p { font-size: 13px; color: #6B7280; line-height: 1.65; }
+  </style>
+</head>
+<body>
+
+<header>
+  <a href="/"><img src="Ascend_logo_.png" alt="Ascend" /></a>
+  <span id="step-label">Step 1 of 5</span>
+</header>
+
+<main>
+  <div class="card">
+    <div class="bar-wrap"><div class="bar-fill" id="bar" style="width:20%"></div></div>
+
+    <!-- Step 1 -->
+    <div class="step on" id="s1">
+      <div class="eyebrow">Step 1 of 5</div>
+      <h2>What's your primary goal?</h2>
+      <p class="sub">This helps us recommend the right program for you.</p>
+      <div class="grid">
+        <div class="opt" onclick="pick(this,'goal','lose_fat')"><div class="ico">🔥</div><div class="lbl">Lose fat</div></div>
+        <div class="opt" onclick="pick(this,'goal','build_muscle')"><div class="ico">💪</div><div class="lbl">Build muscle</div></div>
+        <div class="opt" onclick="pick(this,'goal','recomp')"><div class="ico">⚡</div><div class="lbl">Body Recomposition</div><div class="sub2">Lose fat while gaining muscle</div></div>
+        <div class="opt" onclick="pick(this,'goal','overall_health')"><div class="ico">❤️</div><div class="lbl">Overall health</div></div>
+        <div class="opt" onclick="pick(this,'goal','strength')"><div class="ico">🏋️</div><div class="lbl">Get stronger</div></div>
+      </div>
+      <div class="btns"><button class="btn-next" onclick="go(2)">Continue →</button></div>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="step" id="s2">
+      <div class="eyebrow">Step 2 of 5</div>
+      <h2>Experience & schedule</h2>
+      <p class="sub">Be honest — there's no wrong answer.</p>
+      <div class="fg"><label>Experience level</label>
+        <select id="q-level">
+          <option value="">Select one...</option>
+          <option value="beginner">Beginner — I'm fairly new to the gym or just getting started</option>
+          <option value="intermediate">Intermediate — I've been training consistently</option>
+        </select>
+      </div>
+      <div class="fg"><label>Days per week you can commit to</label>
+        <select id="q-days">
+          <option value="">Select one...</option>
+          <option value="3">3 days</option>
+          <option value="4">4 days</option>
+          <option value="5">5 days</option>
+        </select>
+      </div>
+      <div class="fg"><label>Workout style preference</label>
+        <select id="q-style">
+          <option value="">Select one...</option>
+          <option value="ppl">Push / Pull / Legs split</option>
+          <option value="full_body">Full Body workouts</option>
+          <option value="lower_focus">Lower Body Focus</option>
+          <option value="not_sure">I'm not sure — recommend something balanced</option>
+        </select>
+      </div>
+      <div class="fg"><label>Gym access</label>
+        <select id="q-gym">
+          <option value="">Select one...</option>
+          <option value="full_gym">Yes — full gym with machines and free weights</option>
+          <option value="home">No — I work out at home</option>
+        </select>
+      </div>
+      <div class="fg"><label>Any injuries or limitations?</label>
+        <input type="text" id="q-injuries" placeholder="e.g. bad knees, lower back pain — or type none" />
+      </div>
+      <div class="btns">
+        <button class="btn-back" onclick="go(1)">←</button>
+        <button class="btn-next" onclick="go(3)">Continue →</button>
+      </div>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="step" id="s3">
+      <div class="eyebrow">Step 3 of 5</div>
+      <h2>Let's talk nutrition</h2>
+      <p class="sub">Understanding where you're starting helps us set the right targets.</p>
+      <div class="fg"><label>Are you familiar with tracking calories?</label>
+        <select id="q-tracking">
+          <option value="">Select one...</option>
+          <option value="yes_active">Yes — I actively track right now</option>
+          <option value="yes_before">I've tracked before but don't currently</option>
+          <option value="no">No — I've never tracked calories</option>
+        </select>
+      </div>
+      <div class="fg"><label>Current daily calorie intake (if you know it)</label>
+        <input type="number" id="q-calories" placeholder="e.g. 1800 — leave blank if unsure" />
+      </div>
+      <div class="fg"><label>Daily water intake</label>
+        <select id="q-water">
+          <option value="">Select one...</option>
+          <option value="under_32">Under 32 oz</option>
+          <option value="32_64">32–64 oz</option>
+          <option value="64_96">64–96 oz</option>
+          <option value="96_plus">96+ oz</option>
+        </select>
+      </div>
+      <div class="btns">
+        <button class="btn-back" onclick="go(2)">←</button>
+        <button class="btn-next" onclick="go(4)">Continue →</button>
+      </div>
+    </div>
+
+    <!-- Step 4 -->
+    <div class="step" id="s4">
+      <div class="eyebrow">Step 4 of 5</div>
+      <h2>Your lifestyle</h2>
+      <p class="sub">A few more questions to personalize your experience.</p>
+      <div class="fg"><label>Average daily step count</label>
+        <select id="q-steps">
+          <option value="">Select one...</option>
+          <option value="under_3k">Under 3,000</option>
+          <option value="3k_6k">3,000–6,000</option>
+          <option value="6k_10k">6,000–10,000</option>
+          <option value="10k_plus">10,000+</option>
+        </select>
+      </div>
+      <div class="fg"><label>Preferred workout time</label>
+        <select id="q-time">
+          <option value="">Select one...</option>
+          <option value="morning">Morning (before work)</option>
+          <option value="midday">Midday / lunch break</option>
+          <option value="afternoon">Afternoon</option>
+          <option value="evening">Evening (after work)</option>
+        </select>
+      </div>
+      <div class="fg"><label>Current sleep quality</label>
+        <select id="q-sleep">
+          <option value="">Select one...</option>
+          <option value="poor">Poor — under 6 hours most nights</option>
+          <option value="average">Average — 6–7 hours</option>
+          <option value="good">Good — 7–8 hours</option>
+          <option value="great">Great — 8+ hours</option>
+        </select>
+      </div>
+      <div class="fg"><label>Biggest fitness challenge</label>
+        <select id="q-challenge">
+          <option value="">Select one...</option>
+          <option value="consistency">Staying consistent</option>
+          <option value="motivation">Finding motivation</option>
+          <option value="nutrition">Eating well</option>
+          <option value="knowledge">Not knowing what to do</option>
+          <option value="time">Not enough time</option>
+          <option value="accountability">Lack of accountability</option>
+        </select>
+      </div>
+      <div class="btns">
+        <button class="btn-back" onclick="go(3)">←</button>
+        <button class="btn-next" onclick="go(5)">Continue →</button>
+      </div>
+    </div>
+
+    <!-- Step 5 -->
+    <div class="step" id="s5">
+      <div class="eyebrow">Step 5 of 5 — Your protocol</div>
+      <h2>Here's what your current protocols are set up for</h2>
+      <p class="sub">Based on your answers, we've set the following for you. You can adjust any of this anytime from your dashboard.</p>
+
+      <div class="rec" id="plan-rec">
+        <div class="rl">Workout plan</div>
+        <div class="rn" id="rec-name">Loading...</div>
+        <div class="rd" id="rec-desc"></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;">
+        <div style="background:#F8F9FA;border-radius:10px;padding:14px 8px;text-align:center;">
+          <div style="font-size:10px;font-weight:700;color:#E87722;letter-spacing:0.08em;margin-bottom:4px;">WATER</div>
+          <div style="font-size:18px;font-weight:800;color:#0D1B2A;" id="proto-water">—</div>
+          <div style="font-size:10px;color:#9CA3AF;">oz / day</div>
+        </div>
+        <div style="background:#F8F9FA;border-radius:10px;padding:14px 8px;text-align:center;">
+          <div style="font-size:10px;font-weight:700;color:#E87722;letter-spacing:0.08em;margin-bottom:4px;">STEPS</div>
+          <div style="font-size:18px;font-weight:800;color:#0D1B2A;" id="proto-steps">—</div>
+          <div style="font-size:10px;color:#9CA3AF;">/ day</div>
+        </div>
+        <div style="background:#F8F9FA;border-radius:10px;padding:14px 8px;text-align:center;">
+          <div style="font-size:10px;font-weight:700;color:#E87722;letter-spacing:0.08em;margin-bottom:4px;">SLEEP</div>
+          <div style="font-size:18px;font-weight:800;color:#0D1B2A;" id="proto-sleep">—</div>
+          <div style="font-size:10px;color:#9CA3AF;">hrs / night</div>
+        </div>
+      </div>
+
+      <div class="nxt" style="margin-bottom:16px;">
+        <h4>🍽️ Nutrition</h4>
+        <p>Head to the <strong>Nutrition Guide</strong> tab on your dashboard to calculate your personalized calorie and macro targets, then transfer them straight into your Nutrition Goals with one tap.</p>
+      </div>
+
+      <div class="nxt">
+        <h4>What happens next?</h4>
+        <p>Your dashboard has a <strong>Getting Started checklist</strong> waiting — it'll guide you through logging your first workout, reading today's devotional, and more.</p>
+      </div>
+      <div class="btns">
+        <button class="btn-back" onclick="go(4)">←</button>
+        <button class="btn-next" onclick="finish()">Go to my dashboard →</button>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<script>
+  const SUPABASE_URL = 'https://ohzgachjklmtoovjjmqx.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9oemdhY2hqa2xtdG9vdmpqbXF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5NTA1NDYsImV4cCI6MjA5NjUyNjU0Nn0.IbhlirdBScnEbghjsUgn4UgXWovHihVJ_TOqFT32144';
+  const { createClient } = supabase;
+  const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+  const a = {};
+
+  async function init() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { window.location.href = '/login.html'; return; }
+    const { data: p } = await sb.from('profiles').select('onboarding_complete').eq('id', session.user.id).single();
+    if (p?.onboarding_complete) window.location.href = '/dashboard.html';
+  }
+
+  function pick(el, key, val) {
+    el.closest('.grid').querySelectorAll('.opt').forEach(o => o.classList.remove('sel'));
+    el.classList.add('sel');
+    a[key] = val;
+  }
+
+  async function go(n) {
+    if (n === 2 && !a.goal) { alert('Please select a goal.'); return; }
+    if (n === 3) {
+      if (!document.getElementById('q-level').value) { alert('Please select your experience level.'); return; }
+      a.level = document.getElementById('q-level').value;
+      a.days = document.getElementById('q-days').value;
+      a.style = document.getElementById('q-style').value;
+      a.gym = document.getElementById('q-gym').value;
+      a.injuries = document.getElementById('q-injuries').value;
+    }
+    if (n === 4) {
+      a.tracking = document.getElementById('q-tracking').value;
+      a.calories = document.getElementById('q-calories').value;
+      a.water = document.getElementById('q-water').value;
+    }
+    if (n === 5) {
+      a.steps = document.getElementById('q-steps').value;
+      a.time = document.getElementById('q-time').value;
+      a.sleep = document.getElementById('q-sleep').value;
+      a.challenge = document.getElementById('q-challenge').value;
+      await recommend();
+    }
+    document.querySelectorAll('.step').forEach(s => s.classList.remove('on'));
+    document.getElementById('s' + n).classList.add('on');
+    document.getElementById('bar').style.width = (n / 5 * 100) + '%';
+    document.getElementById('step-label').textContent = 'Step ' + n + ' of 5';
+    window.scrollTo(0, 0);
+  }
+
+  async function recommend() {
+    const days = parseInt(a.days || '4');
+    const wantsCardio = a.goal === 'lose_fat';
+
+    let { data: plans } = await sb.from('workout_plans').select('*');
+    plans = plans || [];
+
+    let match = null;
+
+    if (a.style && a.style !== 'not_sure') {
+      // They picked a specific style — match level + days + style, preferring cardio-inclusive if they want fat loss
+      if (wantsCardio) match = plans.find(p => p.level === a.level && p.days_per_week === days && p.split_style === a.style && p.has_cardio);
+      if (!match) match = plans.find(p => p.level === a.level && p.days_per_week === days && p.split_style === a.style);
+      if (!match) match = plans.find(p => p.days_per_week === days && p.split_style === a.style);
+    }
+
+    if (!match) {
+      // Not sure, or no exact style match — fall back to the default plan for this day count
+      if (wantsCardio) match = plans.find(p => p.days_per_week === days && p.is_default && p.has_cardio);
+      if (!match) match = plans.find(p => p.days_per_week === days && p.is_default);
+    }
+
+    if (!match) match = plans.find(p => p.level === a.level && p.days_per_week === days);
+    if (!match) match = plans.find(p => p.days_per_week === days);
+    if (!match) match = plans.find(p => p.level === a.level);
+    if (!match) match = plans[0];
+
+    if (match) {
+      a.matchedPlanId = match.id;
+      document.getElementById('rec-name').textContent = match.name;
+      document.getElementById('rec-desc').textContent = match.description || 'A program designed around your experience level and schedule.';
+    } else {
+      a.matchedPlanId = null;
+      document.getElementById('rec-name').textContent = 'Plans coming soon';
+      document.getElementById('rec-desc').textContent = 'Your coach is finalizing plans — check the Workout Plans tab soon.';
+    }
+
+    // Habit targets based on answers
+    const waterMap = { under_32: 48, '32_64': 64, '64_96': 80, '96_plus': 100 };
+    const stepsMap = { under_3k: 6000, '3k_6k': 8000, '6k_10k': 10000, '10k_plus': 12000 };
+    const sleepMap = { poor: 7, average: 7.5, good: 8, great: 8 };
+
+    a.waterTarget = waterMap[a.water] || 64;
+    a.stepsTarget = stepsMap[a.steps] || 10000;
+    a.sleepTarget = sleepMap[a.sleep] || 8;
+
+    document.getElementById('proto-water').textContent = a.waterTarget;
+    document.getElementById('proto-steps').textContent = a.stepsTarget.toLocaleString();
+    document.getElementById('proto-sleep').textContent = a.sleepTarget;
+  }
+
+  async function finish() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { window.location.href = '/login.html'; return; }
+    await sb.from('profiles').update({
+      onboarding_complete: true,
+      recommended_plan: document.getElementById('rec-name').textContent,
+      active_workout_plan_id: a.matchedPlanId || null,
+      habit_target_water: a.waterTarget || 64,
+      habit_target_steps: a.stepsTarget || 10000,
+      habit_target_sleep: a.sleepTarget || 8
+    }).eq('id', session.user.id);
+    await sb.from('onboarding_responses').upsert({
+      user_id: session.user.id, goal: a.goal, level: a.level,
+      days_per_week: a.days, gym_access: a.gym, injuries: a.injuries,
+      calorie_tracking: a.tracking, current_calories: a.calories ? parseInt(a.calories) : null,
+      water_intake: a.water, step_count: a.steps, preferred_time: a.time,
+      sleep_quality: a.sleep, biggest_challenge: a.challenge, recommended_plan: document.getElementById('rec-name').textContent
+    });
+    window.location.href = '/dashboard.html?welcome=true';
+  }
+
+  init();
+</script>
+</body>
+</html>
