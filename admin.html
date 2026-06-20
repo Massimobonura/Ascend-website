@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — Ascend Faith & Fitness</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy: #0D1B2A; --navy-dark: #080F17; --orange: #E87722; --orange-dark: #C9641A;
+      --white: #fff; --off: #F8F9FA; --g100: #F3F4F6; --g200: #E5E7EB;
+      --g400: #9CA3AF; --g600: #6B7280; --g800: #1F2937; --red: #EF4444; --green: #22C55E;
+    }
+    body { font-family: 'Inter', sans-serif; background: var(--off); min-height: 100vh; }
+    nav { background: var(--navy-dark); padding: 0 24px; height: 64px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+    .nav-left { display: flex; align-items: center; gap: 12px; }
+    .nav-logo img { height: 44px; width: auto; mix-blend-mode: screen; }
+    .admin-badge { background: var(--orange); color: white; font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 20px; letter-spacing: 0.1em; }
+    .nav-right { display: flex; align-items: center; gap: 12px; }
+    .nav-email { font-size: 13px; color: rgba(255,255,255,0.5); }
+    .signout { background: transparent; color: rgba(255,255,255,0.6); border: 1px solid rgba(255,255,255,0.2); padding: 6px 14px; border-radius: 6px; font-size: 13px; cursor: pointer; font-family: 'Inter', sans-serif; }
+
+    .layout { display: flex; min-height: calc(100vh - 64px); }
+    .sidebar { width: 220px; background: var(--navy); padding: 24px 0; flex-shrink: 0; position: sticky; top: 64px; height: calc(100vh - 64px); overflow-y: auto; }
+    .sb-label { font-size: 10px; font-weight: 700; letter-spacing: 0.16em; color: rgba(255,255,255,0.3); padding: 0 20px; margin-bottom: 6px; text-transform: uppercase; margin-top: 12px; }
+    .sb-item { display: flex; align-items: center; gap: 10px; padding: 10px 20px; color: rgba(255,255,255,0.6); font-size: 14px; font-weight: 500; cursor: pointer; border-left: 3px solid transparent; transition: all 0.15s; text-decoration: none; background: none; border-top: none; border-right: none; border-bottom: none; width: 100%; text-align: left; font-family: 'Inter', sans-serif; }
+    .sb-item:hover { color: white; background: rgba(255,255,255,0.05); }
+    .sb-item.active { color: white; background: rgba(232,119,34,0.15); border-left-color: var(--orange); }
+
+    .main { flex: 1; padding: 32px 28px; }
+    .page { display: none; }
+    .page.active { display: block; }
+    .page-title { font-size: 24px; font-weight: 800; color: var(--navy); margin-bottom: 6px; }
+    .page-sub { font-size: 15px; color: var(--g600); margin-bottom: 28px; }
+
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 32px; }
+    .stat { background: white; border: 1px solid var(--g200); border-radius: 14px; padding: 20px; }
+    .stat .lbl { font-size: 12px; font-weight: 600; color: var(--g400); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+    .stat .val { font-size: 32px; font-weight: 800; color: var(--navy); }
+
+    .card { background: white; border: 1px solid var(--g200); border-radius: 14px; overflow: hidden; margin-bottom: 24px; }
+    .card-header { padding: 18px 20px; border-bottom: 1px solid var(--g200); display: flex; align-items: center; justify-content: space-between; }
+    .card-header h3 { font-size: 16px; font-weight: 700; color: var(--navy); }
+    table { width: 100%; border-collapse: collapse; }
+    th { font-size: 11px; font-weight: 700; color: var(--g400); text-transform: uppercase; letter-spacing: 0.08em; padding: 12px 20px; text-align: left; background: var(--off); }
+    td { font-size: 14px; color: var(--g800); padding: 12px 20px; border-top: 1px solid var(--g200); vertical-align: middle; }
+    .empty { text-align: center; padding: 40px; color: var(--g400); font-size: 14px; }
+
+    .btn { padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; font-family: 'Inter', sans-serif; transition: all 0.2s; text-decoration: none; display: inline-block; }
+    .btn-primary { background: var(--orange); color: white; }
+    .btn-primary:hover { background: var(--orange-dark); }
+    .btn-danger { background: #FEF2F2; color: var(--red); border: 1px solid #FECACA; }
+    .btn-success { background: #F0FDF4; color: #16A34A; border: 1px solid #BBF7D0; }
+    .btn-ghost { background: white; color: var(--navy); border: 1px solid var(--g200); }
+
+    .form-card { background: white; border: 1px solid var(--g200); border-radius: 14px; padding: 24px; margin-bottom: 24px; }
+    .form-card h3 { font-size: 16px; font-weight: 700; color: var(--navy); margin-bottom: 20px; }
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 18px; }
+    .fg label { display: block; font-size: 12px; font-weight: 600; color: var(--g600); margin-bottom: 6px; }
+    .fg input, .fg select, .fg textarea { width: 100%; padding: 10px 12px; border: 1.5px solid var(--g200); border-radius: 8px; font-size: 14px; font-family: 'Inter', sans-serif; color: var(--navy); outline: none; transition: border-color 0.2s; }
+    .fg input:focus, .fg select:focus, .fg textarea:focus { border-color: var(--orange); }
+    .fg textarea { resize: vertical; min-height: 80px; }
+
+    .badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .badge-green { background: #F0FDF4; color: #16A34A; }
+    .badge-orange { background: #FFF7ED; color: var(--orange); }
+    .badge-red { background: #FEF2F2; color: var(--red); }
+    .badge-gray { background: var(--g100); color: var(--g600); }
+    .badge-blue { background: #EFF6FF; color: #1D4ED8; }
+    .badge-purple { background: #F5F3FF; color: #7C3AED; }
+
+    .section-card { background: white; border: 1px solid var(--g200); border-radius: 14px; padding: 24px; margin-bottom: 16px; }
+    .alert { padding: 12px 16px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; display: none; }
+    .alert-success { background: #F0FDF4; border: 1px solid #BBF7D0; color: #16A34A; }
+
+    .exercise-row { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 10px; align-items: center; margin-bottom: 10px; }
+    .exercise-row input { padding: 8px 10px; border: 1.5px solid var(--g200); border-radius: 6px; font-size: 13px; font-family: 'Inter', sans-serif; outline: none; width: 100%; }
+    .exercise-row input:focus { border-color: var(--orange); }
+    .rm-btn { background: none; border: none; cursor: pointer; color: var(--g400); font-size: 18px; }
+    .rm-btn:hover { color: var(--red); }
+
+    .status-select { padding: 5px 10px; border: 1.5px solid var(--g200); border-radius: 6px; font-size: 12px; font-family: 'Inter', sans-serif; outline: none; cursor: pointer; background: white; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-left">
+    <a href="/" style="text-decoration:none;"><img src="Ascend_logo_.png" alt="Ascend" style="height:44px;width:auto;mix-blend-mode:screen;" /></a>
+    <span class="admin-badge">ADMIN</span>
+  </div>
+  <div class="nav-right">
+    <span class="nav-email" id="admin-email"></span>
+    <button class="signout" onclick="signOut()">Sign out</button>
+  </div>
+</nav>
+
+<div class="layout">
+  <div class="sidebar">
+    <div class="sb-label">Overview</div>
+    <button class="sb-item active" id="sb-overview" onclick="showPage('overview')"><i class="ti ti-chart-bar"></i> Overview</button>
+    <div class="sb-label">Members</div>
+    <button class="sb-item" id="sb-members" onclick="showPage('members')"><i class="ti ti-users"></i> All Members</button>
+    <button class="sb-item" id="sb-coaches" onclick="showPage('coaches')"><i class="ti ti-user-shield"></i> Coaches</button>
+    <button class="sb-item" id="sb-coaching-clients" onclick="showPage('coaching-clients')"><i class="ti ti-user-check"></i> Coaching Clients</button>
+    <button class="sb-item" id="sb-inquiries" onclick="showPage('inquiries')"><i class="ti ti-mail"></i> Coaching Inquiries</button>
+    <button class="sb-item" id="sb-testimonials" onclick="showPage('testimonials')"><i class="ti ti-star"></i> Testimonials</button>
+    <div class="sb-label">Content</div>
+    <button class="sb-item" id="sb-workouts" onclick="showPage('workouts')"><i class="ti ti-barbell"></i> Workout Plans</button>
+    <button class="sb-item" id="sb-devotionals" onclick="showPage('devotionals')"><i class="ti ti-cross"></i> Devotionals</button>
+    <button class="sb-item" id="sb-announcements" onclick="showPage('announcements')"><i class="ti ti-speakerphone"></i> Announcements</button>
+    <button class="sb-item" id="sb-resources" onclick="showPage('resources')"><i class="ti ti-video"></i> Resources</button>
+    <button class="sb-item" id="sb-challenges" onclick="showPage('challenges')"><i class="ti ti-trophy"></i> Challenges</button>
+    <button class="sb-item" id="sb-community" onclick="showPage('community')"><i class="ti ti-message-circle-2"></i> Community</button>
+    <button class="sb-item" id="sb-analytics" onclick="showPage('analytics')"><i class="ti ti-chart-dots"></i> Analytics</button>
+  </div>
+
+  <div class="main">
+
+    <!-- OVERVIEW -->
+    <div class="page active" id="page-overview">
+      <div class="page-title">Welcome back, Massimo</div>
+      <div class="page-sub">Here's what's happening with Ascend today.</div>
+      <div class="stats">
+        <div class="stat"><div class="lbl">Total Members</div><div class="val" id="stat-members">—</div></div>
+        <div class="stat"><div class="lbl">Monthly Plan</div><div class="val" id="stat-monthly">—</div></div>
+        <div class="stat"><div class="lbl">Lifetime Plan</div><div class="val" id="stat-lifetime">—</div></div>
+        <div class="stat"><div class="lbl">Pending Testimonials</div><div class="val" id="stat-testi">—</div></div>
+        <div class="stat"><div class="lbl">Coaching Inquiries</div><div class="val" id="stat-inquiries">—</div></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>Recent signups</h3></div>
+        <div id="recent-signups"><div class="empty">Loading...</div></div>
+      </div>
+    </div>
+
+    <!-- ALL MEMBERS -->
+    <div class="page" id="page-members">
+      <div class="page-title">All Members</div>
+      <div class="page-sub">View and manage all active members.</div>
+      <div class="card">
+        <div class="card-header"><h3>Members</h3><span id="member-count" style="font-size:13px;color:var(--g400);"></span></div>
+        <div id="members-table"><div class="empty">Loading...</div></div>
+      </div>
+    </div>
+
+    <!-- COACHES -->
+    <div class="page" id="page-coaches">
+      <div class="page-title">Coaches</div>
+      <div class="page-sub">Invite coaches to help manage your coaching clients.</div>
+      <div id="alert-coaches" class="alert alert-success"></div>
+      <div class="form-card">
+        <h3>Invite a coach</h3>
+        <div class="form-grid">
+          <div class="fg"><label>Coach email</label><input type="email" id="coach-email" placeholder="coach@email.com" /></div>
+          <div class="fg"><label>Name (optional)</label><input type="text" id="coach-name" placeholder="e.g. Jessica Bonura" /></div>
+        </div>
+        <button class="btn btn-primary" onclick="inviteCoach()">Add coach</button>
+        <div style="font-size:12px;color:var(--g400);margin-top:10px;">They'll be able to create their account at <strong>ascendfaithandfitness.com/coach-signup.html</strong> using this exact email.</div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>All coaches</h3></div>
+        <div id="coaches-list"><div class="empty">Loading...</div></div>
+      </div>
+    </div>
+
+    <!-- COACHING CLIENTS -->
+    <div class="page" id="page-coaching-clients">
+      <div class="page-title">Coaching Clients</div>
+      <div class="page-sub">Manage your active coaching clients, set their macros, and leave notes.</div>
+      <div id="alert-coaching" class="alert alert-success"></div>
+      <div class="form-card">
+        <h3>Tag a member as a coaching client</h3>
+        <div class="form-grid">
+          <div class="fg"><label>Member email</label><input type="email" id="cc-email" placeholder="member@email.com" /></div>
+        </div>
+        <button class="btn btn-primary" onclick="tagCoachingClient()">Add coaching client</button>
+      </div>
+      <div id="coaching-clients-list"><div class="empty">Loading...</div></div>
+    </div>
+
+    <!-- COACHING INQUIRIES -->
+    <div class="page" id="page-inquiries">
+      <div class="page-title">Coaching Inquiries</div>
+      <div class="page-sub">Applications from people interested in 1-on-1 coaching.</div>
+      <div id="inquiries-list"><div class="empty">Loading...</div></div>
+    </div>
+
+    <!-- TESTIMONIALS -->
+    <div class="page" id="page-testimonials">
+      <div class="page-title">Testimonials</div>
+      <div class="page-sub">Review and approve member stories before they go live.</div>
+      <div id="alert-testi" class="alert alert-success"></div>
+      <div id="testimonials-list"><div class="empty">Loading...</div></div>
+    </div>
+
+    <!-- WORKOUT PLANS -->
+    <div class="page" id="page-workouts">
+      <div class="page-title">Workout Plans</div>
+      <div class="page-sub">Create and manage workout plans for your members.</div>
+      <div id="alert-workout" class="alert alert-success"></div>
+      <div class="form-card">
+        <h3>Create new plan</h3>
+        <div class="form-grid">
+          <div class="fg"><label>Plan name</label><input type="text" id="plan-name" placeholder="e.g. 4-Day Intermediate Split" /></div>
+          <div class="fg"><label>Experience level</label>
+            <select id="plan-level">
+              <option value="beginner">Beginner</option>
+              <option value="intermediate">Intermediate</option>
+            </select>
+          </div>
+          <div class="fg"><label>Days per week</label>
+            <select id="plan-days" onchange="buildDaysUI()">
+              <option value="3">3 days</option>
+              <option value="4">4 days</option>
+              <option value="5">5 days</option>
+            </select>
+          </div>
+          <div class="fg"><label>Best suited for (goal)</label>
+            <select id="plan-goal">
+              <option value="lose_weight">Lose weight</option>
+              <option value="build_muscle">Build muscle</option>
+              <option value="recomp">Body recomposition</option>
+              <option value="overall_health">Overall health</option>
+              <option value="strength">Get stronger</option>
+            </select>
+          </div>
+        </div>
+        <div class="fg" style="margin-bottom:18px;"><label>Description</label><textarea id="plan-desc" placeholder="Brief description..."></textarea></div>
+        <div id="days-builder"></div>
+        <button class="btn btn-primary" onclick="savePlan()">Save workout plan</button>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>Existing plans</h3></div>
+        <div id="plans-list"><div class="empty">No plans yet.</div></div>
+      </div>
+    </div>
+
+    <!-- DEVOTIONALS -->
+    <div class="page" id="page-devotionals">
+      <div class="page-title">Faith & Devotionals</div>
+      <div class="page-sub">Add daily scripture and devotional content for members.</div>
+      <div id="alert-devo" class="alert alert-success"></div>
+      <div class="form-card">
+        <h3>Add devotional</h3>
+        <div class="form-grid">
+          <div class="fg"><label>Title</label><input type="text" id="devo-title" placeholder="e.g. Monday Motivation" /></div>
+          <div class="fg"><label>Scripture reference</label><input type="text" id="devo-ref" placeholder="e.g. Philippians 4:13" /></div>
+          <div class="fg"><label>Publish date</label><input type="date" id="devo-date" /></div>
+        </div>
+        <div class="fg" style="margin-bottom:14px;"><label>Scripture text</label><textarea id="devo-verse" placeholder="The scripture verse..."></textarea></div>
+        <div class="fg" style="margin-bottom:18px;"><label>Devotional message</label><textarea id="devo-message" placeholder="Your message to members..." style="min-height:120px;"></textarea></div>
+        <button class="btn btn-primary" onclick="saveDevotional()">Publish devotional</button>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>Published devotionals</h3></div>
+        <div id="devotionals-list"><div class="empty">No devotionals yet.</div></div>
+      </div>
+    </div>
+
+    <!-- ANNOUNCEMENTS -->
+    <div class="page" id="page-announcements">
+      <div class="page-title">Announcements</div>
+      <div class="page-sub">Push a message to all member dashboards instantly.</div>
+      <div id="alert-ann" class="alert alert-success"></div>
+      <div class="form-card">
+        <h3>New announcement</h3>
+        <div class="fg" style="margin-bottom:18px;"><label>Message</label><textarea id="ann-message" placeholder="e.g. New workout plans just dropped!" style="min-height:100px;"></textarea></div>
+        <button class="btn btn-primary" onclick="publishAnnouncement()">Publish to all members</button>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>All announcements</h3></div>
+        <div id="ann-list"><div class="empty">Loading...</div></div>
+      </div>
+    </div>
+
+    <!-- RESOURCES MANAGER -->
+    <div class="page" id="page-resources">
+      <div class="page-title">Resources</div>
+      <div class="page-sub">Add tutorial videos and resources for members — no code needed.</div>
+      <div id="alert-resources" class="alert alert-success"></div>
+      <div class="form-card">
+        <h3>Add a resource</h3>
+        <div class="form-grid">
+          <div class="fg"><label>Title</label><input type="text" id="res-title" placeholder="e.g. How to use the TDEE calculator" /></div>
+          <div class="fg"><label>Category</label>
+            <select id="res-category">
+              <option value="Tutorials">Tutorials</option>
+              <option value="Nutrition">Nutrition</option>
+              <option value="Training">Training</option>
+              <option value="Mindset">Mindset</option>
+              <option value="Faith">Faith</option>
+            </select>
+          </div>
+        </div>
+        <div class="fg" style="margin-bottom:14px;"><label>Video URL (Loom, YouTube, or any link)</label><input type="url" id="res-url" placeholder="https://loom.com/share/..." /></div>
+        <div class="fg" style="margin-bottom:18px;"><label>Description (optional)</label><textarea id="res-desc" placeholder="Brief description of what this covers..."></textarea></div>
+        <button class="btn btn-primary" onclick="saveResource()">Add resource</button>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>All resources</h3></div>
+        <div id="resources-list"><div class="empty">Loading...</div></div>
+      </div>
+    </div>
+
+    <!-- CHALLENGES -->
+    <div class="page" id="page-challenges">
+      <div class="page-title">Challenges</div>
+      <div class="page-sub">Create a challenge to boost engagement and community competition.</div>
+      <div id="alert-challenge" class="alert alert-success"></div>
+      <div class="form-card">
+        <h3>Create new challenge</h3>
+        <div class="form-grid">
+          <div class="fg"><label>Challenge name</label><input type="text" id="ch-name" placeholder="e.g. July Step Challenge" /></div>
+          <div class="fg"><label>Tracked metric</label>
+            <select id="ch-metric">
+              <option value="workouts">Workouts logged</option>
+              <option value="steps">Total steps</option>
+              <option value="water">Water intake (oz)</option>
+              <option value="habits">Habits completed</option>
+              <option value="weight_logs">Weigh-ins logged</option>
+            </select>
+          </div>
+          <div class="fg"><label>Start date</label><input type="date" id="ch-start" /></div>
+          <div class="fg"><label>End date</label><input type="date" id="ch-end" /></div>
+        </div>
+        <div class="fg" style="margin-bottom:18px;"><label>Description</label><textarea id="ch-desc" placeholder="Tell members what this challenge is about..."></textarea></div>
+        <button class="btn btn-primary" onclick="createChallenge()">Launch challenge</button>
+      </div>
+      <div id="challenges-list"><div class="empty">Loading...</div></div>
+    </div>
+
+    <!-- COMMUNITY MODERATION -->
+    <div class="page" id="page-community">
+      <div class="page-title">Community</div>
+      <div class="page-sub">Moderate posts and comments from the community feed.</div>
+      <div id="community-mod-list"><div class="empty">Loading...</div></div>
+    </div>
+
+    <!-- ANALYTICS -->
+    <div class="page" id="page-analytics">
+      <div class="page-title">Analytics</div>
+      <div class="page-sub">Member activity, engagement, and at-risk members.</div>
+      <div class="stats" style="margin-bottom:28px;">
+        <div class="stat"><div class="lbl">Active this week</div><div class="val" id="an-active">—</div></div>
+        <div class="stat"><div class="lbl">Inactive 7+ days</div><div class="val" id="an-inactive">—</div></div>
+        <div class="stat"><div class="lbl">Avg workouts/member</div><div class="val" id="an-avg-w">—</div></div>
+        <div class="stat"><div class="lbl">Community posts</div><div class="val" id="an-posts">—</div></div>
+      </div>
+      <div class="card" style="margin-bottom:24px;">
+        <div class="card-header"><h3>Inactive members (7+ days)</h3></div>
+        <div id="an-inactive-list"><div class="empty">Loading...</div></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>Most active members</h3></div>
+        <div id="an-active-list"><div class="empty">Loading...</div></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const SURL = 'https://ohzgachjklmtoovjjmqx.supabase.co';
+const SKEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9oemdhY2hqa2xtdG9vdmpqbXF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5NTA1NDYsImV4cCI6MjA5NjUyNjU0Nn0.IbhlirdBScnEbghjsUgn4UgXWovHihVJ_TOqFT32144';
+const ADMIN_EMAIL = 'Ascend.ff.coaching@gmail.com';
+const { createClient } = supabase;
+const sb = createClient(SURL, SKEY);
+let currentUser = null;
+
+async function init() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { window.location.href = '/login.html'; return; }
+
+  const isMainAdmin = session.user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+  let isCoach = false;
+  if (!isMainAdmin) {
+    const { data: coachRow } = await sb.from('coaches').select('id').eq('user_id', session.user.id).maybeSingle();
+    isCoach = !!coachRow;
+  }
+
+  if (!isMainAdmin && !isCoach) {
+    alert('Access denied.');
+    await sb.auth.signOut();
+    window.location.href = '/';
+    return;
+  }
+  currentUser = session.user;
+  document.getElementById('admin-email').textContent = currentUser.email;
+  loadOverview();
+  buildDaysUI();
+}
+
+function signOut() { sb.auth.signOut().then(() => window.location.href = '/'); }
+
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.sb-item').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  const sb_el = document.getElementById('sb-' + name);
+  if (sb_el) sb_el.classList.add('active');
+  if (name === 'overview') loadOverview();
+  if (name === 'members') loadMembers();
+  if (name === 'coaches') loadCoaches();
+  if (name === 'coaching-clients') loadCoachingClients();
+  if (name === 'inquiries') loadInquiries();
+  if (name === 'testimonials') loadTestimonials();
+  if (name === 'workouts') loadPlans();
+  if (name === 'devotionals') loadDevotionals();
+  if (name === 'announcements') loadAnnouncements();
+  if (name === 'resources') loadResources();
+  if (name === 'challenges') loadChallenges();
+  if (name === 'community') loadCommunityMod();
+  if (name === 'analytics') loadAnalytics();
+}
+
+function showAlert(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 3000);
+}
+
+// ── OVERVIEW ──
+async function loadOverview() {
+  const { data: members } = await sb.from('profiles').select('*').eq('is_member', true);
+  const { data: testi } = await sb.from('testimonials').select('id').eq('approved', false);
+  const { data: inq } = await sb.from('coaching_inquiries').select('id').eq('read', false);
+  const total = members?.length || 0;
+  const monthly = members?.filter(m => m.plan === 'monthly').length || 0;
+  const lifetime = members?.filter(m => m.plan === 'lifetime').length || 0;
+  document.getElementById('stat-members').textContent = total;
+  document.getElementById('stat-monthly').textContent = monthly;
+  document.getElementById('stat-lifetime').textContent = lifetime;
+  document.getElementById('stat-testi').textContent = testi?.length || 0;
+  document.getElementById('stat-inquiries').textContent = inq?.length || 0;
+  const recent = (members || []).sort((a,b) => new Date(b.created_at) - new Date(a.created_at)).slice(0,5);
+  const el = document.getElementById('recent-signups');
+  if (!recent.length) { el.innerHTML = '<div class="empty">No members yet.</div>'; return; }
+  el.innerHTML = '<table><thead><tr><th>Email</th><th>Plan</th><th>Joined</th></tr></thead><tbody>' +
+    recent.map(m => '<tr><td>' + (m.email||'—') + '</td><td><span class="badge ' + (m.plan==='lifetime'?'badge-orange':'badge-green') + '">' + (m.plan||'—') + '</span></td><td>' + new Date(m.created_at).toLocaleDateString() + '</td></tr>').join('') +
+    '</tbody></table>';
+}
+
+// ── MEMBERS ──
+async function loadMembers() {
+  const { data } = await sb.from('profiles').select('*').eq('is_member', true).order('created_at', { ascending: false });
+  document.getElementById('member-count').textContent = (data?.length || 0) + ' members';
+  const el = document.getElementById('members-table');
+  if (!data?.length) { el.innerHTML = '<div class="empty">No members yet.</div>'; return; }
+  el.innerHTML = '<table><thead><tr><th>Email</th><th>Plan</th><th>Joined</th><th>Action</th></tr></thead><tbody>' +
+    data.map(m => '<tr><td>' + (m.email||'—') + '</td><td><span class="badge ' + (m.plan==='lifetime'?'badge-orange':'badge-green') + '">' + (m.plan||'—') + '</span></td><td>' + new Date(m.created_at).toLocaleDateString() + '</td><td><button class="btn btn-danger" onclick="revokeMember(\'' + m.id + '\')">Revoke</button></td></tr>').join('') +
+    '</tbody></table>';
+}
+
+async function revokeMember(id) {
+  if (!confirm('Revoke this member\'s access?')) return;
+  await sb.from('profiles').update({ is_member: false, plan: null }).eq('id', id);
+  loadMembers();
+}
+
+// ── COACHES ──
+async function inviteCoach() {
+  const email = document.getElementById('coach-email').value.trim();
+  const name = document.getElementById('coach-name').value.trim();
+  if (!email) { alert('Please enter a coach email.'); return; }
+  const { error } = await sb.from('coaches').insert({ email, name: name || null });
+  if (!error) {
+    document.getElementById('coach-email').value = '';
+    document.getElementById('coach-name').value = '';
+    showAlert('alert-coaches', email + ' added! They can now create their account.');
+    loadCoaches();
+  } else alert('Error: ' + error.message);
+}
+
+async function loadCoaches() {
+  const { data } = await sb.from('coaches').select('*').order('created_at', { ascending: false });
+  const el = document.getElementById('coaches-list');
+  if (!data?.length) { el.innerHTML = '<div class="empty">No coaches yet. Invite one above!</div>'; return; }
+  el.innerHTML = '<table><thead><tr><th>Email</th><th>Name</th><th>Status</th><th>Added</th><th>Action</th></tr></thead><tbody>' +
+    data.map(c => '<tr><td>' + c.email + '</td><td>' + (c.name || '—') + '</td><td><span class="badge ' + (c.user_id ? 'badge-green' : 'badge-orange') + '">' + (c.user_id ? 'Active' : 'Pending sign up') + '</span></td><td>' + new Date(c.created_at).toLocaleDateString() + '</td><td><button class="btn btn-danger" onclick="removeCoach(\'' + c.id + '\')">Remove</button></td></tr>').join('') +
+    '</tbody></table>';
+}
+
+async function removeCoach(id) {
+  if (!confirm('Remove this coach? They will lose admin access.')) return;
+  await sb.from('coaches').delete().eq('id', id);
+  loadCoaches();
+}
+
+// ── COACHING CLIENTS ──
+async function loadCoachingClients() {
+  const { data: clients } = await sb.from('coaching_clients').select('*').order('created_at', { ascending: false });
+  const el = document.getElementById('coaching-clients-list');
+  if (!clients?.length) { el.innerHTML = '<div class="empty">No coaching clients yet.</div>'; return; }
+  const userIds = clients.map(c => c.user_id);
+  const { data: profiles } = await sb.from('profiles').select('id,email').in('id', userIds);
+  const pm = {};
+  (profiles || []).forEach(p => { pm[p.id] = p; });
+
+  const { data: coaches } = await sb.from('coaches').select('*').order('name');
+  const coachOpts = '<option value="">Unassigned</option>' + (coaches || []).map(co => '<option value="' + co.id + '">' + (co.name || co.email) + '</option>').join('');
+
+  el.innerHTML = clients.map(c => {
+    const email = pm[c.user_id]?.email || 'Unknown';
+    const uid = c.user_id;
+    return '<div class="section-card">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">' +
+      '<div><div style="font-size:16px;font-weight:700;color:var(--navy);">' + email + '</div>' +
+      '<div style="font-size:12px;color:var(--g400);">Client since ' + new Date(c.created_at).toLocaleDateString() + '</div></div>' +
+      '<div style="display:flex;align-items:center;gap:10px;">' +
+      '<select onchange="assignCoach(\'' + c.id + '\', this.value)" style="padding:7px 10px;border:1.5px solid var(--g200);border-radius:6px;font-size:12px;font-family:Inter,sans-serif;outline:none;cursor:pointer;background:white;">' +
+      coachOpts.replace('value="' + (c.coach_id || '') + '"', 'value="' + (c.coach_id || '') + '" selected') +
+      '</select>' +
+      '<button class="btn btn-danger" onclick="removeCoachingClient(\'' + uid + '\')">Remove client</button>' +
+      '</div>' +
+      '</div>' +
+      '<div style="font-size:12px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">Macro targets</div>' +
+      '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;">' +
+      '<div><label style="font-size:11px;font-weight:600;color:var(--g600);display:block;margin-bottom:4px;">Calories</label><input type="number" id="cal-' + uid + '" value="' + (c.calories||'') + '" placeholder="2000" style="width:100%;padding:8px;border:1.5px solid var(--g200);border-radius:6px;font-size:13px;font-family:Inter,sans-serif;outline:none;"></div>' +
+      '<div><label style="font-size:11px;font-weight:600;color:var(--g600);display:block;margin-bottom:4px;">Protein (g)</label><input type="number" id="pro-' + uid + '" value="' + (c.protein_g||'') + '" placeholder="150" style="width:100%;padding:8px;border:1.5px solid var(--g200);border-radius:6px;font-size:13px;font-family:Inter,sans-serif;outline:none;"></div>' +
+      '<div><label style="font-size:11px;font-weight:600;color:var(--g600);display:block;margin-bottom:4px;">Carbs (g)</label><input type="number" id="car-' + uid + '" value="' + (c.carbs_g||'') + '" placeholder="200" style="width:100%;padding:8px;border:1.5px solid var(--g200);border-radius:6px;font-size:13px;font-family:Inter,sans-serif;outline:none;"></div>' +
+      '<div><label style="font-size:11px;font-weight:600;color:var(--g600);display:block;margin-bottom:4px;">Fats (g)</label><input type="number" id="fat-' + uid + '" value="' + (c.fats_g||'') + '" placeholder="65" style="width:100%;padding:8px;border:1.5px solid var(--g200);border-radius:6px;font-size:13px;font-family:Inter,sans-serif;outline:none;"></div>' +
+      '</div>' +
+      '<button class="btn btn-primary" onclick="saveMacros(\'' + uid + '\')" style="margin-bottom:20px;">Save macro targets</button>' +
+      '<div style="font-size:12px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">Progress photos</div>' +
+      '<div id="cphotos-' + uid + '" style="margin-bottom:20px;"></div>' +
+      '<div style="font-size:12px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">Coaching notes</div>' +
+      '<div id="notes-' + uid + '" style="margin-bottom:10px;"></div>' +
+      '<div style="display:flex;gap:10px;">' +
+      '<textarea id="note-' + uid + '" placeholder="Add a coaching note..." style="flex:1;padding:10px;border:1.5px solid var(--g200);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;resize:none;min-height:60px;"></textarea>' +
+      '<button class="btn btn-primary" onclick="addNote(\'' + uid + '\')">Add note</button>' +
+      '</div>' +
+      '</div>';
+  }).join('');
+  clients.forEach(c => { loadNotes(c.user_id); loadClientPhotos(c.user_id); });
+}
+
+async function assignCoach(clientId, coachId) {
+  const { error } = await sb.from('coaching_clients').update({ coach_id: coachId || null }).eq('id', clientId);
+  if (error) alert('Error: ' + error.message);
+}
+
+async function loadClientPhotos(uid) {
+  const { data } = await sb.from('progress_photos').select('*').eq('user_id', uid).order('date', { ascending: false }).limit(12);
+  const el = document.getElementById('cphotos-' + uid);
+  if (!el) return;
+  if (!data || !data.length) { el.innerHTML = '<div style="font-size:13px;color:var(--g400);">No progress photos uploaded yet.</div>'; return; }
+
+  const withUrls = await Promise.all(data.map(async p => {
+    const { data: signed } = await sb.storage.from('progress-photos').createSignedUrl(p.photo_url, 3600);
+    return { ...p, signedUrl: signed?.signedUrl };
+  }));
+
+  el.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px;">' +
+    withUrls.map(p =>
+      '<div>' +
+      '<img src="' + p.signedUrl + '" style="width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:8px;border:1px solid var(--g200);cursor:pointer;" onclick="window.open(\'' + p.signedUrl + '\',\'_blank\')" />' +
+      '<div style="font-size:10px;color:var(--g400);margin-top:4px;text-align:center;">' + new Date(p.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + '</div>' +
+      '</div>'
+    ).join('') +
+    '</div>';
+}
+
+async function tagCoachingClient() {
+  const email = document.getElementById('cc-email').value.trim();
+  if (!email) { alert('Please enter a member email.'); return; }
+  const { data: profile } = await sb.from('profiles').select('id').eq('email', email).single();
+  if (!profile) { alert('Member not found.'); return; }
+  const { error } = await sb.from('coaching_clients').upsert({ user_id: profile.id }, { onConflict: 'user_id' });
+  if (!error) { document.getElementById('cc-email').value = ''; showAlert('alert-coaching', email + ' added as a coaching client!'); loadCoachingClients(); }
+  else alert('Error: ' + error.message);
+}
+
+async function removeCoachingClient(uid) {
+  if (!confirm('Remove this coaching client?')) return;
+  await sb.from('coaching_clients').delete().eq('user_id', uid);
+  loadCoachingClients();
+}
+
+async function saveMacros(uid) {
+  const cal = parseInt(document.getElementById('cal-' + uid).value) || null;
+  const pro = parseInt(document.getElementById('pro-' + uid).value) || null;
+  const car = parseInt(document.getElementById('car-' + uid).value) || null;
+  const fat = parseInt(document.getElementById('fat-' + uid).value) || null;
+  const { error } = await sb.from('coaching_clients').update({ calories: cal, protein_g: pro, carbs_g: car, fats_g: fat }).eq('user_id', uid);
+  if (!error) showAlert('alert-coaching', 'Macro targets saved!');
+  else alert('Error: ' + error.message);
+}
+
+async function loadNotes(uid) {
+  const { data } = await sb.from('member_notes').select('*').eq('user_id', uid).order('created_at', { ascending: false });
+  const el = document.getElementById('notes-' + uid);
+  if (!el) return;
+  if (!data?.length) { el.innerHTML = '<div style="font-size:13px;color:var(--g400);padding:8px 0;">No notes yet.</div>'; return; }
+  el.innerHTML = data.map(n =>
+    '<div style="background:var(--off);border-radius:8px;padding:12px;margin-bottom:8px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">' +
+    '<div><div style="font-size:13px;color:var(--g800);line-height:1.5;">' + n.note + '</div>' +
+    '<div style="font-size:11px;color:var(--g400);margin-top:4px;">' + new Date(n.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + '</div></div>' +
+    '<button onclick="deleteNote(\'' + n.id + '\',\'' + uid + '\')" style="background:none;border:none;cursor:pointer;color:var(--g400);font-size:16px;"><i class="ti ti-trash"></i></button>' +
+    '</div>'
+  ).join('');
+}
+
+async function addNote(uid) {
+  const note = document.getElementById('note-' + uid).value.trim();
+  if (!note) return;
+  const { error } = await sb.from('member_notes').insert({ user_id: uid, note });
+  if (!error) { document.getElementById('note-' + uid).value = ''; loadNotes(uid); }
+  else alert('Error: ' + error.message);
+}
+
+async function deleteNote(noteId, uid) {
+  if (!confirm('Delete this note?')) return;
+  await sb.from('member_notes').delete().eq('id', noteId);
+  loadNotes(uid);
+}
+
+// ── INQUIRIES ──
+const STATUSES = [
+  { value: 'new', label: 'New', badge: 'badge-orange' },
+  { value: 'contacted', label: 'Contacted', badge: 'badge-blue' },
+  { value: 'in_talks', label: 'In Talks', badge: 'badge-purple' },
+  { value: 'signed_up', label: 'Signed Up', badge: 'badge-green' },
+  { value: 'not_interested', label: 'Not Interested', badge: 'badge-red' }
+];
+
+async function loadInquiries() {
+  const { data } = await sb.from('coaching_inquiries').select('*').order('created_at', { ascending: false });
+  const el = document.getElementById('inquiries-list');
+  if (!data?.length) { el.innerHTML = '<div class="empty">No inquiries yet.</div>'; return; }
+  el.innerHTML = data.map(i => {
+    const status = i.status || 'new';
+    const sObj = STATUSES.find(s => s.value === status) || STATUSES[0];
+    const opts = STATUSES.map(s => '<option value="' + s.value + '"' + (s.value === status ? ' selected' : '') + '>' + s.label + '</option>').join('');
+    return '<div class="section-card">' +
+      '<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">' +
+      '<div><div style="font-size:16px;font-weight:700;color:var(--navy);">' + i.name + '</div>' +
+      '<div style="font-size:13px;color:var(--g600);">' + i.email + ' · ' + new Date(i.created_at).toLocaleDateString() + '</div></div>' +
+      '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">' +
+      '<span class="badge ' + sObj.badge + '">' + sObj.label + '</span>' +
+      '<select class="status-select" onchange="updateStatus(\'' + i.id + '\', this.value)">' + opts + '</select>' +
+      '</div></div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">' +
+      '<div><div style="font-size:11px;font-weight:700;color:var(--g400);text-transform:uppercase;margin-bottom:4px;">Goal</div><div style="font-size:14px;">' + (i.goal||'—') + '</div></div>' +
+      '<div><div style="font-size:11px;font-weight:700;color:var(--g400);text-transform:uppercase;margin-bottom:4px;">Experience</div><div style="font-size:14px;">' + (i.experience||'—') + '</div></div>' +
+      '</div>' +
+      '<div style="margin-bottom:12px;"><div style="font-size:11px;font-weight:700;color:var(--g400);text-transform:uppercase;margin-bottom:4px;">Why coaching</div><div style="font-size:14px;">' + (i.why||'—') + '</div></div>' +
+      '<div style="margin-bottom:16px;"><div style="font-size:11px;font-weight:700;color:var(--g400);text-transform:uppercase;margin-bottom:4px;">Heard about us</div><div style="font-size:14px;">' + (i.hear||'—') + '</div></div>' +
+      '<a href="mailto:' + i.email + '" class="btn btn-primary">Reply by email</a>' +
+      '</div>';
+  }).join('');
+}
+
+async function updateStatus(id, status) {
+  await sb.from('coaching_inquiries').update({ status, read: true }).eq('id', id);
+  loadInquiries();
+}
+
+// ── TESTIMONIALS ──
+async function loadTestimonials() {
+  const { data } = await sb.from('testimonials').select('*').order('created_at', { ascending: false });
+  const el = document.getElementById('testimonials-list');
+  if (!data?.length) { el.innerHTML = '<div class="empty">No testimonials yet.</div>'; return; }
+  el.innerHTML = data.map(t =>
+    '<div class="section-card">' +
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">' +
+    '<div><div style="font-size:15px;font-weight:700;color:var(--navy);">' + t.name + '</div>' +
+    '<div style="font-size:12px;color:var(--g400);">' + new Date(t.created_at).toLocaleDateString() + '</div></div>' +
+    '<span class="badge ' + (t.approved?'badge-green':'badge-orange') + '">' + (t.approved?'Published':'Pending') + '</span>' +
+    '</div>' +
+    '<p style="font-size:14px;color:var(--g600);font-style:italic;margin-bottom:16px;">"' + t.message + '"</p>' +
+    '<div style="display:flex;gap:10px;">' +
+    (!t.approved ? '<button class="btn btn-success" onclick="approveTestimonial(\'' + t.id + '\')">Approve & publish</button>' : '<button class="btn btn-ghost" onclick="unpublishTestimonial(\'' + t.id + '\')">Unpublish</button>') +
+    '<button class="btn btn-danger" onclick="deleteTestimonial(\'' + t.id + '\')">Delete</button>' +
+    '</div></div>'
+  ).join('');
+}
+
+async function approveTestimonial(id) { await sb.from('testimonials').update({ approved: true }).eq('id', id); showAlert('alert-testi', 'Testimonial published!'); loadTestimonials(); }
+async function unpublishTestimonial(id) { await sb.from('testimonials').update({ approved: false }).eq('id', id); loadTestimonials(); }
+async function deleteTestimonial(id) { if (!confirm('Delete?')) return; await sb.from('testimonials').delete().eq('id', id); loadTestimonials(); }
+
+// ── WORKOUT PLANS ──
+function buildDaysUI() {
+  const days = parseInt(document.getElementById('plan-days')?.value || 4);
+  const builder = document.getElementById('days-builder');
+  if (!builder) return;
+  builder.innerHTML = '';
+  for (let d = 1; d <= days; d++) {
+    const div = document.createElement('div');
+    div.style.cssText = 'background:var(--off);border-radius:10px;padding:16px;margin-bottom:16px;';
+    div.innerHTML = '<div style="font-size:14px;font-weight:700;color:var(--navy);margin-bottom:10px;">Day ' + d + '</div>' +
+      '<div style="margin-bottom:10px;"><label style="font-size:12px;font-weight:600;color:var(--g600);display:block;margin-bottom:4px;">Day name</label>' +
+      '<input type="text" id="day-name-' + d + '" placeholder="e.g. Push Day, Leg Day" style="width:100%;padding:8px 10px;border:1.5px solid var(--g200);border-radius:6px;font-size:13px;font-family:Inter,sans-serif;outline:none;"></div>' +
+      '<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:8px;margin-bottom:8px;">' +
+      '<div style="font-size:11px;font-weight:700;color:var(--g400);text-transform:uppercase;">Exercise</div>' +
+      '<div style="font-size:11px;font-weight:700;color:var(--g400);text-transform:uppercase;">Sets</div>' +
+      '<div style="font-size:11px;font-weight:700;color:var(--g400);text-transform:uppercase;">Reps</div>' +
+      '<div style="font-size:11px;font-weight:700;color:var(--g400);text-transform:uppercase;">Notes</div><div></div></div>' +
+      '<div id="ex-day-' + d + '"></div>' +
+      '<button type="button" class="btn btn-ghost" style="font-size:12px;padding:6px 12px;margin-top:8px;" onclick="addExercise(' + d + ')">+ Add exercise</button>';
+    builder.appendChild(div);
+    addExercise(d);
+  }
+}
+
+document.addEventListener('change', e => { if (e.target.id === 'plan-days') buildDaysUI(); });
+
+function addExercise(day) {
+  const container = document.getElementById('ex-day-' + day);
+  if (!container) return;
+  const row = document.createElement('div');
+  row.className = 'exercise-row';
+  row.innerHTML = '<input type="text" placeholder="e.g. Barbell Squat" /><input type="text" placeholder="3" /><input type="text" placeholder="8-12" /><input type="text" placeholder="Optional" /><button type="button" class="rm-btn" onclick="this.parentElement.remove()"><i class="ti ti-x"></i></button>';
+  container.appendChild(row);
+}
+
+async function savePlan() {
+  const name = document.getElementById('plan-name').value.trim();
+  const level = document.getElementById('plan-level').value;
+  const days = parseInt(document.getElementById('plan-days').value);
+  const goal = document.getElementById('plan-goal').value;
+  const desc = document.getElementById('plan-desc').value.trim();
+  if (!name) { alert('Please enter a plan name.'); return; }
+  const plan_days = [];
+  for (let d = 1; d <= days; d++) {
+    const dayName = document.getElementById('day-name-' + d)?.value.trim() || 'Day ' + d;
+    const rows = document.querySelectorAll('#ex-day-' + d + ' .exercise-row');
+    const exercises = [];
+    rows.forEach(row => {
+      const inputs = row.querySelectorAll('input');
+      if (inputs[0].value.trim()) exercises.push({ exercise: inputs[0].value.trim(), sets: inputs[1].value, reps: inputs[2].value, notes: inputs[3].value });
+    });
+    plan_days.push({ day: d, day_name: dayName, exercises });
+  }
+  const { error } = await sb.from('workout_plans').insert({ name, level, days_per_week: days, goal, description: desc, plan_days });
+  if (!error) { showAlert('alert-workout', '"' + name + '" saved!'); document.getElementById('plan-name').value = ''; document.getElementById('plan-desc').value = ''; buildDaysUI(); loadPlans(); }
+  else alert('Error: ' + error.message);
+}
+
+const GOAL_LABELS = { lose_weight: 'Lose weight', build_muscle: 'Build muscle', recomp: 'Body recomp', overall_health: 'Overall health', strength: 'Get stronger' };
+
+async function loadPlans() {
+  const { data } = await sb.from('workout_plans').select('*').order('created_at', { ascending: false });
+  const el = document.getElementById('plans-list');
+  if (!data?.length) { el.innerHTML = '<div class="empty">No plans yet.</div>'; return; }
+  el.innerHTML = '<table><thead><tr><th>Name</th><th>Level</th><th>Goal</th><th>Days</th><th>Action</th></tr></thead><tbody>' +
+    data.map(p => '<tr><td style="font-weight:600;">' + p.name + '</td><td>' + (p.level||'—') + '</td><td>' + (GOAL_LABELS[p.goal] || '—') + '</td><td>' + p.days_per_week + ' days</td><td><button class="btn btn-danger" onclick="deletePlan(\'' + p.id + '\')">Delete</button></td></tr>').join('') +
+    '</tbody></table>';
+}
+
+async function deletePlan(id) { if (!confirm('Delete this plan?')) return; await sb.from('workout_plans').delete().eq('id', id); loadPlans(); }
+
+// ── DEVOTIONALS ──
+async function saveDevotional() {
+  const title = document.getElementById('devo-title').value.trim();
+  const ref = document.getElementById('devo-ref').value.trim();
+  const verse = document.getElementById('devo-verse').value.trim();
+  const message = document.getElementById('devo-message').value.trim();
+  const publishDate = document.getElementById('devo-date').value || new Date().toISOString().split('T')[0];
+  if (!title || !verse || !message) { alert('Please fill in title, verse, and message.'); return; }
+  const { error } = await sb.from('devotionals').insert({ title, scripture_ref: ref, scripture_text: verse, message, publish_date: publishDate });
+  if (!error) { showAlert('alert-devo', 'Devotional published!'); ['devo-title','devo-ref','devo-verse','devo-message','devo-date'].forEach(id => document.getElementById(id).value = ''); loadDevotionals(); }
+  else alert('Error: ' + error.message);
+}
+
+async function loadDevotionals() {
+  const { data } = await sb.from('devotionals').select('*').order('publish_date', { ascending: false });
+  const el = document.getElementById('devotionals-list');
+  if (!data?.length) { el.innerHTML = '<div class="empty">No devotionals yet.</div>'; return; }
+  const today = new Date().toISOString().split('T')[0];
+  el.innerHTML = '<table><thead><tr><th>Title</th><th>Scripture</th><th>Publish date</th><th>Status</th><th>Action</th></tr></thead><tbody>' +
+    data.map(d => '<tr><td style="font-weight:600;">' + d.title + '</td><td>' + (d.scripture_ref||'—') + '</td><td>' + (d.publish_date||'—') + '</td><td><span class="badge ' + (d.publish_date <= today ? 'badge-green' : 'badge-gray') + '">' + (d.publish_date <= today ? 'Live' : 'Scheduled') + '</span></td><td><button class="btn btn-danger" onclick="deleteDevotional(\'' + d.id + '\')">Delete</button></td></tr>').join('') +
+    '</tbody></table>';
+}
+
+async function deleteDevotional(id) { if (!confirm('Delete?')) return; await sb.from('devotionals').delete().eq('id', id); loadDevotionals(); }
+
+// ── ANNOUNCEMENTS ──
+async function loadAnnouncements() {
+  const { data } = await sb.from('announcements').select('*').order('created_at', { ascending: false });
+  const el = document.getElementById('ann-list');
+  if (!data?.length) { el.innerHTML = '<div class="empty">No announcements yet.</div>'; return; }
+  el.innerHTML = '<table><thead><tr><th>Message</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead><tbody>' +
+    data.map(a => '<tr><td style="max-width:400px;">' + a.message + '</td><td><span class="badge ' + (a.active?'badge-green':'badge-gray') + '">' + (a.active?'Active':'Inactive') + '</span></td><td>' + new Date(a.created_at).toLocaleDateString() + '</td><td style="display:flex;gap:8px;">' +
+      (a.active ? '<button class="btn btn-ghost" onclick="deactivateAnn(\'' + a.id + '\')">Deactivate</button>' : '<button class="btn btn-success" onclick="activateAnn(\'' + a.id + '\')">Reactivate</button>') +
+      '<button class="btn btn-danger" onclick="deleteAnn(\'' + a.id + '\')">Delete</button></td></tr>'
+    ).join('') + '</tbody></table>';
+}
+
+async function publishAnnouncement() {
+  const message = document.getElementById('ann-message').value.trim();
+  if (!message) { alert('Please enter a message.'); return; }
+  await sb.from('announcements').update({ active: false }).eq('active', true);
+  const { error } = await sb.from('announcements').insert({ message, active: true });
+  if (!error) { document.getElementById('ann-message').value = ''; showAlert('alert-ann', 'Announcement published!'); loadAnnouncements(); }
+  else alert('Error: ' + error.message);
+}
+
+async function deactivateAnn(id) { await sb.from('announcements').update({ active: false }).eq('id', id); loadAnnouncements(); }
+async function activateAnn(id) { await sb.from('announcements').update({ active: false }).eq('active', true); await sb.from('announcements').update({ active: true }).eq('id', id); loadAnnouncements(); }
+async function deleteAnn(id) { if (!confirm('Delete?')) return; await sb.from('announcements').delete().eq('id', id); loadAnnouncements(); }
+
+// ── CHALLENGES ──
+const METRIC_LABELS = {
+  workouts: 'Workouts logged',
+  steps: 'Total steps',
+  water: 'Water (oz)',
+  habits: 'Habits completed',
+  weight_logs: 'Weigh-ins logged'
+};
+
+async function createChallenge() {
+  const name = document.getElementById('ch-name').value.trim();
+  const metric = document.getElementById('ch-metric').value;
+  const start = document.getElementById('ch-start').value;
+  const end = document.getElementById('ch-end').value;
+  const desc = document.getElementById('ch-desc').value.trim();
+  if (!name || !start || !end) { alert('Please fill in name, start date, and end date.'); return; }
+  if (new Date(end) <= new Date(start)) { alert('End date must be after start date.'); return; }
+  const { error } = await sb.from('challenges').insert({ name, description: desc, metric, start_date: start, end_date: end, active: true });
+  if (!error) {
+    ['ch-name','ch-desc'].forEach(id => document.getElementById(id).value = '');
+    showAlert('alert-challenge', '"' + name + '" launched!');
+    loadChallenges();
+  } else alert('Error: ' + error.message);
+}
+
+async function loadChallenges() {
+  const { data } = await sb.from('challenges').select('*').order('created_at', { ascending: false });
+  const el = document.getElementById('challenges-list');
+  if (!data?.length) { el.innerHTML = '<div class="empty">No challenges yet. Create one above!</div>'; return; }
+
+  const today = new Date().toISOString().split('T')[0];
+
+  el.innerHTML = data.map(c => {
+    const isLive = c.active && c.start_date <= today && c.end_date >= today;
+    const isUpcoming = c.active && c.start_date > today;
+    const isEnded = c.end_date < today || !c.active;
+    let statusBadge = isLive ? '<span class="badge badge-green">Live now</span>' : isUpcoming ? '<span class="badge badge-blue">Upcoming</span>' : '<span class="badge badge-gray">Ended</span>';
+    return '<div class="section-card">' +
+      '<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px;">' +
+      '<div><div style="font-size:17px;font-weight:700;color:var(--navy);">' + c.name + '</div>' +
+      '<div style="font-size:13px;color:var(--g600);margin-top:2px;">' + c.start_date + ' → ' + c.end_date + ' · Tracking: ' + (METRIC_LABELS[c.metric] || c.metric) + '</div></div>' +
+      statusBadge +
+      '</div>' +
+      (c.description ? '<div style="font-size:14px;color:var(--g600);margin-bottom:16px;">' + c.description + '</div>' : '') +
+      '<div id="standings-' + c.id + '" style="margin-bottom:16px;"></div>' +
+      '<div style="display:flex;gap:10px;">' +
+      '<button class="btn btn-ghost" onclick="viewStandings(\'' + c.id + '\',\'' + c.metric + '\',\'' + c.start_date + '\',\'' + c.end_date + '\')">View standings</button>' +
+      (c.active ? '<button class="btn btn-danger" onclick="endChallenge(\'' + c.id + '\')">End challenge</button>' : '') +
+      '</div>' +
+      '</div>';
+  }).join('');
+}
+
+async function endChallenge(id) {
+  if (!confirm('End this challenge now?')) return;
+  await sb.from('challenges').update({ active: false }).eq('id', id);
+  loadChallenges();
+}
+
+async function viewStandings(challengeId, metric, startDate, endDate) {
+  const container = document.getElementById('standings-' + challengeId);
+  container.innerHTML = '<div style="font-size:13px;color:var(--g400);">Loading standings...</div>';
+
+  let scores = [];
+
+  if (metric === 'workouts') {
+    const { data } = await sb.from('workouts').select('user_id').gte('date', startDate).lte('date', endDate);
+    scores = aggregateCounts(data, 'user_id');
+  } else if (metric === 'weight_logs') {
+    const { data } = await sb.from('weight_logs').select('user_id').gte('date', startDate).lte('date', endDate);
+    scores = aggregateCounts(data, 'user_id');
+  } else if (metric === 'steps') {
+    const { data } = await sb.from('habits').select('user_id, steps').gte('date', startDate).lte('date', endDate);
+    scores = aggregateSum(data, 'user_id', 'steps');
+  } else if (metric === 'water') {
+    const { data } = await sb.from('habits').select('user_id, water_cups').gte('date', startDate).lte('date', endDate);
+    scores = aggregateSum(data, 'user_id', 'water_cups');
+  } else if (metric === 'habits') {
+    const { data } = await sb.from('habits').select('user_id, water_cups, steps, sleep_hrs, devotional_done').gte('date', startDate).lte('date', endDate);
+    const counts = {};
+    (data || []).forEach(h => {
+      let done = 0;
+      if (h.water_cups >= 64) done++;
+      if (h.steps >= 10000) done++;
+      if (h.sleep_hrs >= 7) done++;
+      if (h.devotional_done) done++;
+      counts[h.user_id] = (counts[h.user_id] || 0) + done;
+    });
+    scores = Object.entries(counts).map(([user_id, score]) => ({ user_id, score })).sort((a,b) => b.score - a.score);
+  }
+
+  if (!scores.length) { container.innerHTML = '<div style="font-size:13px;color:var(--g400);padding:12px 0;">No activity logged yet for this challenge.</div>'; return; }
+
+  const userIds = scores.slice(0, 20).map(s => s.user_id);
+  const { data: profiles } = await sb.from('profiles').select('id,email').in('id', userIds);
+  const pm = {};
+  (profiles || []).forEach(p => { pm[p.id] = p; });
+
+  container.innerHTML = '<table><thead><tr><th>Rank</th><th>Member</th><th>Score</th></tr></thead><tbody>' +
+    scores.slice(0, 20).map((s, i) => '<tr><td>#' + (i+1) + '</td><td>' + (pm[s.user_id]?.email || 'Unknown') + '</td><td style="font-weight:700;">' + s.score + '</td></tr>').join('') +
+    '</tbody></table>';
+}
+
+function aggregateCounts(data, key) {
+  const counts = {};
+  (data || []).forEach(row => { counts[row[key]] = (counts[row[key]] || 0) + 1; });
+  return Object.entries(counts).map(([k, score]) => ({ user_id: k, score })).sort((a,b) => b.score - a.score);
+}
+
+function aggregateSum(data, key, sumField) {
+  const sums = {};
+  (data || []).forEach(row => { sums[row[key]] = (sums[row[key]] || 0) + (row[sumField] || 0); });
+  return Object.entries(sums).map(([k, score]) => ({ user_id: k, score })).sort((a,b) => b.score - a.score);
+}
+
+// ── RESOURCES MANAGER ──
+async function saveResource() {
+  const title = document.getElementById('res-title').value.trim();
+  const url = document.getElementById('res-url').value.trim();
+  const category = document.getElementById('res-category').value;
+  const desc = document.getElementById('res-desc').value.trim();
+  if (!title || !url) { alert('Please enter a title and URL.'); return; }
+  const { error } = await sb.from('resources').insert({ title, url, category, description: desc });
+  if (!error) {
+    ['res-title','res-url','res-desc'].forEach(id => document.getElementById(id).value = '');
+    showAlert('alert-resources', 'Resource added!');
+    loadResources();
+  } else alert('Error: ' + error.message);
+}
+
+async function loadResources() {
+  const { data } = await sb.from('resources').select('*').order('created_at', { ascending: false });
+  const el = document.getElementById('resources-list');
+  if (!data?.length) { el.innerHTML = '<div class="empty">No resources yet.</div>'; return; }
+  el.innerHTML = '<table><thead><tr><th>Title</th><th>Category</th><th>URL</th><th>Action</th></tr></thead><tbody>' +
+    data.map(r => '<tr><td style="font-weight:600;">' + r.title + (r.description ? '<div style="font-size:12px;color:var(--g400);font-weight:400;">' + r.description + '</div>' : '') + '</td><td><span class="badge badge-blue">' + r.category + '</span></td><td><a href="' + r.url + '" target="_blank" style="color:var(--orange);font-size:13px;">Open ↗</a></td><td><button class="btn btn-danger" onclick="deleteResource(\'' + r.id + '\')">Delete</button></td></tr>').join('') +
+    '</tbody></table>';
+}
+
+async function deleteResource(id) {
+  if (!confirm('Delete this resource?')) return;
+  await sb.from('resources').delete().eq('id', id);
+  loadResources();
+}
+
+// ── ANALYTICS ──
+async function loadAnalytics() {
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  const cutoff = sevenDaysAgo.toISOString().split('T')[0];
+
+  const { data: members } = await sb.from('profiles').select('id,email,created_at').eq('is_member', true);
+  if (!members?.length) return;
+
+  const userIds = members.map(m => m.id);
+
+  const [wRes, nRes, postsRes] = await Promise.all([
+    sb.from('workouts').select('user_id,date').in('user_id', userIds),
+    sb.from('nutrition').select('user_id,date').in('user_id', userIds),
+    sb.from('community_posts').select('user_id').in('user_id', userIds)
+  ]);
+
+  const workouts = wRes.data || [];
+  const nutrition = nRes.data || [];
+  const posts = postsRes.data || [];
+
+  // Active this week
+  const activeThisWeek = new Set([
+    ...workouts.filter(w => w.date >= cutoff).map(w => w.user_id),
+    ...nutrition.filter(n => n.date >= cutoff).map(n => n.user_id)
+  ]);
+
+  // Workout counts per member
+  const workoutCounts = {};
+  workouts.forEach(w => { workoutCounts[w.user_id] = (workoutCounts[w.user_id] || 0) + 1; });
+
+  const inactive = members.filter(m => !activeThisWeek.has(m.id));
+  const avgWorkouts = members.length ? Math.round(workouts.length / members.length) : 0;
+
+  document.getElementById('an-active').textContent = activeThisWeek.size;
+  document.getElementById('an-inactive').textContent = inactive.length;
+  document.getElementById('an-avg-w').textContent = avgWorkouts;
+  document.getElementById('an-posts').textContent = posts.length;
+
+  // Inactive list
+  const inEl = document.getElementById('an-inactive-list');
+  if (!inactive.length) { inEl.innerHTML = '<div class="empty">All members active in the last 7 days!</div>'; }
+  else {
+    inEl.innerHTML = '<table><thead><tr><th>Email</th><th>Joined</th><th>Workouts total</th><th>Action</th></tr></thead><tbody>' +
+      inactive.map(m => '<tr><td>' + (m.email||'—') + '</td><td>' + new Date(m.created_at).toLocaleDateString() + '</td><td>' + (workoutCounts[m.id]||0) + '</td><td><a href="mailto:' + m.email + '" class="btn btn-ghost" style="font-size:12px;padding:4px 10px;">Email</a></td></tr>').join('') +
+      '</tbody></table>';
+  }
+
+  // Most active list
+  const activeEl = document.getElementById('an-active-list');
+  const ranked = members
+    .map(m => ({ ...m, count: workoutCounts[m.id] || 0 }))
+    .sort((a,b) => b.count - a.count)
+    .slice(0, 10);
+  activeEl.innerHTML = '<table><thead><tr><th>Rank</th><th>Email</th><th>Workouts logged</th></tr></thead><tbody>' +
+    ranked.map((m,i) => '<tr><td>#' + (i+1) + '</td><td>' + (m.email||'—') + '</td><td style="font-weight:700;">' + m.count + '</td></tr>').join('') +
+    '</tbody></table>';
+}
+
+// ── COMMUNITY MODERATION ──
+function adminDisplayName(profile) {
+  if (profile && profile.first_name) {
+    const li = profile.last_name ? profile.last_name.charAt(0).toUpperCase() + '.' : '';
+    return profile.first_name + ' ' + li;
+  }
+  return profile?.email || 'Unknown';
+}
+
+async function loadCommunityMod() {
+  const { data: posts } = await sb.from('community_posts').select('*').order('created_at', { ascending: false }).limit(100);
+  const el = document.getElementById('community-mod-list');
+  if (!posts?.length) { el.innerHTML = '<div class="empty">No posts yet.</div>'; return; }
+
+  const userIds = [...new Set(posts.map(p => p.user_id))];
+  const { data: profiles } = await sb.from('profiles').select('id,email,first_name,last_name').in('id', userIds);
+  const pm = {};
+  (profiles || []).forEach(p => { pm[p.id] = p; });
+
+  const postIds = posts.map(p => p.id);
+  const { data: comments } = await sb.from('post_comments').select('*').in('post_id', postIds).order('created_at', { ascending: true });
+  const { data: likes } = await sb.from('post_likes').select('post_id').in('post_id', postIds);
+
+  const commentsByPost = {};
+  (comments || []).forEach(c => { (commentsByPost[c.post_id] = commentsByPost[c.post_id] || []).push(c); });
+  const likeCounts = {};
+  (likes || []).forEach(l => { likeCounts[l.post_id] = (likeCounts[l.post_id] || 0) + 1; });
+
+  el.innerHTML = posts.map(p => {
+    const author = adminDisplayName(pm[p.user_id]);
+    const postComments = commentsByPost[p.id] || [];
+    const commentsHtml = postComments.map(c => {
+      const cAuthor = adminDisplayName(pm[c.user_id]);
+      return '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--g100);">' +
+        '<div><span style="font-size:13px;font-weight:700;color:var(--navy);">' + cAuthor + ':</span> ' +
+        '<span style="font-size:13px;color:var(--g800);">' + c.comment + '</span></div>' +
+        '<button class="btn btn-danger" style="padding:4px 10px;font-size:11px;" onclick="deleteComment(\'' + c.id + '\')">Delete</button>' +
+        '</div>';
+    }).join('');
+
+    return '<div class="section-card">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">' +
+      '<div><span style="font-size:14px;font-weight:700;color:var(--navy);">' + author + '</span> ' +
+      '<span style="font-size:12px;color:var(--g400);">· ' + new Date(p.created_at).toLocaleString() + '</span></div>' +
+      '<button class="btn btn-danger" onclick="deletePostAdmin(\'' + p.id + '\')">Delete post</button>' +
+      '</div>' +
+      '<div style="font-size:14px;color:var(--g800);margin-bottom:10px;">' + p.content + '</div>' +
+      '<div style="font-size:12px;color:var(--g400);margin-bottom:6px;">' + (likeCounts[p.id] || 0) + ' likes · ' + postComments.length + ' comments</div>' +
+      commentsHtml +
+      '</div>';
+  }).join('');
+}
+
+async function deletePostAdmin(id) {
+  if (!confirm('Delete this post and all its comments?')) return;
+  await sb.from('community_posts').delete().eq('id', id);
+  loadCommunityMod();
+}
+
+async function deleteComment(id) {
+  if (!confirm('Delete this comment?')) return;
+  await sb.from('post_comments').delete().eq('id', id);
+  loadCommunityMod();
+}
+
+init();
+</script>
+</body>
+</html>
