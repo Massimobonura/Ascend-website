@@ -6,6 +6,22 @@ const sb = createClient(
   process.env.SUPABASE_SERVICE_KEY
 );
 
+// Tell Vercel NOT to auto-parse the body — Stripe needs the raw bytes to verify the signature
+module.exports.config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
+function getRawBody(req) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    req.on('data', (chunk) => chunks.push(chunk));
+    req.on('end', () => resolve(Buffer.concat(chunks)));
+    req.on('error', reject);
+  });
+}
+
 module.exports = async (req, res) => {
   if (req.method !== 'POST') { res.status(405).end(); return; }
 
@@ -13,7 +29,8 @@ module.exports = async (req, res) => {
   let event;
 
   try {
-    event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+    const rawBody = await getRawBody(req);
+    event = stripe.webhooks.constructEvent(rawBody, sig, process.env.STRIPE_WEBHOOK_SECRET);
   } catch (err) {
     console.error('Webhook error:', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
