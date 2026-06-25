@@ -11,17 +11,18 @@ module.exports = async (req, res) => {
   try {
     const { plan, userId, email } = req.body;
 
-    const priceId = plan === 'lifetime'
-      ? 'price_1TgatvJ0GAtDMdjACIx9cP5N'
-      : 'price_1TgaqvJ0GAtDMdjAYPlY9BW9';
+    const priceId = plan === 'annual'
+      ? 'price_1Tm5PhJ0GAtDMdjA4Ep3UjPc'
+      : 'price_1Tm5PIJ0GAtDMdjAiTspbhuQ';
 
-    const mode = plan === 'lifetime' ? 'payment' : 'subscription';
+    const mode = 'subscription';
 
     const session = await stripe.checkout.sessions.create({
       mode,
       customer_email: email,
       line_items: [{ price: priceId, quantity: 1 }],
       metadata: { userId, plan },
+      allow_promotion_codes: true,
       success_url: 'https://ascendfaithandfitness.com/dashboard.html?payment=success',
       cancel_url: 'https://ascendfaithandfitness.com/signup.html?cancelled=true',
     });
