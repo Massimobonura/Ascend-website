@@ -6,7 +6,6 @@ const sb = createClient(
   process.env.SUPABASE_SERVICE_KEY
 );
 
-// Tell Vercel NOT to auto-parse the body — Stripe needs the raw bytes to verify the signature
 module.exports.config = {
   api: {
     bodyParser: false,
@@ -32,21 +31,34 @@ module.exports = async (req, res) => {
     const rawBody = await getRawBody(req);
     event = stripe.webhooks.constructEvent(rawBody, sig, process.env.STRIPE_WEBHOOK_SECRET);
   } catch (err) {
-    console.error('Webhook error:', err.message);
+    console.error('Webhook signature error:', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
+  console.log('Webhook event received:', event.type);
+
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
-    const { userId, plan } = session.metadata;
+    const { userId, plan } = session.metadata || {};
+
+    console.log('Checkout session metadata:', JSON.stringify(session.metadata));
+    console.log('userId:', userId, 'plan:', plan, 'email:', session.customer_email);
 
     if (userId) {
-      await sb.from('profiles').upsert({
+      const { data, error } = await sb.from('profiles').upsert({
         id: userId,
         email: session.customer_email,
         is_member: true,
         plan: plan,
       });
+
+      if (error) {
+        console.error('SUPABASE UPSERT ERROR:', JSON.stringify(error));
+      } else {
+        console.log('Profile upsert succeeded:', JSON.stringify(data));
+      }
+    } else {
+      console.error('No userId found in session metadata! Cannot create profile.');
     }
   }
 
