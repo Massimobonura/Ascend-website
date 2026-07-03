@@ -3,6 +3,7 @@
   "builds": [
     { "src": "api/checkout.js", "use": "@vercel/node" },
     { "src": "api/webhook.js", "use": "@vercel/node" },
+    { "src": "api/coaching-checkout.js", "use": "@vercel/node" },
     { "src": "*.html", "use": "@vercel/static" },
     { "src": "*.png", "use": "@vercel/static" },
     { "src": "*.json", "use": "@vercel/static" },
@@ -11,6 +12,7 @@
   "routes": [
     { "src": "/api/checkout", "dest": "/api/checkout.js" },
     { "src": "/api/webhook", "dest": "/api/webhook.js" },
+    { "src": "/api/coaching-checkout", "dest": "/api/coaching-checkout.js" },
     { "src": "/onboarding.html", "dest": "/onboarding.html" },
     { "src": "/dashboard.html", "dest": "/dashboard.html" },
     { "src": "/login.html", "dest": "/login.html" },
