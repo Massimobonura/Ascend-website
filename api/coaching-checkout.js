@@ -1,37 +1,38 @@
-import Stripe from 'stripe';
-import { createClient } from '@supabase/supabase-js';
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const { createClient } = require('@supabase/supabase-js');
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
-export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+module.exports = async (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', 'https://ascendfaithandfitness.com');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') { res.status(200).end(); return; }
+  if (req.method !== 'POST') { res.status(405).json({ error: 'Method not allowed' }); return; }
 
   const { email } = req.body;
 
   if (!email) {
-    return res.status(400).json({ error: 'Email required' });
+    res.status(400).json({ error: 'Email required' });
+    return;
   }
 
   try {
     // Create Stripe checkout session for $3,000 one-time payment
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
+      mode: 'payment',
+      customer_email: email,
       line_items: [
         {
-          price: 'price_1TpFa0J0GAtDMdjAyxsygPS1', // Your $3,000 coaching price
+          price: 'price_1TpFa0J0GAtDMdjAyxsygPS1',
           quantity: 1,
         },
       ],
-      mode: 'payment',
-      customer_email: email,
-      success_url: `${process.env.VERCEL_URL}/thank-you`,
-      cancel_url: `${process.env.VERCEL_URL}/`,
+      success_url: 'https://ascendfaithandfitness.com/thank-you',
+      cancel_url: 'https://ascendfaithandfitness.com/',
     });
 
-    // Add client to coaching_clients table with pending status
+    // Add client to coaching_clients table
     const startDate = new Date();
     const endDate = new Date(startDate.getTime() + 6 * 30 * 24 * 60 * 60 * 1000);
     
@@ -48,4 +49,4 @@ export default async function handler(req, res) {
     console.error('Error creating checkout:', err);
     res.status(500).json({ error: err.message });
   }
-}
+};
