@@ -1892,7 +1892,6 @@ function filterCoachingClients() {
       name = '(Name not set)';
     }
     
-    const coachName = c.coach_id && allCoachingCoaches[c.coach_id] ? (allCoachingCoaches[c.coach_id].name || allCoachingCoaches[c.coach_id].email) : 'Unassigned';
     const startDate = c.coaching_start_date ? new Date(c.coaching_start_date).toLocaleDateString() : '—';
     const endDate = c.coaching_end_date ? new Date(c.coaching_end_date).toLocaleDateString() : '—';
     const status = c.status || 'active';
@@ -1916,14 +1915,24 @@ function filterCoachingClients() {
       }
     }
     
+    // Build coach dropdown
+    let coachDropdown = '<select id="coach-select-' + c.id + '" onchange="assignCoachingClientToCoach(\'' + c.id + '\', this.value)" style="padding:6px 10px;border:1.5px solid var(--g200);border-radius:6px;font-size:12px;font-family:Inter,sans-serif;outline:none;cursor:pointer;background:white;"><option value="">Unassigned</option>';
+    
+    Object.entries(allCoachingCoaches).forEach(([coachId, coach]) => {
+      const selected = coachId === c.coach_id ? ' selected' : '';
+      coachDropdown += '<option value="' + coachId + '"' + selected + '>' + (coach.name || coach.email) + '</option>';
+    });
+    
+    coachDropdown += '</select>';
+    
     html += '<tr>';
     html += '<td>' + name + '</td>';
-    html += '<td>' + coachName + '</td>';
+    html += '<td>' + coachDropdown + '</td>';
     html += '<td>' + startDate + '</td>';
     html += '<td>' + endDate + '</td>';
     html += '<td><span class="badge ' + expiryBadgeClass + '">' + expiryText + '</span></td>';
     html += '<td>' + status + '</td>';
-    html += '<td><button class="btn btn-secondary" onclick="viewCoachingClientDashboard(\'' + (c.user_id || '') + '\', \'' + encodeURIComponent(name) + '\')">View</button></td>';
+    html += '<td style="display:flex;gap:6px;"><button class="btn btn-ghost" style="font-size:12px;padding:5px 10px;" onclick="viewCoachingClientDashboard(\'' + (c.user_id || '') + '\', \'' + encodeURIComponent(name) + '\')">View</button><button class="btn btn-danger" style="font-size:12px;padding:5px 10px;" onclick="removeFromCoaching(\'' + c.id + '\', \'' + encodeURIComponent(name) + '\')">Remove</button></td>';
     html += '</tr>';
   });
   
@@ -1938,6 +1947,40 @@ async function viewCoachingClientDashboard(userId, clientName) {
   }
   // Open their dashboard with clientName in URL
   window.open(`/dashboard.html?viewClient=${userId}&clientName=${clientName || 'Client'}`, '_blank');
+}
+
+async function assignCoachingClientToCoach(coachingClientId, coachId) {
+  try {
+    const { error } = await sb.from('coaching_clients')
+      .update({ coach_id: coachId || null })
+      .eq('id', coachingClientId);
+    
+    if (error) throw error;
+    showAlert('alert-coaching-clients', 'Coach assigned!');
+    loadCoachingClients();
+  } catch (err) {
+    console.error('Error assigning coach:', err);
+    alert('Error: ' + err.message);
+  }
+}
+
+async function removeFromCoaching(coachingClientId, clientName) {
+  if (!confirm('Remove ' + decodeURIComponent(clientName) + ' from coaching? They will remain a regular member with app access.')) {
+    return;
+  }
+  
+  try {
+    const { error } = await sb.from('coaching_clients')
+      .delete()
+      .eq('id', coachingClientId);
+    
+    if (error) throw error;
+    showAlert('alert-coaching-clients', decodeURIComponent(clientName) + ' removed from coaching.');
+    loadCoachingClients();
+  } catch (err) {
+    console.error('Error removing from coaching:', err);
+    alert('Error: ' + err.message);
+  }
 }
 
 async function addExistingMemberAsCoachingClient() {
