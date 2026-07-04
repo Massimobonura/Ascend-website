@@ -142,6 +142,7 @@
     <div class="page" id="page-members">
       <div class="page-title">All Members</div>
       <div class="page-sub">View and manage all active members.</div>
+      <div id="alert-members" class="alert alert-success"></div>
       <div style="margin-bottom:16px;">
         <input type="text" id="member-search" placeholder="Search by name or email..." style="width:100%;max-width:400px;padding:8px 12px;border:1px solid var(--g300);border-radius:6px;font-size:13px;" onkeyup="searchMembers()" />
       </div>
@@ -601,9 +602,40 @@ function searchMembers() {
 }
 
 async function revokeMember(id) {
-  if (!confirm('Revoke this member\'s access?')) return;
-  await sb.from('profiles').update({ is_member: false, plan: null }).eq('id', id);
-  loadMembers();
+  if (!confirm('Revoke this member\'s access? This will cancel their $50/month subscription.')) return;
+  
+  try {
+    // Get the member's email
+    const { data: profile } = await sb.from('profiles').select('email').eq('id', id).single();
+    
+    if (!profile?.email) {
+      alert('Could not find member email.');
+      return;
+    }
+    
+    // Cancel their Stripe subscription
+    const cancelRes = await fetch('/api/cancel-subscription', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: profile.email })
+    });
+    
+    const cancelData = await cancelRes.json();
+    
+    if (!cancelRes.ok) {
+      alert('Error cancelling subscription: ' + cancelData.error);
+      return;
+    }
+    
+    // Remove from members
+    await sb.from('profiles').update({ is_member: false, plan: null }).eq('id', id);
+    
+    showAlert('alert-members', profile.email + ' revoked. Subscription cancelled.');
+    loadMembers();
+  } catch (err) {
+    console.error('Error revoking member:', err);
+    alert('Error: ' + err.message);
+  }
 }
 
 // ── COACHES ──
