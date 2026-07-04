@@ -636,57 +636,7 @@ async function removeCoach(id) {
 }
 
 // ── COACHING CLIENTS ──
-async function loadCoachingClients() {
-  const { data: clients } = await sb.from('coaching_clients').select('*').order('created_at', { ascending: false });
-  const el = document.getElementById('coaching-clients-list');
-  if (!clients?.length) { el.innerHTML = '<div class="empty">No coaching clients yet.</div>'; return; }
-  const userIds = clients.map(c => c.user_id);
-  const { data: profiles } = await sb.from('profiles').select('id,email').in('id', userIds);
-  const pm = {};
-  (profiles || []).forEach(p => { pm[p.id] = p; });
 
-  const { data: coaches } = await sb.from('coaches').select('*').order('name');
-  const coachOpts = '<option value="">Unassigned</option>' + (coaches || []).map(co => '<option value="' + co.id + '">' + (co.name || co.email) + '</option>').join('');
-
-  el.innerHTML = clients.map(c => {
-    const email = pm[c.user_id]?.email || 'Unknown';
-    const uid = c.user_id;
-    return '<div class="section-card">' +
-      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">' +
-      '<div><div style="font-size:16px;font-weight:700;color:var(--navy);">' + email + '</div>' +
-      '<div style="font-size:12px;color:var(--g400);">Client since ' + new Date(c.created_at).toLocaleDateString() + '</div></div>' +
-      '<div style="display:flex;align-items:center;gap:10px;">' +
-      '<select onchange="assignCoach(\'' + c.id + '\', this.value)" style="padding:7px 10px;border:1.5px solid var(--g200);border-radius:6px;font-size:12px;font-family:Inter,sans-serif;outline:none;cursor:pointer;background:white;">' +
-      coachOpts.replace('value="' + (c.coach_id || '') + '"', 'value="' + (c.coach_id || '') + '" selected') +
-      '</select>' +
-      '<button class="btn btn-danger" onclick="removeCoachingClient(\'' + uid + '\')">Remove client</button>' +
-      '</div>' +
-      '</div>' +
-      '<div style="font-size:12px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">Macro targets</div>' +
-      '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;">' +
-      '<div><label style="font-size:11px;font-weight:600;color:var(--g600);display:block;margin-bottom:4px;">Calories</label><input type="number" id="cal-' + uid + '" value="' + (c.calories||'') + '" placeholder="2000" style="width:100%;padding:8px;border:1.5px solid var(--g200);border-radius:6px;font-size:13px;font-family:Inter,sans-serif;outline:none;"></div>' +
-      '<div><label style="font-size:11px;font-weight:600;color:var(--g600);display:block;margin-bottom:4px;">Protein (g)</label><input type="number" id="pro-' + uid + '" value="' + (c.protein_g||'') + '" placeholder="150" style="width:100%;padding:8px;border:1.5px solid var(--g200);border-radius:6px;font-size:13px;font-family:Inter,sans-serif;outline:none;"></div>' +
-      '<div><label style="font-size:11px;font-weight:600;color:var(--g600);display:block;margin-bottom:4px;">Carbs (g)</label><input type="number" id="car-' + uid + '" value="' + (c.carbs_g||'') + '" placeholder="200" style="width:100%;padding:8px;border:1.5px solid var(--g200);border-radius:6px;font-size:13px;font-family:Inter,sans-serif;outline:none;"></div>' +
-      '<div><label style="font-size:11px;font-weight:600;color:var(--g600);display:block;margin-bottom:4px;">Fats (g)</label><input type="number" id="fat-' + uid + '" value="' + (c.fats_g||'') + '" placeholder="65" style="width:100%;padding:8px;border:1.5px solid var(--g200);border-radius:6px;font-size:13px;font-family:Inter,sans-serif;outline:none;"></div>' +
-      '</div>' +
-      '<button class="btn btn-primary" onclick="saveMacros(\'' + uid + '\')" style="margin-bottom:20px;">Save macro targets</button>' +
-      '<div style="font-size:12px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">Progress photos</div>' +
-      '<div id="cphotos-' + uid + '" style="margin-bottom:20px;"></div>' +
-      '<div style="font-size:12px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">Coaching notes</div>' +
-      '<div id="notes-' + uid + '" style="margin-bottom:10px;"></div>' +
-      '<div style="display:flex;gap:10px;">' +
-      '<textarea id="note-' + uid + '" placeholder="Add a coaching note..." style="flex:1;padding:10px;border:1.5px solid var(--g200);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;resize:none;min-height:60px;"></textarea>' +
-      '<button class="btn btn-primary" onclick="addNote(\'' + uid + '\')">Add note</button>' +
-      '</div>' +
-      '</div>';
-  }).join('');
-  clients.forEach(c => { loadNotes(c.user_id); loadClientPhotos(c.user_id); });
-}
-
-async function assignCoach(clientId, coachId) {
-  const { error } = await sb.from('coaching_clients').update({ coach_id: coachId || null }).eq('id', clientId);
-  if (error) alert('Error: ' + error.message);
-}
 
 async function loadClientPhotos(uid) {
   const { data } = await sb.from('progress_photos').select('*').eq('user_id', uid).order('date', { ascending: false }).limit(12);
@@ -1795,8 +1745,22 @@ function parseDevotionals(text) {
 }
 
 // COACHING CLIENTS FUNCTIONS
+let allCoachingClients = []; // Store all clients for filtering
+let allCoachingProfiles = {};
+let allCoachingCoaches = {};
+
 async function loadCoachingClients() {
   try {
+    // Get logged-in user's coach info
+    const isAdmin = currentUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+    let currentCoachId = null;
+    
+    if (!isAdmin) {
+      const { data: coachData } = await sb.from('coaches').select('id').eq('user_id', currentUser.id).single();
+      currentCoachId = coachData?.id;
+    }
+    
+    // Get all coaching clients
     const { data, error } = await sb.from('coaching_clients').select('*');
     
     if (error) {
@@ -1811,9 +1775,11 @@ async function loadCoachingClients() {
       return;
     }
     
+    allCoachingClients = data;
+    
     // Get profile names for each user
     const userIds = data.map(c => c.user_id).filter(id => id);
-    let profiles = {};
+    allCoachingProfiles = {};
     
     if (userIds.length > 0) {
       const { data: profileData } = await sb.from('profiles')
@@ -1822,43 +1788,90 @@ async function loadCoachingClients() {
       
       if (profileData) {
         profileData.forEach(p => {
-          profiles[p.id] = p;
+          allCoachingProfiles[p.id] = p;
         });
       }
     }
     
-    document.getElementById('coaching-clients-count').textContent = data.length + ' clients';
+    // Get all coaches
+    const { data: coaches } = await sb.from('coaches').select('*').order('name');
+    allCoachingCoaches = {};
+    (coaches || []).forEach(c => { allCoachingCoaches[c.id] = c; });
     
-    let html = '<table><thead><tr><th>Name</th><th>Start Date</th><th>End Date</th><th>Status</th><th>Action</th></tr></thead><tbody>';
+    // Build coach filter dropdown
+    let filterHtml = '<div style="margin-bottom:16px;"><label style="font-size:12px;font-weight:600;color:var(--g600);display:block;margin-bottom:6px;">Filter by Coach:</label>' +
+      '<select id="coach-filter" onchange="filterCoachingClients()" style="padding:8px 12px;border:1.5px solid var(--g200);border-radius:6px;font-size:13px;font-family:Inter,sans-serif;outline:none;cursor:pointer;background:white;">' +
+      '<option value="">All clients</option>';
     
-    data.forEach(c => {
-      const profile = profiles[c.user_id];
-      let name = 'Unknown';
-      if (profile && profile.first_name && profile.last_name) {
-        name = profile.first_name + ' ' + profile.last_name;
-      } else if (c.user_id) {
-        // Fallback to just showing the user exists but name not set
-        name = '(Name not set)';
-      }
-      const startDate = c.coaching_start_date ? new Date(c.coaching_start_date).toLocaleDateString() : '—';
-      const endDate = c.coaching_end_date ? new Date(c.coaching_end_date).toLocaleDateString() : '—';
-      const status = c.status || 'active';
-      
-      html += '<tr>';
-      html += '<td>' + name + '</td>';
-      html += '<td>' + startDate + '</td>';
-      html += '<td>' + endDate + '</td>';
-      html += '<td>' + status + '</td>';
-      html += '<td><button class="btn btn-secondary" onclick="viewCoachingClientDashboard(\'' + (c.user_id || '') + '\', \'' + encodeURIComponent(name) + '\')">View</button></td>';
-      html += '</tr>';
+    (coaches || []).forEach(c => {
+      filterHtml += '<option value="' + c.id + '">' + (c.name || c.email) + '</option>';
     });
     
-    html += '</tbody></table>';
-    document.getElementById('coaching-clients-table').innerHTML = html;
+    filterHtml += '</select></div>';
+    
+    // Insert filter above table
+    let filterContainer = document.getElementById('coach-filter-container');
+    if (!filterContainer) {
+      const tableEl = document.getElementById('coaching-clients-table');
+      filterContainer = document.createElement('div');
+      filterContainer.id = 'coach-filter-container';
+      tableEl.parentNode.insertBefore(filterContainer, tableEl);
+    }
+    filterContainer.innerHTML = filterHtml;
+    
+    // Set default filter to logged-in coach (if not admin)
+    const filterSelect = document.getElementById('coach-filter');
+    if (filterSelect && !isAdmin && currentCoachId) {
+      filterSelect.value = currentCoachId;
+    }
+    
+    document.getElementById('coaching-clients-count').textContent = data.length + ' clients';
+    
+    // Display filtered clients
+    filterCoachingClients();
+    
   } catch (err) {
     console.error('Exception:', err);
     document.getElementById('coaching-clients-table').innerHTML = '<div class="empty">Error loading clients</div>';
   }
+}
+
+function filterCoachingClients() {
+  const filterValue = document.getElementById('coach-filter')?.value || '';
+  
+  let filtered = allCoachingClients;
+  if (filterValue) {
+    filtered = allCoachingClients.filter(c => c.coach_id === filterValue);
+  }
+  
+  let html = '<table><thead><tr><th>Name</th><th>Coach</th><th>Start Date</th><th>End Date</th><th>Status</th><th>Action</th></tr></thead><tbody>';
+  
+  filtered.forEach(c => {
+    const profile = allCoachingProfiles[c.user_id];
+    let name = 'Unknown';
+    if (profile && profile.first_name && profile.last_name) {
+      name = profile.first_name + ' ' + profile.last_name;
+    } else if (c.user_id) {
+      name = '(Name not set)';
+    }
+    
+    const coachName = c.coach_id && allCoachingCoaches[c.coach_id] ? (allCoachingCoaches[c.coach_id].name || allCoachingCoaches[c.coach_id].email) : 'Unassigned';
+    const startDate = c.coaching_start_date ? new Date(c.coaching_start_date).toLocaleDateString() : '—';
+    const endDate = c.coaching_end_date ? new Date(c.coaching_end_date).toLocaleDateString() : '—';
+    const status = c.status || 'active';
+    
+    html += '<tr>';
+    html += '<td>' + name + '</td>';
+    html += '<td>' + coachName + '</td>';
+    html += '<td>' + startDate + '</td>';
+    html += '<td>' + endDate + '</td>';
+    html += '<td>' + status + '</td>';
+    html += '<td><button class="btn btn-secondary" onclick="viewCoachingClientDashboard(\'' + (c.user_id || '') + '\', \'' + encodeURIComponent(name) + '\')">View</button></td>';
+    html += '</tr>';
+  });
+  
+  html += '</tbody></table>';
+  document.getElementById('coaching-clients-table').innerHTML = html;
 }
 
 async function viewCoachingClientDashboard(userId, clientName) {
@@ -1889,6 +1902,15 @@ async function addExistingMemberAsCoachingClient() {
   }
   
   try {
+    // Get logged-in user's coach ID
+    const isAdmin = currentUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+    let coachId = null;
+    
+    if (!isAdmin) {
+      const { data: coachData } = await sb.from('coaches').select('id').eq('user_id', currentUser.id).single();
+      coachId = coachData?.id;
+    }
+    
     // Check if they already exist in coaching_clients
     const { data: existing } = await sb.from('coaching_clients')
       .select('id')
@@ -1899,12 +1921,13 @@ async function addExistingMemberAsCoachingClient() {
       return;
     }
     
-    // Add to coaching_clients table
+    // Add to coaching_clients table (auto-assign to logged-in coach if not admin)
     const { error } = await sb.from('coaching_clients').insert({
       email: email,
       coaching_start_date: startDate,
       coaching_end_date: endDate,
       status: 'active',
+      coach_id: coachId,
     });
     
     if (error) throw error;
