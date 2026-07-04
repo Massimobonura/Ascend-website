@@ -620,10 +620,18 @@ async function revokeMember(id) {
       body: JSON.stringify({ email: profile.email })
     });
     
-    const cancelData = await cancelRes.json();
+    const cancelText = await cancelRes.text();
+    let cancelData;
+    try {
+      cancelData = JSON.parse(cancelText);
+    } catch (e) {
+      console.error('Failed to parse response:', cancelText);
+      alert('Server error: ' + cancelText);
+      return;
+    }
     
     if (!cancelRes.ok) {
-      alert('Error cancelling subscription: ' + cancelData.error);
+      alert('Error cancelling subscription: ' + (cancelData.error || 'Unknown error'));
       return;
     }
     
