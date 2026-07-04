@@ -1799,7 +1799,7 @@ async function loadCoachingClients() {
     (coaches || []).forEach(c => { allCoachingCoaches[c.id] = c; });
     
     // Build coach filter dropdown
-    let filterHtml = '<div style="margin-bottom:24px;display:flex;align-items:flex-end;gap:12px;"><div style="flex:1;max-width:300px;"><label style="font-size:12px;font-weight:600;color:var(--g600);display:block;margin-bottom:8px;">Filter by Coach:</label>' +
+    let filterHtml = '<div style="margin-bottom:24px;margin-left:20px;display:flex;align-items:flex-end;gap:12px;"><div style="flex:1;max-width:300px;"><label style="font-size:12px;font-weight:600;color:var(--g600);display:block;margin-bottom:8px;">Filter by Coach:</label>' +
       '<select id="coach-filter" onchange="filterCoachingClients()" style="width:100%;padding:8px 12px;border:1.5px solid var(--g200);border-radius:6px;font-size:13px;font-family:Inter,sans-serif;outline:none;cursor:pointer;background:white;">' +
       '<option value="">All clients</option>';
     
