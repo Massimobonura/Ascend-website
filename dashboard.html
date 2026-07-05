@@ -895,7 +895,7 @@
         <!-- CARDIO TAB -->
         <div id="training-tab-cardio" style="display:none;">
           <div style="margin-bottom:16px;">
-            <input type="text" id="cardio-search" placeholder="Search cardio (Running, Cycling, etc.)..." style="width:100%;max-width:400px;padding:8px 12px;border:1.5px solid var(--g200);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;" onkeyup="filterCardioOptions()" />
+            <input type="text" id="cardio-search" placeholder="Search cardio (Running, Cycling, etc.)..." autocomplete="off" style="width:100%;max-width:400px;padding:8px 12px;border:1.5px solid var(--g200);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;" onkeyup="filterCardioOptions()" />
           </div>
           <div id="cardio-options-container"></div>
         </div>
@@ -2608,45 +2608,33 @@ function togglePlanDetails(planId) {
     detailsDiv.style.display = 'none';
     btn.innerHTML = '<i class="ti ti-chevron-down" aria-hidden="true"></i> View full workout';
   } else {
-    let detailsHtml = '<div style="font-size:13px;color:var(--g600);line-height:1.6;">';
+    let detailsHtml = '<div style="font-size:13px;color:var(--g600);line-height:1.8;">';
     
     const planDays = plan.plan_days;
     
     if (planDays && Array.isArray(planDays) && planDays.length > 0) {
       planDays.forEach(day => {
-        detailsHtml += '<div style="margin-bottom:12px;"><strong style="color:var(--navy);">Day ' + day.day + (day.day_name ? ' — ' + day.day_name : '') + ':</strong> ';
+        detailsHtml += '<div style="margin-bottom:16px;"><strong style="color:var(--navy);font-size:14px;">Day ' + day.day + ' — ' + (day.day_name || 'Workout') + '</strong><div style="margin-top:8px;">';
         
-        let exerciseList = [];
-        
-        // Try to get exercises from sections
         if (day.sections && Array.isArray(day.sections)) {
           day.sections.forEach(section => {
+            detailsHtml += '<div style="margin-bottom:12px;"><em style="color:var(--g700);font-weight:600;">' + (section.name || 'Exercises') + ':</em><div style="margin-left:12px;margin-top:4px;">';
+            
             if (section.exercises && Array.isArray(section.exercises)) {
               section.exercises.forEach(ex => {
-                if (typeof ex === 'object') {
-                  const name = ex.exercise || 'Exercise';
-                  const reps = ex.reps || '';
-                  const sets = ex.sets || '';
-                  exerciseList.push(name + (sets && reps ? ' ' + sets + 'x' + reps : ''));
-                }
+                const exerciseName = ex.exercise || 'Exercise';
+                const sets = ex.sets || '';
+                const reps = ex.reps || '';
+                const display = sets && reps ? exerciseName + ' — ' + sets + 'x' + reps : exerciseName;
+                detailsHtml += '<div style="margin-bottom:4px;">• ' + display + '</div>';
               });
             }
-          });
-        }
-        // Try to get exercises directly
-        else if (day.exercises && Array.isArray(day.exercises)) {
-          day.exercises.forEach(ex => {
-            if (typeof ex === 'object') {
-              const name = ex.exercise || 'Exercise';
-              const reps = ex.reps || '';
-              const sets = ex.sets || '';
-              exerciseList.push(name + (sets && reps ? ' ' + sets + 'x' + reps : ''));
-            }
+            
+            detailsHtml += '</div></div>';
           });
         }
         
-        detailsHtml += exerciseList.join(', ') || 'No exercises listed';
-        detailsHtml += '</div>';
+        detailsHtml += '</div></div>';
       });
     } else {
       detailsHtml += 'No workout details available';
