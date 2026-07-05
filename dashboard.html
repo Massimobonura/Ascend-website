@@ -897,7 +897,7 @@
           <div style="margin-bottom:16px;">
             <input type="text" id="cardio-search" placeholder="Search cardio (Running, Cycling, etc.)..." style="width:100%;max-width:400px;padding:8px 12px;border:1.5px solid var(--g200);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;" onkeyup="filterCardioOptions()" />
           </div>
-          <div id="cardio-options-container" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-bottom:24px;"></div>
+          <div id="cardio-options-container"></div>
         </div>
 
         <!-- PAIN MANAGEMENT TAB -->
@@ -905,7 +905,7 @@
           <div style="margin-bottom:16px;">
             <input type="text" id="pain-search" placeholder="Search pain management (Knee, Shoulder, Back...)..." style="width:100%;max-width:400px;padding:8px 12px;border:1.5px solid var(--g200);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;" onkeyup="filterPainPlans()" />
           </div>
-          <div id="pain-plans-container" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-bottom:24px;"></div>
+          <div id="pain-plans-container"></div>
         </div>
       </div>
     </div>
@@ -2534,8 +2534,8 @@ function getDayExerciseList(day) {
 let allWorkoutPlans = [];
 let allCardioOptions = [];
 let allPainPlans = [];
-let selectedCardio = null;
-let selectedPainPlan = null;
+let userCardioSelection = [];
+let userPainSelection = [];
 
 function switchTrainingTab(tabName) {
   // Hide all tabs
@@ -2543,29 +2543,21 @@ function switchTrainingTab(tabName) {
   document.getElementById('training-tab-cardio').style.display = 'none';
   document.getElementById('training-tab-pain').style.display = 'none';
   
-  // Remove active state from all buttons
-  document.getElementById('tab-workouts').style.color = 'var(--g600)';
-  document.getElementById('tab-workouts').style.borderBottom = '3px solid transparent';
-  document.getElementById('tab-cardio').style.color = 'var(--g600)';
-  document.getElementById('tab-cardio').style.borderBottom = '3px solid transparent';
-  document.getElementById('tab-pain').style.color = 'var(--g600)';
-  document.getElementById('tab-pain').style.borderBottom = '3px solid transparent';
+  // Update button styles
+  ['workouts', 'cardio', 'pain'].forEach(tab => {
+    const btn = document.getElementById('tab-' + tab);
+    btn.style.color = tab === tabName ? 'var(--navy)' : 'var(--g600)';
+    btn.style.borderBottom = tab === tabName ? '3px solid var(--orange)' : '3px solid transparent';
+  });
   
-  // Show selected tab and activate button
+  // Show selected tab
+  document.getElementById('training-tab-' + tabName).style.display = 'block';
+  
   if (tabName === 'workouts') {
-    document.getElementById('training-tab-workouts').style.display = 'block';
-    document.getElementById('tab-workouts').style.color = 'var(--navy)';
-    document.getElementById('tab-workouts').style.borderBottom = '3px solid var(--orange)';
     filterWorkoutPlans();
   } else if (tabName === 'cardio') {
-    document.getElementById('training-tab-cardio').style.display = 'block';
-    document.getElementById('tab-cardio').style.color = 'var(--navy)';
-    document.getElementById('tab-cardio').style.borderBottom = '3px solid var(--orange)';
     loadCardioOptions();
   } else if (tabName === 'pain') {
-    document.getElementById('training-tab-pain').style.display = 'block';
-    document.getElementById('tab-pain').style.color = 'var(--navy)';
-    document.getElementById('tab-pain').style.borderBottom = '3px solid var(--orange)';
     loadPainPlans();
   }
 }
@@ -2580,15 +2572,26 @@ function filterWorkoutPlans() {
   
   let html = '';
   if (filtered.length === 0) {
-    html = '<div class="empty" style="padding:48px;text-align:center;">No plans found with selected equipment</div>';
+    html = '<div class="empty" style="padding:48px;text-align:center;">No plans found</div>';
   } else {
     html = filtered.map(p => {
       const isActive = p.id === (window.activePlanId || '');
-      return '<div style="background:white;border:2px solid ' + (isActive ? 'var(--orange)' : 'var(--g200)') + ';border-radius:14px;padding:20px;cursor:pointer;" onclick="selectWorkoutPlan(\'' + p.id + '\', \'' + encodeURIComponent(p.name) + '\')">' +
-        '<div style="font-size:16px;font-weight:700;color:var(--navy);margin-bottom:8px;">' + p.name + '</div>' +
-        '<div style="font-size:12px;color:var(--g600);margin-bottom:12px;">' + (p.description || '') + '</div>' +
-        '<div style="font-size:11px;background:var(--g100);color:var(--g700);padding:4px 8px;border-radius:4px;display:inline-block;">' + (p.equipment || 'Equipment not specified') + '</div>' +
-        (isActive ? '<div style="margin-top:12px;color:var(--orange);font-weight:600;font-size:12px;">✓ Active Plan</div>' : '') +
+      return '<div style="background:white;border:1px solid var(--g200);border-radius:14px;padding:24px;margin-bottom:16px;">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap;">' +
+        '<div style="font-size:18px;font-weight:700;color:var(--navy);">' + p.name + '</div>' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
+        (p.level ? '<span class="badge badge-orange">' + (p.level === 'beginner' ? 'Beginner' : p.level === 'intermediate' ? 'Intermediate' : 'Advanced') + '</span>' : '') +
+        (p.days_per_week ? '<span class="badge badge-blue">' + p.days_per_week + ' days/week</span>' : '') +
+        '</div>' +
+        '</div>' +
+        (p.description ? '<div style="font-size:14px;color:var(--g600);margin-bottom:12px;">' + p.description + '</div>' : '') +
+        '<button onclick="togglePlanDetails(\'' + p.id + '\')" id="plan-toggle-' + p.id + '" style="display:flex;align-items:center;gap:6px;background:none;border:none;color:var(--orange);font-size:13px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;padding:10px 0;margin-bottom:12px;">' +
+        '<i class="ti ti-chevron-down" aria-hidden="true"></i> View full workout' +
+        '</button>' +
+        '<div id="plan-details-' + p.id + '" style="display:none;margin-bottom:12px;"></div>' +
+        '<button onclick="selectWorkoutPlan(\'' + p.id + '\')" style="width:100%;background:var(--orange);color:white;border:none;padding:14px;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">' +
+        (isActive ? '✓ Active Plan' : 'Select this plan') +
+        '</button>' +
         '</div>';
     }).join('');
   }
@@ -2596,14 +2599,60 @@ function filterWorkoutPlans() {
   document.getElementById('plans-container').innerHTML = html;
 }
 
-async function loadCardioOptions() {
-  const { data } = await sb.from('cardio_options').select('*').order('name');
-  allCardioOptions = data || [];
-  filterCardioOptions();
+function togglePlanDetails(planId) {
+  const plan = allWorkoutPlans.find(p => p.id === planId);
+  const detailsDiv = document.getElementById('plan-details-' + planId);
+  const btn = document.getElementById('plan-toggle-' + planId);
   
-  // Load user's cardio selection
-  const { data: userCardio } = await sb.from('user_cardio').select('*').eq('user_id', user.id).maybeSingle();
-  selectedCardio = userCardio;
+  if (detailsDiv.style.display === 'block') {
+    detailsDiv.style.display = 'none';
+    btn.innerHTML = '<i class="ti ti-chevron-down" aria-hidden="true"></i> View full workout';
+  } else {
+    let detailsHtml = '';
+    if (plan.plan_days && plan.plan_days.length) {
+      detailsHtml = plan.plan_days.map(day => {
+        let dayContent = '<div style="margin-bottom:16px;"><div style="font-weight:700;color:var(--navy);margin-bottom:8px;">Day ' + day.day + (day.day_name ? ' — ' + day.day_name : '') + '</div>';
+        
+        if (day.exercises && day.exercises.length) {
+          dayContent += '<div style="font-size:13px;color:var(--g600);">';
+          day.exercises.forEach(ex => {
+            dayContent += '<div style="margin-bottom:4px;">• ' + ex.exercise + (ex.sets ? ' - ' + ex.sets + 'x' + ex.reps : '') + '</div>';
+          });
+          dayContent += '</div>';
+        }
+        
+        dayContent += '</div>';
+        return dayContent;
+      }).join('');
+    }
+    detailsDiv.innerHTML = detailsHtml;
+    detailsDiv.style.display = 'block';
+    btn.innerHTML = '<i class="ti ti-chevron-up" aria-hidden="true"></i> Hide workout';
+  }
+}
+
+async function selectWorkoutPlan(planId) {
+  try {
+    const { error } = await sb.from('profiles').update({ active_workout_plan_id: planId }).eq('id', user.id);
+    if (error) throw error;
+    window.activePlanId = planId;
+    filterWorkoutPlans();
+    renderCalendar();
+    alert('✓ Plan selected!');
+  } catch (err) {
+    console.error('Error:', err);
+    alert('Error: ' + err.message);
+  }
+}
+
+async function loadCardioOptions() {
+  const { data: cardioData } = await sb.from('cardio_options').select('*').order('name');
+  allCardioOptions = cardioData || [];
+  
+  const { data: userCardio } = await sb.from('user_cardio').select('*').eq('user_id', user.id);
+  userCardioSelection = userCardio || [];
+  
+  filterCardioOptions();
 }
 
 function filterCardioOptions() {
@@ -2612,46 +2661,38 @@ function filterCardioOptions() {
   
   let html = '';
   if (filtered.length === 0) {
-    html = '<div class="empty" style="padding:48px;text-align:center;grid-column:1/-1;">No cardio found</div>';
+    html = '<div class="empty" style="padding:48px;text-align:center;">No cardio found</div>';
   } else {
     html = filtered.map(c => {
-      const isSelected = selectedCardio && selectedCardio.cardio_option_id === c.id;
-      return '<div style="background:white;border:2px solid ' + (isSelected ? 'var(--orange)' : 'var(--g200)') + ';border-radius:14px;padding:20px;">' +
-        '<div style="font-size:16px;font-weight:700;color:var(--navy);margin-bottom:8px;">' + c.name + '</div>' +
-        '<div style="font-size:12px;color:var(--g600);margin-bottom:16px;">' + (c.description || '') + '</div>' +
-        '<div style="margin-bottom:12px;"><label style="font-size:12px;font-weight:600;color:var(--g600);display:block;margin-bottom:6px;">Duration (minutes):</label>' +
-        '<select id="cardio-duration-' + c.id + '" style="width:100%;padding:6px 8px;border:1.5px solid var(--g200);border-radius:6px;font-size:12px;font-family:Inter,sans-serif;outline:none;cursor:pointer;background:white;">' +
-        '<option value="10">10 minutes</option><option value="20">20 minutes</option><option value="30">30 minutes</option></select></div>' +
-        '<div style="margin-bottom:12px;"><label style="font-size:12px;font-weight:600;color:var(--g600);display:block;margin-bottom:8px;">Select days:</label>' +
-        '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;" id="cardio-days-' + c.id + '"></div></div>' +
-        '<button onclick="selectCardio(\'' + c.id + '\')" style="width:100%;background:var(--orange);color:white;border:none;padding:10px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;">Select</button>' +
+      return '<div style="background:white;border:1px solid var(--g200);border-radius:14px;padding:24px;margin-bottom:16px;">' +
+        '<div style="font-size:18px;font-weight:700;color:var(--navy);margin-bottom:12px;">' + c.name + '</div>' +
+        (c.description ? '<div style="font-size:14px;color:var(--g600);margin-bottom:12px;">' + c.description + '</div>' : '') +
+        '<div style="margin-bottom:12px;"><label style="font-size:12px;font-weight:600;color:var(--g600);display:block;margin-bottom:8px;">Duration:</label>' +
+        '<select id="cardio-duration-' + c.id + '" style="width:100%;padding:8px 12px;border:1.5px solid var(--g200);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;cursor:pointer;background:white;margin-bottom:12px;">' +
+        '<option value="10">10 minutes</option><option value="20" selected>20 minutes</option><option value="30">30 minutes</option>' +
+        '</select></div>' +
+        '<div style="margin-bottom:12px;"><label style="font-size:12px;font-weight:600;color:var(--g600);display:block;margin-bottom:8px;">Select Days:</label>' +
+        '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;" id="cardio-days-' + c.id + '">' +
+        ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, i) => '<button class="day-btn" data-day="' + i + '" onclick="toggleCardioDay(this,\'' + c.id + '\')" style="background:var(--g100);color:var(--navy);border:none;padding:8px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;">' + day + '</button>').join('') +
+        '</div></div>' +
+        '<button onclick="addCardio(\'' + c.id + '\')" style="width:100%;background:var(--orange);color:white;border:none;padding:14px;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">Add to routine</button>' +
         '</div>';
     }).join('');
   }
   
   document.getElementById('cardio-options-container').innerHTML = html;
-  
-  // Create day pickers for each cardio
-  filtered.forEach(c => {
-    const daysContainer = document.getElementById('cardio-days-' + c.id);
-    if (daysContainer) {
-      daysContainer.innerHTML = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, i) => {
-        const isSelected = selectedCardio && selectedCardio.cardio_option_id === c.id && selectedCardio.days.includes(i.toString());
-        return '<button class="day-btn" data-day="' + i + '" onclick="toggleCardioDay(this)" style="background:' + (isSelected ? 'var(--orange)' : 'var(--g100)') + ';color:' + (isSelected ? 'white' : 'var(--navy)') + ';border:none;padding:8px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;">' + day + '</button>';
-      }).join('');
-    }
-  });
 }
 
-function toggleCardioDay(btn) {
+function toggleCardioDay(btn, cardioId) {
   btn.style.background = btn.style.background === 'var(--orange)' ? 'var(--g100)' : 'var(--orange)';
   btn.style.color = btn.style.color === 'rgb(255, 255, 255)' ? 'var(--navy)' : 'white';
 }
 
-async function selectCardio(cardioId) {
+async function addCardio(cardioId) {
   const daysContainer = document.getElementById('cardio-days-' + cardioId);
   const dayBtns = daysContainer.querySelectorAll('button');
   const selectedDays = [];
+  
   dayBtns.forEach(btn => {
     if (btn.style.background === 'var(--orange)') {
       selectedDays.push(btn.getAttribute('data-day'));
@@ -2663,40 +2704,35 @@ async function selectCardio(cardioId) {
     return;
   }
   
-  const durationSelect = document.getElementById('cardio-duration-' + cardioId);
-  const duration = parseInt(durationSelect.value);
+  const duration = document.getElementById('cardio-duration-' + cardioId).value;
   
   try {
-    // Delete existing cardio
-    await sb.from('user_cardio').delete().eq('user_id', user.id);
-    
-    // Insert new cardio
     const { error } = await sb.from('user_cardio').insert({
       user_id: user.id,
       cardio_option_id: cardioId,
-      duration_minutes: duration,
+      duration_minutes: parseInt(duration),
       days: selectedDays
     });
     
     if (error) throw error;
     
-    alert('✓ Cardio routine saved!');
+    alert('✓ Cardio added!');
     loadCardioOptions();
     renderCalendar();
   } catch (err) {
-    console.error('Error saving cardio:', err);
+    console.error('Error:', err);
     alert('Error: ' + err.message);
   }
 }
 
 async function loadPainPlans() {
-  const { data } = await sb.from('pain_management_plans').select('*').order('name');
-  allPainPlans = data || [];
-  filterPainPlans();
+  const { data: painData } = await sb.from('pain_management_plans').select('*').order('name');
+  allPainPlans = painData || [];
   
-  // Load user's pain plan selection
-  const { data: userPain } = await sb.from('user_pain_management').select('*').eq('user_id', user.id).maybeSingle();
-  selectedPainPlan = userPain;
+  const { data: userPain } = await sb.from('user_pain_management').select('*').eq('user_id', user.id);
+  userPainSelection = userPain || [];
+  
+  filterPainPlans();
 }
 
 function filterPainPlans() {
@@ -2705,43 +2741,34 @@ function filterPainPlans() {
   
   let html = '';
   if (filtered.length === 0) {
-    html = '<div class="empty" style="padding:48px;text-align:center;grid-column:1/-1;">No pain management plans found</div>';
+    html = '<div class="empty" style="padding:48px;text-align:center;">No pain management plans found. Check back soon!</div>';
   } else {
     html = filtered.map(p => {
-      const isSelected = selectedPainPlan && selectedPainPlan.pain_plan_id === p.id;
-      return '<div style="background:white;border:2px solid ' + (isSelected ? 'var(--orange)' : 'var(--g200)') + ';border-radius:14px;padding:20px;">' +
-        '<div style="font-size:16px;font-weight:700;color:var(--navy);margin-bottom:8px;">' + p.name + '</div>' +
-        '<div style="font-size:12px;color:var(--g600);margin-bottom:16px;">' + (p.description || '') + '</div>' +
-        '<div style="margin-bottom:12px;"><label style="font-size:12px;font-weight:600;color:var(--g600);display:block;margin-bottom:8px;">Select days:</label>' +
-        '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;" id="pain-days-' + p.id + '"></div></div>' +
-        '<button onclick="selectPainPlan(\'' + p.id + '\')" style="width:100%;background:var(--orange);color:white;border:none;padding:10px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;">Select</button>' +
+      return '<div style="background:white;border:1px solid var(--g200);border-radius:14px;padding:24px;margin-bottom:16px;">' +
+        '<div style="font-size:18px;font-weight:700;color:var(--navy);margin-bottom:12px;">' + p.name + '</div>' +
+        (p.description ? '<div style="font-size:14px;color:var(--g600);margin-bottom:12px;">' + p.description + '</div>' : '') +
+        '<div style="margin-bottom:12px;"><label style="font-size:12px;font-weight:600;color:var(--g600);display:block;margin-bottom:8px;">Select Days:</label>' +
+        '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;" id="pain-days-' + p.id + '">' +
+        ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, i) => '<button class="day-btn" data-day="' + i + '" onclick="togglePainDay(this,\'' + p.id + '\')" style="background:var(--g100);color:var(--navy);border:none;padding:8px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;">' + day + '</button>').join('') +
+        '</div></div>' +
+        '<button onclick="addPainPlan(\'' + p.id + '\')" style="width:100%;background:var(--orange);color:white;border:none;padding:14px;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">Add to routine</button>' +
         '</div>';
     }).join('');
   }
   
   document.getElementById('pain-plans-container').innerHTML = html;
-  
-  // Create day pickers for each plan
-  filtered.forEach(p => {
-    const daysContainer = document.getElementById('pain-days-' + p.id);
-    if (daysContainer) {
-      daysContainer.innerHTML = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, i) => {
-        const isSelected = selectedPainPlan && selectedPainPlan.pain_plan_id === p.id && selectedPainPlan.days.includes(i.toString());
-        return '<button class="day-btn" data-day="' + i + '" onclick="togglePainDay(this)" style="background:' + (isSelected ? 'var(--orange)' : 'var(--g100)') + ';color:' + (isSelected ? 'white' : 'var(--navy)') + ';border:none;padding:8px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;">' + day + '</button>';
-      }).join('');
-    }
-  });
 }
 
-function togglePainDay(btn) {
+function togglePainDay(btn, painId) {
   btn.style.background = btn.style.background === 'var(--orange)' ? 'var(--g100)' : 'var(--orange)';
   btn.style.color = btn.style.color === 'rgb(255, 255, 255)' ? 'var(--navy)' : 'white';
 }
 
-async function selectPainPlan(painPlanId) {
+async function addPainPlan(painPlanId) {
   const daysContainer = document.getElementById('pain-days-' + painPlanId);
   const dayBtns = daysContainer.querySelectorAll('button');
   const selectedDays = [];
+  
   dayBtns.forEach(btn => {
     if (btn.style.background === 'var(--orange)') {
       selectedDays.push(btn.getAttribute('data-day'));
@@ -2754,10 +2781,6 @@ async function selectPainPlan(painPlanId) {
   }
   
   try {
-    // Delete existing pain plan
-    await sb.from('user_pain_management').delete().eq('user_id', user.id);
-    
-    // Insert new pain plan
     const { error } = await sb.from('user_pain_management').insert({
       user_id: user.id,
       pain_plan_id: painPlanId,
@@ -2766,11 +2789,11 @@ async function selectPainPlan(painPlanId) {
     
     if (error) throw error;
     
-    alert('✓ Pain management routine saved!');
+    alert('✓ Pain plan added!');
     loadPainPlans();
     renderCalendar();
   } catch (err) {
-    console.error('Error saving pain plan:', err);
+    console.error('Error:', err);
     alert('Error: ' + err.message);
   }
 }
