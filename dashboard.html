@@ -2884,14 +2884,6 @@ async function deleteCustomPlan(planId) {
   loadPlans();
 }
 
-function togglePlanDetails(planId) {
-  const details = document.getElementById('plan-details-' + planId);
-  const btn = document.getElementById('plan-toggle-' + planId);
-  const isOpen = details.style.display === 'block';
-  details.style.display = isOpen ? 'none' : 'block';
-  btn.innerHTML = '<i class="ti ti-chevron-' + (isOpen ? 'down' : 'up') + '" aria-hidden="true"></i> ' + (isOpen ? 'View full workout' : 'Hide workout');
-}
-
 // ── CUSTOM PLAN BUILDER (member-created) ──
 function openCustomPlanBuilder() {
   document.getElementById('custom-plan-modal').style.display = 'flex';
