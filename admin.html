@@ -602,7 +602,7 @@ function searchMembers() {
 }
 
 async function revokeMember(id) {
-  if (!confirm('Revoke this member\'s access? This will cancel their $50/month subscription.')) return;
+  if (!confirm('Revoke this member\'s access? You\'ll need to manually cancel their subscription in the Stripe dashboard.')) return;
   
   try {
     // Get the member's email
@@ -613,32 +613,10 @@ async function revokeMember(id) {
       return;
     }
     
-    // Cancel their Stripe subscription
-    const cancelRes = await fetch('/api/cancel-subscription', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: profile.email })
-    });
-    
-    const cancelText = await cancelRes.text();
-    let cancelData;
-    try {
-      cancelData = JSON.parse(cancelText);
-    } catch (e) {
-      console.error('Failed to parse response:', cancelText);
-      alert('Server error: ' + cancelText);
-      return;
-    }
-    
-    if (!cancelRes.ok) {
-      alert('Error cancelling subscription: ' + (cancelData.error || 'Unknown error'));
-      return;
-    }
-    
     // Remove from members
     await sb.from('profiles').update({ is_member: false, plan: null }).eq('id', id);
     
-    showAlert('alert-members', profile.email + ' revoked. Subscription cancelled.');
+    showAlert('alert-members', profile.email + ' revoked. Cancel their Stripe subscription in your Stripe dashboard.');
     loadMembers();
   } catch (err) {
     console.error('Error revoking member:', err);
