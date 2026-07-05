@@ -1276,10 +1276,17 @@ async function signOut() {
 
 async function openManageSubscription() {
   try {
+    const { data: { user } } = await sb.auth.getUser();
+    
+    if (!user || !user.email) {
+      alert('Error: Could not find your email');
+      return;
+    }
+    
     const res = await fetch('/api/portal-session', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: currentUser.email })
+      body: JSON.stringify({ email: user.email })
     });
     
     const data = await res.json();
