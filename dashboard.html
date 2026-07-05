@@ -2667,14 +2667,6 @@ async function loadCardioOptions() {
   userCardioSelection = userCardio || [];
   
   filterCardioOptions();
-  
-  // Clear the search field after a short delay to override browser autofill
-  setTimeout(() => {
-    const cardioSearch = document.getElementById('cardio-search');
-    if (cardioSearch) {
-      cardioSearch.value = '';
-    }
-  }, 100);
 }
 
 function filterCardioOptions() {
