@@ -2805,8 +2805,21 @@ async function loadPlans() {
   window.activePlanId = activePlanId;
 
   // Show admin-created plans (created_by is null) plus this member's own custom plans
-  allWorkoutPlans = (allPlans || []).filter(p => !p.created_by || p.created_by === user.id);
+  let filteredPlans = (allPlans || []).filter(p => !p.created_by || p.created_by === user.id);
   
+  // Load plan_days for each plan
+  for (let plan of filteredPlans) {
+    const { data: planDays } = await sb.from('plan_days').select('*').eq('plan_id', plan.id).order('day');
+    plan.plan_days = planDays || [];
+    
+    // Load exercises for each day
+    for (let day of plan.plan_days) {
+      const { data: exercises } = await sb.from('plan_exercises').select('*').eq('day_id', day.id);
+      day.exercises = exercises || [];
+    }
+  }
+  
+  allWorkoutPlans = filteredPlans;
   filterWorkoutPlans();
 }
 
