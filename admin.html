@@ -574,7 +574,7 @@ async function loadOverview() {
 let allMembers = []; // Store all members for search
 
 async function loadMembers() {
-  const { data } = await sb.from('profiles').select('*').eq('is_member', true).order('created_at', { ascending: false });
+  const { data } = await sb.from('profiles').select('*').eq('is_member', true).is('deactivated_at', null).order('created_at', { ascending: false });
   allMembers = data || [];
   document.getElementById('member-count').textContent = (allMembers.length || 0) + ' members';
   const el = document.getElementById('members-table');
@@ -613,8 +613,8 @@ async function revokeMember(id) {
       return;
     }
     
-    // Remove from members
-    await sb.from('profiles').update({ is_member: false, plan: null }).eq('id', id);
+    // Remove from members and set deactivation timestamp
+    await sb.from('profiles').update({ is_member: false, plan: null, deactivated_at: new Date().toISOString() }).eq('id', id);
     
     showAlert('alert-members', profile.email + ' revoked. Cancel their Stripe subscription in your Stripe dashboard.');
     loadMembers();
