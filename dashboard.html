@@ -2608,49 +2608,51 @@ function togglePlanDetails(planId) {
     detailsDiv.style.display = 'none';
     btn.innerHTML = '<i class="ti ti-chevron-down" aria-hidden="true"></i> View full workout';
   } else {
-    let detailsHtml = '';
+    let detailsHtml = '<div style="font-size:13px;color:var(--g600);line-height:1.6;">';
     
-    // plan_days is JSONB - could be array or have sections
-    const planDays = Array.isArray(plan.plan_days) ? plan.plan_days : [];
+    const planDays = plan.plan_days;
     
-    if (planDays.length > 0) {
-      detailsHtml = planDays.map(day => {
-        let dayContent = '<div style="margin-bottom:16px;"><div style="font-weight:700;color:var(--navy);margin-bottom:8px;">Day ' + day.day + (day.day_name ? ' — ' + day.day_name : '') + '</div>';
+    if (planDays && Array.isArray(planDays) && planDays.length > 0) {
+      planDays.forEach(day => {
+        detailsHtml += '<div style="margin-bottom:12px;"><strong style="color:var(--navy);">Day ' + day.day + (day.day_name ? ' — ' + day.day_name : '') + ':</strong> ';
         
-        dayContent += '<div style="font-size:13px;color:var(--g600);">';
+        let exerciseList = [];
         
-        // Handle sections format (newer structure)
+        // Try to get exercises from sections
         if (day.sections && Array.isArray(day.sections)) {
           day.sections.forEach(section => {
             if (section.exercises && Array.isArray(section.exercises)) {
               section.exercises.forEach(ex => {
-                const name = typeof ex === 'string' ? ex : (ex.exercise || '');
-                const sets = ex.sets || '';
-                const reps = ex.reps || '';
-                const display = sets && reps ? name + ' - ' + sets + 'x' + reps : name;
-                if (display) dayContent += '<div style="margin-bottom:4px;">• ' + display + '</div>';
+                if (typeof ex === 'object') {
+                  const name = ex.exercise || 'Exercise';
+                  const reps = ex.reps || '';
+                  const sets = ex.sets || '';
+                  exerciseList.push(name + (sets && reps ? ' ' + sets + 'x' + reps : ''));
+                }
               });
             }
           });
         }
-        // Handle direct exercises format (older structure)
+        // Try to get exercises directly
         else if (day.exercises && Array.isArray(day.exercises)) {
           day.exercises.forEach(ex => {
-            const name = typeof ex === 'string' ? ex : (ex.exercise || '');
-            const sets = ex.sets || '';
-            const reps = ex.reps || '';
-            const display = sets && reps ? name + ' - ' + sets + 'x' + reps : name;
-            if (display) dayContent += '<div style="margin-bottom:4px;">• ' + display + '</div>';
+            if (typeof ex === 'object') {
+              const name = ex.exercise || 'Exercise';
+              const reps = ex.reps || '';
+              const sets = ex.sets || '';
+              exerciseList.push(name + (sets && reps ? ' ' + sets + 'x' + reps : ''));
+            }
           });
         }
         
-        dayContent += '</div></div>';
-        return dayContent;
-      }).join('');
+        detailsHtml += exerciseList.join(', ') || 'No exercises listed';
+        detailsHtml += '</div>';
+      });
     } else {
-      detailsHtml = '<div style="color:var(--g600);font-size:13px;">No exercises for this plan</div>';
+      detailsHtml += 'No workout details available';
     }
     
+    detailsHtml += '</div>';
     detailsDiv.innerHTML = detailsHtml;
     detailsDiv.style.display = 'block';
     btn.innerHTML = '<i class="ti ti-chevron-up" aria-hidden="true"></i> Hide workout';
@@ -2695,7 +2697,17 @@ function filterCardioOptions() {
         (c.description ? '<div style="font-size:14px;color:var(--g600);margin-bottom:12px;">' + c.description + '</div>' : '') +
         '<div style="margin-bottom:12px;"><label style="font-size:12px;font-weight:600;color:var(--g600);display:block;margin-bottom:8px;">Duration:</label>' +
         '<select id="cardio-duration-' + c.id + '" style="width:100%;padding:8px 12px;border:1.5px solid var(--g200);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;cursor:pointer;background:white;margin-bottom:12px;">' +
-        '<option value="10">10 minutes</option><option value="20" selected>20 minutes</option><option value="30">30 minutes</option>' +
+        '<option value="10">10 minutes</option>' +
+        '<option value="15">15 minutes</option>' +
+        '<option value="20" selected>20 minutes</option>' +
+        '<option value="25">25 minutes</option>' +
+        '<option value="30">30 minutes</option>' +
+        '<option value="35">35 minutes</option>' +
+        '<option value="40">40 minutes</option>' +
+        '<option value="45">45 minutes</option>' +
+        '<option value="50">50 minutes</option>' +
+        '<option value="55">55 minutes</option>' +
+        '<option value="60">60 minutes</option>' +
         '</select></div>' +
         '<div style="margin-bottom:12px;"><label style="font-size:12px;font-weight:600;color:var(--g600);display:block;margin-bottom:8px;">Select Days:</label>' +
         '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;" id="cardio-days-' + c.id + '">' +
