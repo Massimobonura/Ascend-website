@@ -2666,6 +2666,12 @@ async function loadCardioOptions() {
   const { data: userCardio } = await sb.from('user_cardio').select('*').eq('user_id', user.id);
   userCardioSelection = userCardio || [];
   
+  // Clear the search field to prevent autofill
+  const cardioSearch = document.getElementById('cardio-search');
+  if (cardioSearch) {
+    cardioSearch.value = '';
+  }
+  
   filterCardioOptions();
 }
 
