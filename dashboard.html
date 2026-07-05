@@ -2660,6 +2660,7 @@ async function selectWorkoutPlan(planId) {
 }
 
 async function loadCardioOptions() {
+  allCardioOptions = []; // Clear to prevent duplicates
   const { data: cardioData } = await sb.from('cardio_options').select('*').order('name');
   allCardioOptions = cardioData || [];
   
@@ -2758,6 +2759,7 @@ async function addCardio(cardioId) {
 }
 
 async function loadPainPlans() {
+  allPainPlans = []; // Clear to prevent duplicates
   const { data: painData } = await sb.from('pain_management_plans').select('*').order('name');
   allPainPlans = painData || [];
   
