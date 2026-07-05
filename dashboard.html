@@ -2600,7 +2600,6 @@ function filterWorkoutPlans() {
 }
 
 function togglePlanDetails(planId) {
-  const plan = allWorkoutPlans.find(p => p.id === planId);
   const detailsDiv = document.getElementById('plan-details-' + planId);
   const btn = document.getElementById('plan-toggle-' + planId);
   
@@ -2608,12 +2607,11 @@ function togglePlanDetails(planId) {
     detailsDiv.style.display = 'none';
     btn.innerHTML = '<i class="ti ti-chevron-down" aria-hidden="true"></i> View full workout';
   } else {
+    const plan = allWorkoutPlans.find(p => p.id === planId);
     let detailsHtml = '<div style="font-size:13px;color:var(--g600);line-height:1.8;">';
     
-    const planDays = plan.plan_days;
-    
-    if (planDays && Array.isArray(planDays) && planDays.length > 0) {
-      planDays.forEach(day => {
+    if (plan && plan.plan_days && Array.isArray(plan.plan_days)) {
+      plan.plan_days.forEach(day => {
         detailsHtml += '<div style="margin-bottom:16px;"><strong style="color:var(--navy);font-size:14px;">Day ' + day.day + ' — ' + (day.day_name || 'Workout') + '</strong><div style="margin-top:8px;">';
         
         if (day.sections && Array.isArray(day.sections)) {
