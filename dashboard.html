@@ -365,6 +365,7 @@
   </div>
   <div class="nav-right">
     <span class="nav-email" id="nav-email"></span>
+    <button onclick="openManageSubscription()" style="background:var(--orange);color:white;border:none;padding:8px 16px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;margin-right:12px;">Manage Subscription</button>
     <button class="signout-btn" onclick="signOut()">Sign out</button>
   </div>
 </nav>
@@ -1273,7 +1274,28 @@ async function signOut() {
   window.location.href = '/';
 }
 
-// ── PAGE NAV ──
+async function openManageSubscription() {
+  try {
+    const res = await fetch('/api/portal-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: currentUser.email })
+    });
+    
+    const data = await res.json();
+    
+    if (!res.ok) {
+      alert('Error: ' + (data.error || 'Could not open portal'));
+      return;
+    }
+    
+    // Redirect to Stripe portal
+    window.location.href = data.url;
+  } catch (err) {
+    console.error('Error:', err);
+    alert('Error: ' + err.message);
+  }
+}
 function toggleMobileSidebar() {
   const sidebar = document.querySelector('.sidebar');
   const overlay = document.getElementById('mobile-sidebar-overlay');
@@ -3872,6 +3894,17 @@ async function loadNutritionChart() {
 }
 
 init();
+
+// Check if viewing as coach
+const urlParams = new URLSearchParams(window.location.search);
+const clientName = urlParams.get('clientName');
+const viewingAsCoach = urlParams.get('viewClient');
+
+if (viewingAsCoach && clientName) {
+  // Show client name at top instead of email
+  document.getElementById('nav-email').textContent = 'Coaching: ' + decodeURIComponent(clientName);
+  document.getElementById('nav-email').style.color = 'var(--orange)';
+}
 </script>
 </body>
 </html>
