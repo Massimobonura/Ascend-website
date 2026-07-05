@@ -2609,15 +2609,33 @@ function togglePlanDetails(planId) {
     btn.innerHTML = '<i class="ti ti-chevron-down" aria-hidden="true"></i> View full workout';
   } else {
     let detailsHtml = '';
-    if (plan.plan_days && plan.plan_days.length) {
-      detailsHtml = plan.plan_days.map(day => {
+    
+    // plan_days is JSONB, so it's already parsed as an array
+    const planDays = plan.plan_days || [];
+    
+    if (Array.isArray(planDays) && planDays.length > 0) {
+      detailsHtml = planDays.map(day => {
         let dayContent = '<div style="margin-bottom:16px;"><div style="font-weight:700;color:var(--navy);margin-bottom:8px;">Day ' + day.day + (day.day_name ? ' — ' + day.day_name : '') + '</div>';
         
-        if (day.exercises && day.exercises.length) {
+        const exercises = day.exercises || day.sections || [];
+        if (exercises.length > 0) {
           dayContent += '<div style="font-size:13px;color:var(--g600);">';
-          day.exercises.forEach(ex => {
-            dayContent += '<div style="margin-bottom:4px;">• ' + ex.exercise + (ex.sets ? ' - ' + ex.sets + 'x' + ex.reps : '') + '</div>';
-          });
+          
+          // Handle both format: direct exercises array OR sections array
+          if (day.sections && Array.isArray(day.sections)) {
+            day.sections.forEach(section => {
+              if (section.exercises) {
+                section.exercises.forEach(ex => {
+                  dayContent += '<div style="margin-bottom:4px;">• ' + ex.exercise + (ex.sets ? ' - ' + ex.sets + 'x' + ex.reps : '') + '</div>';
+                });
+              }
+            });
+          } else if (Array.isArray(exercises)) {
+            exercises.forEach(ex => {
+              dayContent += '<div style="margin-bottom:4px;">• ' + (ex.exercise || ex) + (ex.sets ? ' - ' + ex.sets + 'x' + ex.reps : '') + '</div>';
+            });
+          }
+          
           dayContent += '</div>';
         }
         
@@ -2625,6 +2643,7 @@ function togglePlanDetails(planId) {
         return dayContent;
       }).join('');
     }
+    
     detailsDiv.innerHTML = detailsHtml;
     detailsDiv.style.display = 'block';
     btn.innerHTML = '<i class="ti ti-chevron-up" aria-hidden="true"></i> Hide workout';
@@ -2805,21 +2824,8 @@ async function loadPlans() {
   window.activePlanId = activePlanId;
 
   // Show admin-created plans (created_by is null) plus this member's own custom plans
-  let filteredPlans = (allPlans || []).filter(p => !p.created_by || p.created_by === user.id);
+  allWorkoutPlans = (allPlans || []).filter(p => !p.created_by || p.created_by === user.id);
   
-  // Load plan_days for each plan
-  for (let plan of filteredPlans) {
-    const { data: planDays } = await sb.from('plan_days').select('*').eq('plan_id', plan.id).order('day');
-    plan.plan_days = planDays || [];
-    
-    // Load exercises for each day
-    for (let day of plan.plan_days) {
-      const { data: exercises } = await sb.from('plan_exercises').select('*').eq('day_id', day.id);
-      day.exercises = exercises || [];
-    }
-  }
-  
-  allWorkoutPlans = filteredPlans;
   filterWorkoutPlans();
 }
 
