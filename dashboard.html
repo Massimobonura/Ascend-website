@@ -2610,38 +2610,45 @@ function togglePlanDetails(planId) {
   } else {
     let detailsHtml = '';
     
-    // plan_days is JSONB, so it's already parsed as an array
-    const planDays = plan.plan_days || [];
+    // plan_days is JSONB - could be array or have sections
+    const planDays = Array.isArray(plan.plan_days) ? plan.plan_days : [];
     
-    if (Array.isArray(planDays) && planDays.length > 0) {
+    if (planDays.length > 0) {
       detailsHtml = planDays.map(day => {
         let dayContent = '<div style="margin-bottom:16px;"><div style="font-weight:700;color:var(--navy);margin-bottom:8px;">Day ' + day.day + (day.day_name ? ' — ' + day.day_name : '') + '</div>';
         
-        const exercises = day.exercises || day.sections || [];
-        if (exercises.length > 0) {
-          dayContent += '<div style="font-size:13px;color:var(--g600);">';
-          
-          // Handle both format: direct exercises array OR sections array
-          if (day.sections && Array.isArray(day.sections)) {
-            day.sections.forEach(section => {
-              if (section.exercises) {
-                section.exercises.forEach(ex => {
-                  dayContent += '<div style="margin-bottom:4px;">• ' + ex.exercise + (ex.sets ? ' - ' + ex.sets + 'x' + ex.reps : '') + '</div>';
-                });
-              }
-            });
-          } else if (Array.isArray(exercises)) {
-            exercises.forEach(ex => {
-              dayContent += '<div style="margin-bottom:4px;">• ' + (ex.exercise || ex) + (ex.sets ? ' - ' + ex.sets + 'x' + ex.reps : '') + '</div>';
-            });
-          }
-          
-          dayContent += '</div>';
+        dayContent += '<div style="font-size:13px;color:var(--g600);">';
+        
+        // Handle sections format (newer structure)
+        if (day.sections && Array.isArray(day.sections)) {
+          day.sections.forEach(section => {
+            if (section.exercises && Array.isArray(section.exercises)) {
+              section.exercises.forEach(ex => {
+                const name = typeof ex === 'string' ? ex : (ex.exercise || '');
+                const sets = ex.sets || '';
+                const reps = ex.reps || '';
+                const display = sets && reps ? name + ' - ' + sets + 'x' + reps : name;
+                if (display) dayContent += '<div style="margin-bottom:4px;">• ' + display + '</div>';
+              });
+            }
+          });
+        }
+        // Handle direct exercises format (older structure)
+        else if (day.exercises && Array.isArray(day.exercises)) {
+          day.exercises.forEach(ex => {
+            const name = typeof ex === 'string' ? ex : (ex.exercise || '');
+            const sets = ex.sets || '';
+            const reps = ex.reps || '';
+            const display = sets && reps ? name + ' - ' + sets + 'x' + reps : name;
+            if (display) dayContent += '<div style="margin-bottom:4px;">• ' + display + '</div>';
+          });
         }
         
-        dayContent += '</div>';
+        dayContent += '</div></div>';
         return dayContent;
       }).join('');
+    } else {
+      detailsHtml = '<div style="color:var(--g600);font-size:13px;">No exercises for this plan</div>';
     }
     
     detailsDiv.innerHTML = detailsHtml;
@@ -2692,7 +2699,7 @@ function filterCardioOptions() {
         '</select></div>' +
         '<div style="margin-bottom:12px;"><label style="font-size:12px;font-weight:600;color:var(--g600);display:block;margin-bottom:8px;">Select Days:</label>' +
         '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;" id="cardio-days-' + c.id + '">' +
-        ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, i) => '<button class="day-btn" data-day="' + i + '" onclick="toggleCardioDay(this,\'' + c.id + '\')" style="background:var(--g100);color:var(--navy);border:none;padding:8px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;">' + day + '</button>').join('') +
+        ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, i) => '<button class="day-btn" data-day="' + i + '" data-selected="false" onclick="toggleCardioDay(this,\'' + c.id + '\')" style="background:var(--g100);color:var(--navy);border:none;padding:8px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;">' + day + '</button>').join('') +
         '</div></div>' +
         '<button onclick="addCardio(\'' + c.id + '\')" style="width:100%;background:var(--orange);color:white;border:none;padding:14px;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">Add to routine</button>' +
         '</div>';
@@ -2703,8 +2710,16 @@ function filterCardioOptions() {
 }
 
 function toggleCardioDay(btn, cardioId) {
-  btn.style.background = btn.style.background === 'var(--orange)' ? 'var(--g100)' : 'var(--orange)';
-  btn.style.color = btn.style.color === 'rgb(255, 255, 255)' ? 'var(--navy)' : 'white';
+  const isSelected = btn.getAttribute('data-selected') === 'true';
+  btn.setAttribute('data-selected', !isSelected);
+  
+  if (isSelected) {
+    btn.style.background = 'var(--g100)';
+    btn.style.color = 'var(--navy)';
+  } else {
+    btn.style.background = 'var(--orange)';
+    btn.style.color = 'white';
+  }
 }
 
 async function addCardio(cardioId) {
@@ -2713,7 +2728,7 @@ async function addCardio(cardioId) {
   const selectedDays = [];
   
   dayBtns.forEach(btn => {
-    if (btn.style.background === 'var(--orange)') {
+    if (btn.getAttribute('data-selected') === 'true') {
       selectedDays.push(btn.getAttribute('data-day'));
     }
   });
@@ -2768,7 +2783,7 @@ function filterPainPlans() {
         (p.description ? '<div style="font-size:14px;color:var(--g600);margin-bottom:12px;">' + p.description + '</div>' : '') +
         '<div style="margin-bottom:12px;"><label style="font-size:12px;font-weight:600;color:var(--g600);display:block;margin-bottom:8px;">Select Days:</label>' +
         '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;" id="pain-days-' + p.id + '">' +
-        ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, i) => '<button class="day-btn" data-day="' + i + '" onclick="togglePainDay(this,\'' + p.id + '\')" style="background:var(--g100);color:var(--navy);border:none;padding:8px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;">' + day + '</button>').join('') +
+        ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, i) => '<button class="day-btn" data-day="' + i + '" data-selected="false" onclick="togglePainDay(this,\'' + p.id + '\')" style="background:var(--g100);color:var(--navy);border:none;padding:8px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;">' + day + '</button>').join('') +
         '</div></div>' +
         '<button onclick="addPainPlan(\'' + p.id + '\')" style="width:100%;background:var(--orange);color:white;border:none;padding:14px;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">Add to routine</button>' +
         '</div>';
@@ -2779,8 +2794,16 @@ function filterPainPlans() {
 }
 
 function togglePainDay(btn, painId) {
-  btn.style.background = btn.style.background === 'var(--orange)' ? 'var(--g100)' : 'var(--orange)';
-  btn.style.color = btn.style.color === 'rgb(255, 255, 255)' ? 'var(--navy)' : 'white';
+  const isSelected = btn.getAttribute('data-selected') === 'true';
+  btn.setAttribute('data-selected', !isSelected);
+  
+  if (isSelected) {
+    btn.style.background = 'var(--g100)';
+    btn.style.color = 'var(--navy)';
+  } else {
+    btn.style.background = 'var(--orange)';
+    btn.style.color = 'white';
+  }
 }
 
 async function addPainPlan(painPlanId) {
@@ -2789,7 +2812,7 @@ async function addPainPlan(painPlanId) {
   const selectedDays = [];
   
   dayBtns.forEach(btn => {
-    if (btn.style.background === 'var(--orange)') {
+    if (btn.getAttribute('data-selected') === 'true') {
       selectedDays.push(btn.getAttribute('data-day'));
     }
   });
