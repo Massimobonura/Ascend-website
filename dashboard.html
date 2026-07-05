@@ -365,7 +365,6 @@
   </div>
   <div class="nav-right">
     <span class="nav-email" id="nav-email"></span>
-    <button onclick="openManageSubscription()" style="background:var(--orange);color:white;border:none;padding:8px 16px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;margin-right:12px;">Manage Subscription</button>
     <button class="signout-btn" onclick="signOut()">Sign out</button>
   </div>
 </nav>
@@ -424,6 +423,9 @@
         <button class="sb-item" id="sb-community" onclick="showPage('community')"><i class="ti ti-message-circle-2" aria-hidden="true"></i>Community Feed</button>
         <button class="sb-item" id="sb-announcements" onclick="showPage('announcements')"><i class="ti ti-speakerphone" aria-hidden="true"></i>Announcements</button>
       </div>
+    </div>
+    <div class="sb-section" style="margin-top:auto;border-top:1px solid var(--g200);padding-top:16px;">
+      <button class="sb-item" id="sb-profile" onclick="showPage('profile')" style="color:var(--orange);"><i class="ti ti-settings" aria-hidden="true"></i>Account Settings</button>
     </div>
   </div>
 
@@ -1031,6 +1033,70 @@
       <div id="community-feed"><div class="empty" style="padding:48px;text-align:center;">Loading...</div></div>
     </div>
 
+    <!-- ACCOUNT SETTINGS -->
+    <div class="page" id="page-profile">
+      <div class="page-title">Account Settings</div>
+      <div class="page-sub">Manage your account, password, and subscription.</div>
+      
+      <div class="card">
+        <div class="card-header"><h3>Account Information</h3></div>
+        
+        <!-- Email -->
+        <div style="padding:20px;border-bottom:1px solid var(--g200);">
+          <div style="font-size:12px;font-weight:600;color:var(--g600);margin-bottom:6px;">Email</div>
+          <div id="profile-email" style="font-size:14px;color:var(--navy);font-weight:500;"></div>
+        </div>
+        
+        <!-- Account Created -->
+        <div style="padding:20px;border-bottom:1px solid var(--g200);">
+          <div style="font-size:12px;font-weight:600;color:var(--g600);margin-bottom:6px;">Member Since</div>
+          <div id="profile-created" style="font-size:14px;color:var(--navy);font-weight:500;"></div>
+        </div>
+        
+        <!-- Current Plan -->
+        <div style="padding:20px;border-bottom:1px solid var(--g200);">
+          <div style="font-size:12px;font-weight:600;color:var(--g600);margin-bottom:6px;">Current Plan</div>
+          <div id="profile-plan" style="font-size:14px;color:var(--navy);font-weight:500;"></div>
+        </div>
+      </div>
+      
+      <!-- Password Change -->
+      <div class="card" style="margin-top:20px;">
+        <div class="card-header"><h3>Security</h3></div>
+        <div style="padding:20px;">
+          <button onclick="showPasswordModal()" style="background:var(--navy);color:white;border:none;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;">Change Password</button>
+        </div>
+      </div>
+      
+      <!-- Subscription Management -->
+      <div class="card" style="margin-top:20px;">
+        <div class="card-header"><h3>Subscription</h3></div>
+        <div style="padding:20px;">
+          <button onclick="openManageSubscription()" style="background:var(--orange);color:white;border:none;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;">Manage Subscription</button>
+          <div style="font-size:12px;color:var(--g600);margin-top:12px;">View billing history, cancel subscription, or update payment method in the Stripe portal.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Change Password Modal -->
+    <div id="password-modal" style="display:none;position:fixed;inset:0;background:rgba(8,15,23,0.6);z-index:998;align-items:center;justify-content:center;padding:20px;">
+      <div style="background:white;border-radius:14px;padding:28px;max-width:400px;width:100%;">
+        <div style="font-size:18px;font-weight:700;color:var(--navy);margin-bottom:16px;">Change Password</div>
+        <div style="margin-bottom:16px;">
+          <label style="font-size:12px;font-weight:600;color:var(--g600);display:block;margin-bottom:6px;">New Password</label>
+          <input type="password" id="new-password" placeholder="Enter new password" style="width:100%;padding:10px 12px;border:1.5px solid var(--g200);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;box-sizing:border-box;" />
+        </div>
+        <div style="margin-bottom:20px;">
+          <label style="font-size:12px;font-weight:600;color:var(--g600);display:block;margin-bottom:6px;">Confirm Password</label>
+          <input type="password" id="confirm-password" placeholder="Confirm new password" style="width:100%;padding:10px 12px;border:1.5px solid var(--g200);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;box-sizing:border-box;" />
+        </div>
+        <div style="display:flex;gap:10px;justify-content:flex-end;">
+          <button onclick="hidePasswordModal()" style="background:var(--g100);color:var(--navy);border:none;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;">Cancel</button>
+          <button onclick="updatePassword()" style="background:var(--orange);color:white;border:none;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;">Update Password</button>
+        </div>
+      </div>
+    </div>
+
     <!-- MILESTONES -->
     <div class="page" id="page-milestones">
       <div class="page-title">Milestones</div>
@@ -1303,6 +1369,75 @@ async function openManageSubscription() {
     alert('Error: ' + err.message);
   }
 }
+
+// Profile Page Functions
+async function loadProfileInfo() {
+  try {
+    const { data: { user } } = await sb.auth.getUser();
+    if (!user) return;
+    
+    const { data: profile } = await sb.from('profiles').select('*').eq('id', user.id).single();
+    
+    // Set email
+    document.getElementById('profile-email').textContent = user.email;
+    
+    // Set account created date
+    const createdDate = new Date(user.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    document.getElementById('profile-created').textContent = createdDate;
+    
+    // Set current plan
+    let planText = 'No active subscription';
+    if (profile?.is_member && profile?.plan) {
+      const planName = profile.plan === 'monthly' ? 'Monthly ($50/month)' : 'Annual ($500/year)';
+      planText = planName;
+    }
+    document.getElementById('profile-plan').textContent = planText;
+  } catch (err) {
+    console.error('Error loading profile:', err);
+  }
+}
+
+function showPasswordModal() {
+  document.getElementById('password-modal').style.display = 'flex';
+}
+
+function hidePasswordModal() {
+  document.getElementById('password-modal').style.display = 'none';
+  document.getElementById('new-password').value = '';
+  document.getElementById('confirm-password').value = '';
+}
+
+async function updatePassword() {
+  const newPassword = document.getElementById('new-password').value;
+  const confirmPassword = document.getElementById('confirm-password').value;
+  
+  if (!newPassword || !confirmPassword) {
+    alert('Please fill in both password fields');
+    return;
+  }
+  
+  if (newPassword !== confirmPassword) {
+    alert('Passwords do not match');
+    return;
+  }
+  
+  if (newPassword.length < 8) {
+    alert('Password must be at least 8 characters long');
+    return;
+  }
+  
+  try {
+    const { error } = await sb.auth.updateUser({ password: newPassword });
+    
+    if (error) throw error;
+    
+    alert('✓ Password updated successfully!');
+    hidePasswordModal();
+  } catch (err) {
+    console.error('Error updating password:', err);
+    alert('Error: ' + err.message);
+  }
+}
 function toggleMobileSidebar() {
   const sidebar = document.querySelector('.sidebar');
   const overlay = document.getElementById('mobile-sidebar-overlay');
@@ -1441,6 +1576,7 @@ function showPage(name) {
   if (name === 'announcements') loadMemberAnnouncements();
   if (name === 'challenges') loadChallenges();
   if (name === 'community') loadCommunityFeed();
+  if (name === 'profile') loadProfileInfo();
   if (name === 'milestones') loadMilestonesPage();
   if (name === 'photos') loadProgressPhotos();
   if (name === 'myprogram') loadMyProgram();
