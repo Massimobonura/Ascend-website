@@ -574,8 +574,8 @@ async function loadOverview() {
 let allMembers = []; // Store all members for search
 
 async function loadMembers() {
-  const { data } = await sb.from('profiles').select('*').eq('is_member', true).is('deactivated_at', null).order('created_at', { ascending: false });
-  allMembers = data || [];
+  const { data } = await sb.from('profiles').select('*').eq('is_member', true).order('created_at', { ascending: false });
+  allMembers = (data || []).filter(m => !m.deactivated_at); // Only show members without a deactivation date
   document.getElementById('member-count').textContent = (allMembers.length || 0) + ' members';
   const el = document.getElementById('members-table');
   if (!allMembers.length) { el.innerHTML = '<div class="empty">No members yet.</div>'; return; }
