@@ -3370,7 +3370,7 @@ function closeCalDetailAndShowHistory(dateStr) {
   }, 150);
 }
 
-async function showCalDayDetail(dateStr) {
+function showCalDayDetail(dateStr) {
   const day = calDayData[dateStr] || {};
   const detailPanel = document.getElementById('cal-detail');
   const dateLabel = document.getElementById('cal-detail-date');
@@ -3378,60 +3378,21 @@ async function showCalDayDetail(dateStr) {
   const today = localToday();
   const isFuture = dateStr > today;
   const isPast = dateStr < today;
-  const dayOfWeek = new Date(dateStr + 'T12:00:00').getDay();
-  const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
   detailPanel.style.display = 'block';
   dateLabel.textContent = new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
   let html = '';
 
-  // Get scheduled workout for this date
-  const plan = window._calActivePlan;
-  const schedule = window._calSchedule || [];
-  const weekStart = getWeekStart(dateStr);
-  const overrides = await getWorkoutOverrides(weekStart);
-  
-  let workoutDay = null;
-  let workoutDayName = null;
-  
-  // Check if this date has an override
-  for (const override of overrides) {
-    if (override.moved_to_day === dayOfWeek) {
-      workoutDay = override.original_day;
-      break;
-    }
-  }
-  
-  // If no override, find from schedule
-  if (!workoutDay && schedule.includes(dayOfWeek)) {
-    const dayNum = schedule.indexOf(dayOfWeek) + 1;
-    workoutDay = dayNum;
-  }
-  
-  // Get day name from plan
-  if (workoutDay && plan?.plan_days) {
-    const planDay = plan.plan_days.find(pd => pd.day === workoutDay);
-    workoutDayName = planDay?.day_name || ('Day ' + workoutDay);
-  }
-
-  // Show workout
+  // Show logged workout
   const hasLoggedWorkout = day.workouts && day.workouts.length;
   if (hasLoggedWorkout) {
     html += '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;background:#FFF7ED;border-radius:8px;border:1px solid #FFE0C2;margin-bottom:12px;">' +
-      '<div style="display:flex;align-items:center;gap:10px;flex:1;">' +
+      '<div style="display:flex;align-items:center;gap:10px;">' +
       '<i class="ti ti-circle-check" style="color:var(--orange);font-size:16px;flex-shrink:0;" aria-hidden="true"></i>' +
-      '<span style="font-size:13px;color:var(--g800);font-weight:600;">' + (workoutDayName || 'Workout') + ' completed</span>' +
+      '<span style="font-size:13px;color:var(--g800);font-weight:600;">Workout completed</span>' +
       '</div>' +
-      (isPast ? '<button onclick="showMoveWorkoutModal(\'' + dateStr + '\', ' + workoutDay + ')" style="background:none;border:none;color:var(--orange);font-size:12px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;">Move to another day →</button>' : '') +
-      '</div>';
-  } else if (workoutDay) {
-    html += '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;background:#FFF7ED;border-radius:8px;border:1px solid #FFE0C2;margin-bottom:12px;">' +
-      '<div style="display:flex;align-items:center;gap:10px;flex:1;">' +
-      '<i class="ti ti-barbell" style="color:var(--orange);font-size:16px;flex-shrink:0;" aria-hidden="true"></i>' +
-      '<span style="font-size:13px;color:var(--g800);font-weight:600;">Scheduled: ' + workoutDayName + (isFuture ? '' : ' — not logged') + '</span>' +
-      '</div>' +
-      (isPast ? '<button onclick="showMoveWorkoutModal(\'' + dateStr + '\', ' + workoutDay + ')" style="background:none;border:none;color:var(--orange);font-size:12px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;">Move →</button>' : '') +
+      '<button onclick="closeCalDetail()" style="background:none;border:none;color:var(--orange);font-size:12px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;">View →</button>' +
       '</div>';
   }
 
@@ -3455,20 +3416,51 @@ async function showCalDayDetail(dateStr) {
     });
   }
 
-  // Habit logging
-  html += '<div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--g200);">' +
-    '<div style="font-size:12px;font-weight:600;color:var(--g600);margin-bottom:12px;">Log habits for this day</div>';
+  // Show habits
+  const h = day.habits;
+  const habitRows = [
+    { icon: 'ti-droplet', label: 'Water', target: habitTargets.water + ' oz', done: h && h.water_cups >= habitTargets.water, logged: h?.water_cups },
+    { icon: 'ti-shoe', label: 'Steps', target: habitTargets.steps.toLocaleString(), done: h && h.steps >= habitTargets.steps, logged: h?.steps },
+    { icon: 'ti-moon', label: 'Sleep', target: habitTargets.sleep + ' hrs', done: h && h.sleep_hrs >= habitTargets.sleep, logged: h?.sleep_hrs },
+    { icon: 'ti-cross', label: 'Devotional', target: '', done: h && h.devotional_done, logged: null }
+  ];
+
+  const customHabitsList = window._calCustomHabits || [];
+  const customLogsForDay = (window._calCustomLogsByDate || {})[dateStr] || {};
+  const hasAnyCustomLog = Object.keys(customLogsForDay).length > 0;
   
-  if (isPast || dateStr === today) {
-    html += '<button onclick="showHabitLogger(\'' + dateStr + '\')" style="width:100%;background:var(--navy);color:white;border:none;padding:10px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;">Log or edit habits</button>';
-  } else {
-    html += '<input type="date" id="habit-date-picker" value="' + today + '" max="' + today + '" style="width:100%;padding:8px 12px;border:1.5px solid var(--g200);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;" onchange="const newDate = this.value; closeCalDetail(); setTimeout(() => showCalDayDetail(newDate), 100);" />';
-  }
-  
-  html += '<div style="margin-top:12px;padding:8px 12px;background:rgba(13,27,42,0.05);border-radius:8px;border-left:3px solid var(--navy);">' +
-    '<div style="font-size:11px;color:var(--g600);">💡 Moving a workout above changes it for this week only. To permanently change your training days, go to <strong>Workout Plans</strong> tab.</div>' +
-    '</div>' +
-    '</div>';
+  customHabitsList.forEach(ch => {
+    const val = customLogsForDay[ch.id];
+    const goal = ch.goal_value || 1;
+    habitRows.push({
+      icon: ch.icon || 'ti-circle-check',
+      label: ch.name,
+      target: goal + ' ' + (ch.goal_unit || ''),
+      done: val != null && val >= goal,
+      logged: val,
+      isCustom: true,
+      unit: ch.goal_unit || ''
+    });
+  });
+
+  habitRows.forEach(hr => {
+    if (isFuture) {
+      html += '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--off);border-radius:8px;">' +
+        '<i class="ti ' + hr.icon + '" style="color:var(--g400);font-size:16px;flex-shrink:0;" aria-hidden="true"></i>' +
+        '<span style="font-size:13px;color:var(--g600);">' + hr.label + ' goal: ' + (hr.target || 'Read today\'s devotional') + '</span></div>';
+    } else if (h || (hr.isCustom && hasAnyCustomLog)) {
+      const logSuffix = hr.isCustom ? (hr.unit ? ' ' + hr.unit : '') : (hr.label === 'Steps' ? '' : hr.label === 'Sleep' ? ' hrs' : ' oz');
+      html += '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:' + (hr.done ? 'rgba(13,27,42,0.06)' : 'var(--off)') + ';border-radius:8px;">' +
+        '<i class="ti ' + (hr.done ? 'ti-circle-check' : hr.icon) + '" style="color:' + (hr.done ? 'var(--navy)' : 'var(--g400)') + ';font-size:16px;flex-shrink:0;" aria-hidden="true"></i>' +
+        '<span style="font-size:13px;color:var(--g800);">' + hr.label + (hr.logged != null ? ': ' + hr.logged + logSuffix : (hr.done ? ': completed' : ': not done')) + '</span></div>';
+    } else if (hr.isCustom) {
+      html += '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--off);border-radius:8px;">' +
+        '<i class="ti ' + hr.icon + '" style="color:var(--g400);font-size:16px;flex-shrink:0;" aria-hidden="true"></i>' +
+        '<span style="font-size:13px;color:var(--g600);">' + hr.label + ': not done</span></div>';
+    }
+  });
+
+  if (!html) html = '<div style="font-size:13px;color:var(--g400);">Nothing logged this day.</div>';
 
   itemsEl.innerHTML = html;
 }
