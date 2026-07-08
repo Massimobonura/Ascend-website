@@ -830,7 +830,7 @@
           <div style="text-align:center;font-size:11px;font-weight:700;color:var(--g400);padding:4px;">Fri</div>
           <div style="text-align:center;font-size:11px;font-weight:700;color:var(--g400);padding:4px;">Sat</div>
         </div>
-        <div id="cal-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;"></div>
+        <div id="cal-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:12px;"></div>
         <div style="display:flex;align-items:center;gap:16px;margin-top:20px;flex-wrap:wrap;">
         <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--g600);"><div style="width:14px;height:14px;border-radius:50%;background:var(--navy);"></div>Completed</div>
           <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--g600);"><div style="width:14px;height:14px;border-radius:50%;border:1px solid var(--g400);background:transparent;"></div>Not completed</div>
@@ -3352,9 +3352,8 @@ async function renderCalendar() {
 
     let textColor = (hasWorkout || allHabitsDone) ? 'white' : 'var(--navy)';
 
-    html += '<div style="aspect-ratio:1;display:flex;flex-direction:column;padding:8px;border:1px solid var(--g200);border-radius:6px;cursor:pointer;background:white;min-height:160px;overflow:hidden;" onclick="showCalDayDetail(\'' + dateStr + '\')">' +
-      '<div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:8px;">' + d + '</div>' +
-      '<div style="font-size:11px;flex:1;overflow-y:auto;line-height:1.4;">';
+    // Get habit data
+    const h = calDayData[dateStr]?.habits;
     
     // Get workout plan info
     const plan = window._calActivePlan;
@@ -3369,51 +3368,83 @@ async function renderCalendar() {
     }
     
     // Find which workout day this date is
-    let workoutDayNum = null;
+    let workoutDay = null;
     let workoutDayName = null;
     if (schedule.includes(dayOfWeek)) {
-      workoutDayNum = schedule.indexOf(dayOfWeek) + 1;
+      workoutDay = schedule.indexOf(dayOfWeek) + 1;
       if (plan?.plan_days) {
-        const planDay = plan.plan_days.find(pd => pd.day === workoutDayNum);
-        workoutDayName = planDay?.day_name || ('Day ' + workoutDayNum);
+        const planDay = plan.plan_days.find(pd => pd.day === workoutDay);
+        workoutDayName = planDay?.day_name || ('Day ' + workoutDay);
       }
     }
     
-    // Add workout info
+    // Determine background color based on completion
+    let cellBg = 'white';
+    let cellBorder = 'var(--g200)';
+    
+    if (hasWorkout && allHabitsDone) {
+      cellBg = 'linear-gradient(135deg, rgba(232,119,34,0.08) 0%, rgba(13,27,42,0.08) 100%)';
+      cellBorder = 'var(--orange)';
+    } else if (hasWorkout) {
+      cellBg = 'rgba(232,119,34,0.06)';
+      cellBorder = 'var(--orange)';
+    } else if (allHabitsDone) {
+      cellBg = 'rgba(13,27,42,0.04)';
+      cellBorder = 'var(--navy)';
+    } else if (isToday) {
+      cellBg = '#FFFAF5';
+      cellBorder = 'var(--orange)';
+    }
+    
+    html += '<div style="border:2px solid ' + cellBorder + ';border-radius:10px;cursor:pointer;background:' + cellBg + ';padding:12px;min-height:200px;display:flex;flex-direction:column;font-family:Inter,sans-serif;" onclick="showCalDayDetail(\'' + dateStr + '\')">' +
+      '<div style="font-size:15px;font-weight:700;color:var(--navy);margin-bottom:10px;line-height:1;">' + d + '</div>' +
+      '<div style="flex:1;font-size:11px;line-height:1.6;color:var(--g700);">';
+    
+    // Workout section
     if (hasWorkout) {
-      html += '<div style="display:flex;align-items:center;gap:4px;margin-bottom:4px;"><span style="width:7px;height:7px;border-radius:50%;background:var(--orange);flex-shrink:0;"></span><span style="color:var(--navy);font-weight:600;font-size:11px;">' + (workoutDayName || 'Workout') + ' ✓</span></div>';
-    } else if (workoutDayNum) {
-      // Show scheduled future workout
-      html += '<div style="display:flex;align-items:center;gap:4px;margin-bottom:4px;"><span style="width:7px;height:7px;border-radius:50%;border:1.5px solid var(--orange);background:white;flex-shrink:0;"></span><span style="color:var(--g700);font-size:11px;">' + (workoutDayName || 'Workout') + '</span></div>';
+      html += '<div style="display:flex;align-items:flex-start;gap:7px;margin-bottom:8px;padding:4px 0;">' +
+        '<span style="width:9px;height:9px;border-radius:50%;background:var(--orange);flex-shrink:0;margin-top:2px;"></span>' +
+        '<span style="color:var(--navy);font-weight:600;font-size:11px;">' + workoutDayName + ' ✓</span>' +
+        '</div>';
+    } else if (workoutDay) {
+      html += '<div style="display:flex;align-items:flex-start;gap:7px;margin-bottom:8px;padding:4px 0;">' +
+        '<span style="width:9px;height:9px;border-radius:50%;border:2px solid var(--orange);background:white;flex-shrink:0;margin-top:1px;"></span>' +
+        '<span style="color:var(--g700);font-size:11px;">' + workoutDayName + '</span>' +
+        '</div>';
     }
     
-    // Add habits as circles
+    // Habit rows - SHOW EVERY DAY
+    html += '<div style="margin-top:' + (workoutDay ? '4px' : '0') + ';">';
     
-    if (h?.water_cups >= habitTargets.water) {
-      html += '<div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;"><span style="width:7px;height:7px;border-radius:50%;background:var(--navy);flex-shrink:0;"></span><span style="color:var(--g700);font-size:10px;">Water ✓</span></div>';
-    } else if (h?.water_cups) {
-      html += '<div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;"><span style="width:7px;height:7px;border-radius:50%;border:1.5px solid var(--g300);background:white;flex-shrink:0;"></span><span style="color:var(--g700);font-size:10px;">Water</span></div>';
-    }
+    // Water
+    const waterDone = h && h.water_cups >= habitTargets.water;
+    html += '<div style="display:flex;align-items:center;gap:7px;margin-bottom:4px;padding:1px 0;">' +
+      '<span style="width:7px;height:7px;border-radius:50%;background:' + (waterDone ? 'var(--navy)' : 'transparent') + ';border:' + (waterDone ? 'none' : '2px solid var(--g300)') + ';flex-shrink:0;"></span>' +
+      '<span style="color:' + (waterDone ? 'var(--navy)' : 'var(--g600)') + ';font-size:11px;font-weight:' + (waterDone ? '500' : '400') + ';">Water</span>' +
+      '</div>';
     
-    if (h?.steps >= habitTargets.steps) {
-      html += '<div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;"><span style="width:7px;height:7px;border-radius:50%;background:var(--navy);flex-shrink:0;"></span><span style="color:var(--g700);font-size:10px;">Steps ✓</span></div>';
-    } else if (h?.steps) {
-      html += '<div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;"><span style="width:7px;height:7px;border-radius:50%;border:1.5px solid var(--g300);background:white;flex-shrink:0;"></span><span style="color:var(--g700);font-size:10px;">Steps</span></div>';
-    }
+    // Steps  
+    const stepsDone = h && h.steps >= habitTargets.steps;
+    html += '<div style="display:flex;align-items:center;gap:7px;margin-bottom:4px;padding:1px 0;">' +
+      '<span style="width:7px;height:7px;border-radius:50%;background:' + (stepsDone ? 'var(--navy)' : 'transparent') + ';border:' + (stepsDone ? 'none' : '2px solid var(--g300)') + ';flex-shrink:0;"></span>' +
+      '<span style="color:' + (stepsDone ? 'var(--navy)' : 'var(--g600)') + ';font-size:11px;font-weight:' + (stepsDone ? '500' : '400') + ';">Steps</span>' +
+      '</div>';
     
-    if (h?.sleep_hrs >= habitTargets.sleep) {
-      html += '<div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;"><span style="width:7px;height:7px;border-radius:50%;background:var(--navy);flex-shrink:0;"></span><span style="color:var(--g700);font-size:10px;">Sleep ✓</span></div>';
-    } else if (h?.sleep_hrs) {
-      html += '<div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;"><span style="width:7px;height:7px;border-radius:50%;border:1.5px solid var(--g300);background:white;flex-shrink:0;"></span><span style="color:var(--g700);font-size:10px;">Sleep</span></div>';
-    }
+    // Sleep
+    const sleepDone = h && h.sleep_hrs >= habitTargets.sleep;
+    html += '<div style="display:flex;align-items:center;gap:7px;margin-bottom:4px;padding:1px 0;">' +
+      '<span style="width:7px;height:7px;border-radius:50%;background:' + (sleepDone ? 'var(--navy)' : 'transparent') + ';border:' + (sleepDone ? 'none' : '2px solid var(--g300)') + ';flex-shrink:0;"></span>' +
+      '<span style="color:' + (sleepDone ? 'var(--navy)' : 'var(--g600)') + ';font-size:11px;font-weight:' + (sleepDone ? '500' : '400') + ';">Sleep</span>' +
+      '</div>';
     
-    if (h?.devotional_done) {
-      html += '<div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;"><span style="width:7px;height:7px;border-radius:50%;background:var(--navy);flex-shrink:0;"></span><span style="color:var(--g700);font-size:10px;">Devotion ✓</span></div>';
-    } else if (h != null) {
-      html += '<div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;"><span style="width:7px;height:7px;border-radius:50%;border:1.5px solid var(--g300);background:white;flex-shrink:0;"></span><span style="color:var(--g700);font-size:10px;">Devotion</span></div>';
-    }
+    // Devotional
+    const devotionDone = h && h.devotional_done;
+    html += '<div style="display:flex;align-items:center;gap:7px;padding:1px 0;">' +
+      '<span style="width:7px;height:7px;border-radius:50%;background:' + (devotionDone ? 'var(--navy)' : 'transparent') + ';border:' + (devotionDone ? 'none' : '2px solid var(--g300)') + ';flex-shrink:0;"></span>' +
+      '<span style="color:' + (devotionDone ? 'var(--navy)' : 'var(--g600)') + ';font-size:11px;font-weight:' + (devotionDone ? '500' : '400') + ';">Devotion</span>' +
+      '</div>';
     
-    html += '</div></div>';
+    html += '</div></div></div>';
   }
 
   grid.innerHTML = html;
