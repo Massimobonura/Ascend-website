@@ -3473,55 +3473,6 @@ async function showCalDayDetail(dateStr) {
   itemsEl.innerHTML = html;
 }
 
-  // Habit checklist — show goal targets for future days, actual status for past/today
-  const h = day?.habits;
-  const habitRows = [
-    { icon: 'ti-droplet', label: 'Water', target: habitTargets.water + ' oz', done: h && h.water_cups >= habitTargets.water, logged: h?.water_cups },
-    { icon: 'ti-shoe', label: 'Steps', target: habitTargets.steps.toLocaleString(), done: h && h.steps >= habitTargets.steps, logged: h?.steps },
-    { icon: 'ti-moon', label: 'Sleep', target: habitTargets.sleep + ' hrs', done: h && h.sleep_hrs >= habitTargets.sleep, logged: h?.sleep_hrs },
-    { icon: 'ti-cross', label: 'Devotional', target: '', done: h && h.devotional_done, logged: null }
-  ];
-
-  // Add custom habits for this day
-  const customHabitsList = window._calCustomHabits || [];
-  const customLogsForDay = (window._calCustomLogsByDate || {})[dateStr] || {};
-  const hasAnyCustomLog = Object.keys(customLogsForDay).length > 0;
-  customHabitsList.forEach(ch => {
-    const val = customLogsForDay[ch.id];
-    const goal = ch.goal_value || 1;
-    habitRows.push({
-      icon: ch.icon || 'ti-circle-check',
-      label: ch.name,
-      target: goal + ' ' + (ch.goal_unit || ''),
-      done: val != null && val >= goal,
-      logged: val,
-      isCustom: true,
-      unit: ch.goal_unit || ''
-    });
-  });
-
-  habitRows.forEach(hr => {
-    if (isFuture) {
-      html += '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--off);border-radius:8px;">' +
-        '<i class="ti ' + hr.icon + '" style="color:var(--g400);font-size:16px;flex-shrink:0;" aria-hidden="true"></i>' +
-        '<span style="font-size:13px;color:var(--g600);">' + hr.label + ' goal: ' + (hr.target || 'Read today\'s devotional') + '</span></div>';
-    } else if (h || (hr.isCustom && hasAnyCustomLog)) {
-      const logSuffix = hr.isCustom ? (hr.unit ? ' ' + hr.unit : '') : (hr.label === 'Steps' ? '' : hr.label === 'Sleep' ? ' hrs' : ' oz');
-      html += '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:' + (hr.done ? 'rgba(13,27,42,0.06)' : 'var(--off)') + ';border-radius:8px;">' +
-        '<i class="ti ' + (hr.done ? 'ti-circle-check' : hr.icon) + '" style="color:' + (hr.done ? 'var(--navy)' : 'var(--g400)') + ';font-size:16px;flex-shrink:0;" aria-hidden="true"></i>' +
-        '<span style="font-size:13px;color:var(--g800);">' + hr.label + (hr.logged != null ? ': ' + hr.logged + logSuffix : (hr.done ? ': completed' : ': not done')) + '</span></div>';
-    } else if (hr.isCustom) {
-      html += '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--off);border-radius:8px;">' +
-        '<i class="ti ' + hr.icon + '" style="color:var(--g400);font-size:16px;flex-shrink:0;" aria-hidden="true"></i>' +
-        '<span style="font-size:13px;color:var(--g600);">' + hr.label + ': not done</span></div>';
-    }
-  });
-
-  if (!html) html = '<div style="font-size:13px;color:var(--g400);">Nothing logged this day.</div>';
-
-  itemsEl.innerHTML = html;
-}
-
 // ── PROGRESS PHOTOS ──
 let selectedPhotoFile = null;
 let allProgressPhotos = [];
