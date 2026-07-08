@@ -832,11 +832,8 @@
         </div>
         <div id="cal-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;"></div>
         <div style="display:flex;align-items:center;gap:16px;margin-top:20px;flex-wrap:wrap;">
-          <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--g600);"><div style="width:14px;height:14px;border-radius:50%;background:var(--orange);"></div>Workout logged</div>
-          <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--g600);"><div style="width:14px;height:14px;border-radius:50%;background:var(--navy);"></div>All habits hit</div>
-          <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--g600);"><div style="width:14px;height:14px;border-radius:50%;background:linear-gradient(135deg,var(--orange) 50%,var(--navy) 50%);"></div>Both</div>
-          <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--g600);"><div style="width:14px;height:14px;border-radius:4px;border:2px solid var(--orange);background:transparent;"></div>Today</div>
-          <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--g600);"><div style="width:14px;height:14px;border-radius:50%;background:rgba(232,119,34,0.1);"></div>Workout scheduled</div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--g600);"><div style="width:14px;height:14px;border-radius:50%;background:var(--navy);"></div>Completed</div>
+          <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--g600);"><div style="width:14px;height:14px;border-radius:50%;border:1px solid var(--g400);background:transparent;"></div>Not completed</div>
         </div>
         <div id="cal-detail" style="display:none;margin-top:20px;padding-top:20px;border-top:1px solid var(--g200);">
           <div id="cal-detail-date" style="font-size:15px;font-weight:700;color:var(--navy);margin-bottom:12px;"></div>
@@ -3355,14 +3352,33 @@ async function renderCalendar() {
 
     let textColor = (hasWorkout || allHabitsDone) ? 'white' : 'var(--navy)';
 
-    html += '<button onclick="showCalDayDetail(\'' + dateStr + '\')" style="aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:50%;cursor:pointer;border:none;font-family:Inter,sans-serif;' +
-      'background:' + bg + ';' +
-      'box-shadow:' + (isToday ? 'inset 0 0 0 2px var(--orange)' : ring) + ';' +
-      'color:' + textColor + ';' +
-      'font-size:13px;font-weight:' + (isToday ? '800' : '500') + ';">' +
-      d +
-      (isPlanned && isFuture && !hasWorkout ? '<div style="width:4px;height:4px;border-radius:50%;background:var(--orange);margin-top:1px;"></div>' : '') +
-      '</button>';
+    html += '<div style="aspect-ratio:1;display:flex;flex-direction:column;padding:8px;border:1px solid var(--g200);border-radius:6px;cursor:pointer;background:' + bg + ';min-height:140px;overflow:hidden;" onclick="showCalDayDetail(\'' + dateStr + '\')">' +
+      '<div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:6px;">' + d + '</div>' +
+      '<div style="font-size:10px;flex:1;overflow-y:auto;">';
+    
+    // Add workout info
+    if (hasWorkout) {
+      html += '<div style="display:flex;align-items:center;gap:4px;margin-bottom:3px;"><span style="width:6px;height:6px;border-radius:50%;background:var(--orange);flex-shrink:0;"></span><span style="color:var(--navy);font-weight:600;">Workout ✓</span></div>';
+    } else if (isPlanned && !isFuture) {
+      html += '<div style="display:flex;align-items:center;gap:4px;margin-bottom:3px;"><span style="width:6px;height:6px;border-radius:50%;border:1px solid var(--orange);flex-shrink:0;"></span><span style="color:var(--g600);">Workout</span></div>';
+    }
+    
+    // Add habits as circles
+    if (!isFuture) {
+      const h = calDayData[dateStr]?.habits;
+      if (h?.water_cups >= habitTargets.water) html += '<div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;"><span style="width:6px;height:6px;border-radius:50%;background:var(--navy);flex-shrink:0;"></span><span style="color:var(--g600);font-size:9px;">Water</span></div>';
+      else if (h?.water_cups) html += '<div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;"><span style="width:6px;height:6px;border-radius:50%;border:1px solid var(--g400);flex-shrink:0;"></span><span style="color:var(--g600);font-size:9px;">Water</span></div>';
+      
+      if (h?.steps >= habitTargets.steps) html += '<div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;"><span style="width:6px;height:6px;border-radius:50%;background:var(--navy);flex-shrink:0;"></span><span style="color:var(--g600);font-size:9px;">Steps</span></div>';
+      else if (h?.steps) html += '<div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;"><span style="width:6px;height:6px;border-radius:50%;border:1px solid var(--g400);flex-shrink:0;"></span><span style="color:var(--g600);font-size:9px;">Steps</span></div>';
+      
+      if (h?.sleep_hrs >= habitTargets.sleep) html += '<div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;"><span style="width:6px;height:6px;border-radius:50%;background:var(--navy);flex-shrink:0;"></span><span style="color:var(--g600);font-size:9px;">Sleep</span></div>';
+      else if (h?.sleep_hrs) html += '<div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;"><span style="width:6px;height:6px;border-radius:50%;border:1px solid var(--g400);flex-shrink:0;"></span><span style="color:var(--g600);font-size:9px;">Sleep</span></div>';
+      
+      if (h?.devotional_done) html += '<div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;"><span style="width:6px;height:6px;border-radius:50%;background:var(--navy);flex-shrink:0;"></span><span style="color:var(--g600);font-size:9px;">Devotion</span></div>';
+    }
+    
+    html += '</div></div>';
   }
 
   grid.innerHTML = html;
