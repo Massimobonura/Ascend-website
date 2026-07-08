@@ -3388,7 +3388,6 @@ async function renderCalendar() {
     }
     
     // Add habits as circles
-    const h = calDayData[dateStr]?.habits;
     
     if (h?.water_cups >= habitTargets.water) {
       html += '<div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;"><span style="width:7px;height:7px;border-radius:50%;background:var(--navy);flex-shrink:0;"></span><span style="color:var(--g700);font-size:10px;">Water ✓</span></div>';
