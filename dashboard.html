@@ -3477,7 +3477,7 @@ async function showCalDayDetail(dateStr) {
     });
   });
 
-  // Show all habits with logged values and checkmarks
+  // Show all habits with logged values and checkmarks ONLY when completed
   habitRows.forEach(hr => {
     if (isFuture) {
       // Future dates show goal
@@ -3485,13 +3485,16 @@ async function showCalDayDetail(dateStr) {
         '<i class="ti ' + hr.icon + '" style="color:var(--g400);font-size:16px;flex-shrink:0;" aria-hidden="true"></i>' +
         '<span style="font-size:13px;color:var(--g600);">' + hr.label + ' goal: ' + (hr.target || 'Read today\'s devotional') + '</span></div>';
     } else {
-      // Past/today - show logged values with checkmark or orange checkmark if not logged
+      // Past/today - show what was actually logged
       const logSuffix = hr.isCustom ? (hr.unit ? ' ' + hr.unit : '') : (hr.label === 'Steps' ? '' : hr.label === 'Sleep' ? ' hrs' : ' oz');
       const hasLogged = hr.logged != null && hr.logged > 0;
       
-      html += '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:' + (hr.done ? 'rgba(13,27,42,0.06)' : 'var(--off)') + ';border-radius:8px;margin-bottom:6px;">' +
-        '<i class="ti ' + (hr.done ? 'ti-circle-check' : 'ti-circle-check') + '" style="color:' + (hr.done ? 'var(--navy)' : 'var(--orange)') + ';font-size:16px;flex-shrink:0;" aria-hidden="true"></i>' +
-        '<span style="font-size:13px;color:var(--g800);">' + hr.label + (hasLogged ? ': ' + hr.logged + logSuffix : '') + '</span></div>';
+      // Only show if completed OR if logged (even if not completed)
+      if (hr.done || hasLogged) {
+        html += '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:' + (hr.done ? 'rgba(13,27,42,0.06)' : 'var(--off)') + ';border-radius:8px;margin-bottom:6px;">' +
+          (hr.done ? '<i class="ti ti-circle-check" style="color:var(--navy);font-size:16px;flex-shrink:0;" aria-hidden="true"></i>' : '<i class="ti ' + hr.icon + '" style="color:var(--g400);font-size:16px;flex-shrink:0;" aria-hidden="true"></i>') +
+          '<span style="font-size:13px;color:var(--g800);">' + hr.label + (hasLogged ? ': ' + hr.logged + logSuffix : '') + '</span></div>';
+      }
     }
   });
 
