@@ -3289,15 +3289,26 @@ async function renderCalendar() {
   (painRes.data || []).forEach(p => { (calDayData[p.date] = calDayData[p.date] || {}).pain = (calDayData[p.date].pain || []).concat(p); });
 
   const workoutDays = new Set((wRes.data || []).map(r => r.date));
-  const scheduleArray = profileRes.data?.workout_schedule || [];
-  const plannedDays = new Set(scheduleArray.map(String));
+  let scheduleArray = profileRes.data?.workout_schedule || [];
 
-  // Load active plan to know day names + total days
+  // Load active plan
   let activePlanForCal = null;
   if (profileRes.data?.active_workout_plan_id) {
     const { data: planData } = await sb.from('workout_plans').select('*').eq('id', profileRes.data.active_workout_plan_id).single();
     activePlanForCal = planData;
   }
+  
+  // Apply smart defaults if no schedule set
+  if (scheduleArray.length === 0 && activePlanForCal?.days_per_week) {
+    if (activePlanForCal.days_per_week === 3) scheduleArray = [1, 3, 5];
+    else if (activePlanForCal.days_per_week === 4) scheduleArray = [1, 2, 4, 5];
+    else if (activePlanForCal.days_per_week === 5) scheduleArray = [1, 2, 3, 4, 5];
+    else if (activePlanForCal.days_per_week === 6) scheduleArray = [1, 2, 3, 4, 5, 6];
+  }
+  
+  // Ensure schedule items are numbers
+  scheduleArray = scheduleArray.map(s => typeof s === 'string' ? parseInt(s) : s);
+  
   window._calActivePlan = activePlanForCal;
   window._calSchedule = scheduleArray;
 
@@ -3313,7 +3324,7 @@ async function renderCalendar() {
     const isToday = dateStr === today;
     const isFuture = dateStr > today;
     const isPast = dateStr < today;
-    const isPlanned = plannedDays.has(String(dayOfWeek));
+    const isPlanned = scheduleArray.includes(dayOfWeek);
 
     // Habit completion for this day (only meaningful for past/today)
     const h = calDayData[dateStr]?.habits;
@@ -3466,17 +3477,21 @@ async function showCalDayDetail(dateStr) {
     });
   });
 
-  // Show all habits with checkmarks
+  // Show all habits with logged values and checkmarks
   habitRows.forEach(hr => {
     if (isFuture) {
+      // Future dates show goal
       html += '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--off);border-radius:8px;margin-bottom:6px;">' +
         '<i class="ti ' + hr.icon + '" style="color:var(--g400);font-size:16px;flex-shrink:0;" aria-hidden="true"></i>' +
         '<span style="font-size:13px;color:var(--g600);">' + hr.label + ' goal: ' + (hr.target || 'Read today\'s devotional') + '</span></div>';
     } else {
+      // Past/today - show logged values with checkmark or orange checkmark if not logged
       const logSuffix = hr.isCustom ? (hr.unit ? ' ' + hr.unit : '') : (hr.label === 'Steps' ? '' : hr.label === 'Sleep' ? ' hrs' : ' oz');
+      const hasLogged = hr.logged != null && hr.logged > 0;
+      
       html += '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:' + (hr.done ? 'rgba(13,27,42,0.06)' : 'var(--off)') + ';border-radius:8px;margin-bottom:6px;">' +
-        '<i class="ti ' + (hr.done ? 'ti-circle-check' : hr.icon) + '" style="color:' + (hr.done ? 'var(--navy)' : 'var(--g400)') + ';font-size:16px;flex-shrink:0;" aria-hidden="true"></i>' +
-        '<span style="font-size:13px;color:var(--g800);">' + hr.label + (hr.logged != null ? ': ' + hr.logged + logSuffix : '') + (hr.done ? ' ✓' : '') + '</span></div>';
+        '<i class="ti ' + (hr.done ? 'ti-circle-check' : 'ti-circle-check') + '" style="color:' + (hr.done ? 'var(--navy)' : 'var(--orange)') + ';font-size:16px;flex-shrink:0;" aria-hidden="true"></i>' +
+        '<span style="font-size:13px;color:var(--g800);">' + hr.label + (hasLogged ? ': ' + hr.logged + logSuffix : '') + '</span></div>';
     }
   });
 
