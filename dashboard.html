@@ -4829,6 +4829,17 @@ async function renderCalendarWithDefaults() {
   await renderCalendar();
 }
 
+// TEMPORARY DEBUG BADGE — remove once the mobile calendar sizing is confirmed fixed
+(function() {
+  const badge = document.createElement('div');
+  badge.style.cssText = 'position:fixed;top:70px;right:8px;z-index:99999;background:black;color:#0f0;font-family:monospace;font-size:11px;padding:6px 8px;border-radius:6px;opacity:0.9;pointer-events:none;';
+  function update() {
+    badge.textContent = 'vw:' + window.innerWidth + ' mobileCSS:' + window.matchMedia('(max-width: 768px)').matches;
+  }
+  update();
+  window.addEventListener('resize', update);
+  document.body.appendChild(badge);
+})();
 
 </script>
 </body>
