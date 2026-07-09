@@ -3403,7 +3403,7 @@ async function renderCalendar() {
   const grid = document.getElementById('cal-grid');
   let html = '';
 
-  for (let i = 0; i < firstDay; i++) html += '<div></div>';
+  for (let i = 0; i < firstDay; i++) html += '<div class="cal-day-slot"></div>';
 
   for (let d = 1; d <= daysInMonth; d++) {
     const dateStr = calYear + '-' + String(calMonth + 1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
@@ -3579,7 +3579,7 @@ async function renderCalendar() {
 
     // Compact mobile grid cell — same color logic as the desktop cell, tap to see full detail below
     html += '<div class="cal-cell-mobile" data-date="' + dateStr + '" onclick="showCalDayDetail(\'' + dateStr + '\')" style="border:2px solid ' + cellBorder + ';background:' + cellBg + ';">' +
-      '<span class="cal-cell-mobile-num" style="color:' + textColor + ';">' + d + '</span>' +
+      '<span class="cal-cell-mobile-num" style="color:var(--navy);">' + d + '</span>' +
       (workoutDay || hasWorkout ? '<span class="cal-cell-mobile-dot" style="background:' + (hasWorkout ? 'var(--navy)' : 'var(--orange)') + ';"></span>' : '') +
       '</div>';
 
