@@ -1768,10 +1768,27 @@ async function loadWorkoutSession() {
   if (!plan) { container.innerHTML = ''; return; }
   activePlan = plan;
 
-  // Default to today's scheduled day if the schedule maps to one
+  // Default to today's scheduled day if the schedule maps to one, accounting for
+  // any one-time move that affects today (matches the calendar's logic)
   const todayWeekday = new Date().getDay();
   const schedule = profile.workout_schedule || [];
-  const scheduledDayNum = getScheduledDayForWeekday(todayWeekday, schedule, plan.plan_days.length);
+  const todayStr = localToday();
+  const todayWeekStart = getWeekStart(todayStr);
+  const { data: todaysOverrides } = await sb.from('workout_schedule_overrides')
+    .select('*')
+    .eq('user_id', user.id)
+    .eq('week_start_date', todayWeekStart);
+
+  const movedInToday = (todaysOverrides || []).find(o => Number(o.moved_to_day) === todayWeekday);
+  const movedAwayToday = (todaysOverrides || []).find(o => Number(o.original_day) === todayWeekday);
+
+  let scheduledDayNum = null;
+  if (movedInToday) {
+    scheduledDayNum = getScheduledDayForWeekday(Number(movedInToday.original_day), schedule, plan.plan_days.length);
+  } else if (!movedAwayToday) {
+    scheduledDayNum = getScheduledDayForWeekday(todayWeekday, schedule, plan.plan_days.length);
+  }
+
   if (scheduledDayNum) {
     const idx = plan.plan_days.findIndex(pd => pd.day === scheduledDayNum);
     if (idx !== -1) activeDayIndex = idx;
@@ -3258,7 +3275,7 @@ async function renderCalendar() {
   const startStr = calYear + '-' + String(calMonth + 1).padStart(2,'0') + '-01';
   const endStr = calYear + '-' + String(calMonth + 1).padStart(2,'0') + '-' + String(daysInMonth).padStart(2,'0');
 
-  const [wRes, nRes, hRes, profileRes, customHabitsRes, cardioRes, painRes, eventsRes] = await Promise.all([
+  const [wRes, nRes, hRes, profileRes, customHabitsRes, cardioRes, painRes, eventsRes, overridesRes] = await Promise.all([
     sb.from('workouts').select('*').eq('user_id', user.id).gte('date', startStr).lte('date', endStr),
     sb.from('nutrition').select('*').eq('user_id', user.id).gte('date', startStr).lte('date', endStr),
     sb.from('habits').select('*').eq('user_id', user.id).gte('date', startStr).lte('date', endStr),
@@ -3266,8 +3283,16 @@ async function renderCalendar() {
     sb.from('custom_habits').select('*').eq('user_id', user.id),
     sb.from('user_cardio').select('*').eq('user_id', user.id),
     sb.from('user_pain_management').select('*').eq('user_id', user.id),
-    sb.from('events').select('*').eq('user_id', user.id).gte('date', startStr).lte('date', endStr)
+    sb.from('events').select('*').eq('user_id', user.id).gte('date', startStr).lte('date', endStr),
+    sb.from('workout_schedule_overrides').select('*').eq('user_id', user.id)
   ]);
+
+  // Group overrides by week_start_date so we can look up "what changed this week" per day
+  let overridesByWeek = {};
+  (overridesRes.data || []).forEach(o => {
+    (overridesByWeek[o.week_start_date] = overridesByWeek[o.week_start_date] || []).push(o);
+  });
+  window._calOverridesByWeek = overridesByWeek;
 
   const customHabitsList = customHabitsRes.data || [];
   let customLogsByDate = {};
@@ -3323,7 +3348,15 @@ async function renderCalendar() {
     const isToday = dateStr === today;
     const isFuture = dateStr > today;
     const isPast = dateStr < today;
-    const isPlanned = scheduleArray.includes(dayOfWeek);
+
+    // Check this week's overrides (moves are one-time, scoped to a single week)
+    const weekStartForDay = getWeekStart(dateStr);
+    const overridesThisWeek = (window._calOverridesByWeek || {})[weekStartForDay] || [];
+    const movedAway = overridesThisWeek.find(o => Number(o.original_day) === dayOfWeek);
+    const movedIn = overridesThisWeek.find(o => Number(o.moved_to_day) === dayOfWeek);
+    const isMovedWorkout = !!movedIn;
+
+    const isPlanned = movedIn ? true : (scheduleArray.includes(dayOfWeek) && !movedAway);
 
     // Habit completion for this day (only meaningful for past/today)
     const h = calDayData[dateStr]?.habits;
@@ -3369,10 +3402,20 @@ async function renderCalendar() {
       else if (plan.days_per_week === 6) schedule = [1, 2, 3, 4, 5, 6];
     }
     
-    // Find which workout day this date is
+    // Find which workout day this date is, accounting for moves
     let workoutDay = null;
     let workoutDayName = null;
-    if (schedule.includes(dayOfWeek)) {
+
+    if (movedIn) {
+      // A workout normally scheduled on movedIn.original_day was moved TO this date
+      workoutDay = schedule.indexOf(Number(movedIn.original_day)) + 1;
+      if (workoutDay > 0 && plan?.plan_days) {
+        const planDay = plan.plan_days.find(pd => pd.day === workoutDay);
+        workoutDayName = planDay?.day_name || ('Day ' + workoutDay);
+      } else {
+        workoutDay = null;
+      }
+    } else if (schedule.includes(dayOfWeek) && !movedAway) {
       workoutDay = schedule.indexOf(dayOfWeek) + 1;
       if (plan?.plan_days) {
         const planDay = plan.plan_days.find(pd => pd.day === workoutDay);
@@ -3413,6 +3456,13 @@ async function renderCalendar() {
         '<span style="width:6px;height:6px;border-radius:50%;border:1.5px solid var(--orange);background:white;flex-shrink:0;margin-top:1px;"></span>' +
         '<span style="color:var(--g700);font-size:9px;">' + workoutDayName + '</span>' +
         '</div>';
+      if (!isPast) {
+        if (isMovedWorkout) {
+          html += '<button onclick="event.stopPropagation(); undoWorkoutMove(' + movedIn.original_day + ', \'' + movedIn.week_start_date + '\')" style="background:none;border:none;color:var(--g600);font-size:8px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;padding:0 0 6px;text-align:left;text-decoration:underline;">Undo move</button>';
+        } else {
+          html += '<button onclick="event.stopPropagation(); showMoveWorkoutModal(\'' + dateStr + '\')" style="background:none;border:none;color:var(--g600);font-size:8px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;padding:0 0 6px;text-align:left;text-decoration:underline;">Move to another day</button>';
+        }
+      }
     }
     
     // Habit rows
@@ -4540,48 +4590,73 @@ async function getWorkoutOverrides(weekStart) {
   return data || [];
 }
 
-function showMoveWorkoutModal(dateStr, workoutDay) {
+function showMoveWorkoutModal(dateStr) {
+  // originalDay is always the WEEKDAY (0-6) of the date being moved, derived from dateStr.
+  // This must match the weekday convention used everywhere else (workout_schedule, moved_to_day).
   const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  const currentDay = new Date(dateStr + 'T12:00:00').getDay();
-  
+  const originalDay = new Date(dateStr + 'T12:00:00').getDay();
+  const weekStart = getWeekStart(dateStr);
+
   let html = '<div style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:1000;" onclick="this.style.display=\'none\';">' +
     '<div style="background:white;border-radius:14px;padding:24px;max-width:400px;width:90%" onclick="event.stopPropagation();">' +
     '<div style="font-size:16px;font-weight:700;color:var(--navy);margin-bottom:16px;">Move workout to another day</div>' +
-    '<div style="font-size:12px;color:var(--g600);margin-bottom:16px;">This week only. Your schedule remains unchanged.</div>' +
+    '<div style="font-size:12px;color:var(--g600);margin-bottom:16px;">This week only. Your regular schedule stays the same.</div>' +
     '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:16px;">';
-  
+
   for (let i = 0; i < 7; i++) {
-    const isCurrentDay = i === currentDay;
-    html += '<button onclick="moveWorkoutToDay(' + workoutDay + ', ' + i + ', \'' + getWeekStart(dateStr) + '\')" ' +
-      'style="padding:8px 4px;border:2px solid ' + (isCurrentDay ? 'var(--orange)' : 'var(--g200)') + ';background:' + (isCurrentDay ? 'rgba(232,119,34,0.1)' : 'white') + ';border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;color:var(--navy);">' +
-      dayNames[i] + '</button>';
+    const isCurrentDay = i === originalDay;
+    html += '<button ' + (isCurrentDay ? 'disabled' : ('onclick="moveWorkoutToDay(' + originalDay + ', ' + i + ', \'' + weekStart + '\')"')) + ' ' +
+      'style="padding:8px 4px;border:2px solid ' + (isCurrentDay ? 'var(--orange)' : 'var(--g200)') + ';background:' + (isCurrentDay ? 'rgba(232,119,34,0.1)' : 'white') + ';border-radius:8px;font-size:12px;font-weight:600;cursor:' + (isCurrentDay ? 'default' : 'pointer') + ';font-family:Inter,sans-serif;color:var(--navy);opacity:' + (isCurrentDay ? '0.6' : '1') + ';">' +
+      dayNames[i] + (isCurrentDay ? ' (current)' : '') + '</button>';
   }
-  
+
   html += '</div>' +
     '<button onclick="this.parentElement.parentElement.style.display=\'none\';" style="width:100%;background:var(--g200);color:var(--navy);border:none;padding:10px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;">Cancel</button>' +
     '</div></div>';
-  
+
   const modal = document.createElement('div');
   modal.innerHTML = html;
   document.body.appendChild(modal);
 }
 
 async function moveWorkoutToDay(originalDay, newDayOfWeek, weekStart) {
+  // Remove any existing override for this original day/week first, so re-moving
+  // a workout (changing your mind) replaces the old override instead of stacking duplicates.
+  await sb.from('workout_schedule_overrides')
+    .delete()
+    .eq('user_id', user.id)
+    .eq('week_start_date', weekStart)
+    .eq('original_day', originalDay);
+
   const { error } = await sb.from('workout_schedule_overrides').insert({
     user_id: user.id,
-    workout_plan_id: (window._calActivePlan?.id || 'null'),
+    workout_plan_id: window._calActivePlan?.id || null,
     original_day: originalDay,
     moved_to_day: newDayOfWeek,
     week_start_date: weekStart
   });
-  
+
   if (error) {
     alert('Error: ' + error.message);
     return;
   }
-  
-  alert('✓ Workout moved!');
+
   document.querySelectorAll('[style*="position:fixed"][style*="z-index:1000"]').forEach(el => el.remove());
+  renderCalendar();
+}
+
+async function undoWorkoutMove(originalDay, weekStart) {
+  const { error } = await sb.from('workout_schedule_overrides')
+    .delete()
+    .eq('user_id', user.id)
+    .eq('week_start_date', weekStart)
+    .eq('original_day', originalDay);
+
+  if (error) {
+    alert('Error: ' + error.message);
+    return;
+  }
+
   renderCalendar();
 }
 
