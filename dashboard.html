@@ -4832,12 +4832,22 @@ async function renderCalendarWithDefaults() {
 // TEMPORARY DEBUG BADGE — remove once the mobile calendar sizing is confirmed fixed
 (function() {
   const badge = document.createElement('div');
-  badge.style.cssText = 'position:fixed;top:70px;right:8px;z-index:99999;background:black;color:#0f0;font-family:monospace;font-size:11px;padding:6px 8px;border-radius:6px;opacity:0.9;pointer-events:none;';
+  badge.style.cssText = 'position:fixed;top:70px;right:8px;z-index:99999;background:black;color:#0f0;font-family:monospace;font-size:10px;padding:6px 8px;border-radius:6px;opacity:0.92;pointer-events:none;max-width:220px;line-height:1.4;';
   function update() {
-    badge.textContent = 'vw:' + window.innerWidth + ' mobileCSS:' + window.matchMedia('(max-width: 768px)').matches;
+    const cell = document.querySelector('.cal-cell-mobile');
+    let cellInfo = 'no .cal-cell-mobile found (go to Calendar page)';
+    if (cell) {
+      const cs = getComputedStyle(cell);
+      const rect = cell.getBoundingClientRect();
+      cellInfo = 'cell display:' + cs.display + ' w:' + Math.round(rect.width) + ' h:' + Math.round(rect.height) +
+        ' parent-w:' + Math.round(cell.parentElement.getBoundingClientRect().width) +
+        ' grid-w:' + Math.round((document.getElementById('cal-grid')?.getBoundingClientRect().width) || 0);
+    }
+    badge.textContent = 'vw:' + window.innerWidth + ' mobileCSS:' + window.matchMedia('(max-width: 768px)').matches + ' | ' + cellInfo;
   }
   update();
   window.addEventListener('resize', update);
+  setInterval(update, 1000);
   document.body.appendChild(badge);
 })();
 
