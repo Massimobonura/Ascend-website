@@ -3275,7 +3275,7 @@ async function renderCalendar() {
   const startStr = calYear + '-' + String(calMonth + 1).padStart(2,'0') + '-01';
   const endStr = calYear + '-' + String(calMonth + 1).padStart(2,'0') + '-' + String(daysInMonth).padStart(2,'0');
 
-  const [wRes, nRes, hRes, profileRes, customHabitsRes, cardioRes, painRes, eventsRes, overridesRes] = await Promise.all([
+  const [wRes, nRes, hRes, profileRes, customHabitsRes, cardioRes, painRes, overridesRes] = await Promise.all([
     sb.from('workouts').select('*').eq('user_id', user.id).gte('date', startStr).lte('date', endStr),
     sb.from('nutrition').select('*').eq('user_id', user.id).gte('date', startStr).lte('date', endStr),
     sb.from('habits').select('*').eq('user_id', user.id).gte('date', startStr).lte('date', endStr),
@@ -3283,7 +3283,6 @@ async function renderCalendar() {
     sb.from('custom_habits').select('*').eq('user_id', user.id),
     sb.from('user_cardio').select('*').eq('user_id', user.id),
     sb.from('user_pain_management').select('*').eq('user_id', user.id),
-    sb.from('events').select('*').eq('user_id', user.id).gte('date', startStr).lte('date', endStr),
     sb.from('workout_schedule_overrides').select('*').eq('user_id', user.id)
   ]);
 
@@ -3310,7 +3309,6 @@ async function renderCalendar() {
   (hRes.data || []).forEach(h => { (calDayData[h.date] = calDayData[h.date] || {}).habits = h; });
   (cardioRes.data || []).forEach(c => { (calDayData[c.date] = calDayData[c.date] || {}).cardio = (calDayData[c.date].cardio || []).concat(c); });
   (painRes.data || []).forEach(p => { (calDayData[p.date] = calDayData[p.date] || {}).pain = (calDayData[p.date].pain || []).concat(p); });
-  (eventsRes.data || []).forEach(e => { (calDayData[e.date] = calDayData[e.date] || {}).events = (calDayData[e.date].events || []).concat(e); });
 
   const workoutDays = new Set((wRes.data || []).map(r => r.date));
   let scheduleArray = profileRes.data?.workout_schedule || [];
@@ -3441,7 +3439,7 @@ async function renderCalendar() {
       cellBorder = 'var(--orange)';
     }
     
-    html += '<div style="border:2px solid ' + cellBorder + ';border-radius:8px;background:' + cellBg + ';padding:10px;min-height:140px;display:flex;flex-direction:column;font-family:Inter,sans-serif;cursor:pointer;overflow:hidden;" onclick="showAddEventModal(\'' + dateStr + '\')">' +
+    html += '<div style="border:2px solid ' + cellBorder + ';border-radius:8px;background:' + cellBg + ';padding:10px;min-height:140px;display:flex;flex-direction:column;font-family:Inter,sans-serif;overflow:hidden;">' +
       '<div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:6px;line-height:1;">' + d + '</div>' +
       '<div style="flex:1;font-size:10px;line-height:1.4;color:var(--g700);overflow-y:auto;">';
     
@@ -3509,29 +3507,7 @@ async function renderCalendar() {
         '</div>';
     });
 
-    // Events — deliberately styled as a tag, not a dot, so it's never mistaken for a habit's done/not-done state
-    const events = calDayData[dateStr]?.events || [];
-    if (events.length > 0) {
-      html += '<div style="border-top:1px solid rgba(0,0,0,0.08);padding-top:5px;display:flex;flex-direction:column;gap:3px;">';
-      events.slice(0, 2).forEach(e => {
-        const truncated = e.name.length > 18 ? e.name.substring(0, 16) + '...' : e.name;
-        html += '<div style="display:inline-flex;align-items:center;gap:3px;background:rgba(13,27,42,0.06);border-radius:5px;padding:2px 6px;max-width:100%;box-sizing:border-box;">' +
-          '<i class="ti ti-calendar-event" style="font-size:9px;color:var(--navy);flex-shrink:0;" aria-hidden="true"></i>' +
-          '<span style="color:var(--navy);font-size:9px;font-weight:500;word-break:break-word;">' + truncated + '</span>' +
-          '</div>';
-      });
-      if (events.length > 2) {
-        html += '<div style="font-size:8px;color:var(--orange);font-weight:600;">+' + (events.length - 2) + ' more</div>';
-      }
-      html += '</div>';
-    }
-    
     html += '</div></div>';
-    
-    // Add Event button at bottom
-    html += '<div style="padding-top:6px;border-top:1px solid rgba(0,0,0,0.08);">' +
-      '<button onclick="event.stopPropagation(); showAddEventModal(\'' + dateStr + '\')" style="width:100%;background:none;border:none;color:var(--orange);font-size:8px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;padding:2px;text-align:center;">+ Add</button>' +
-      '</div></div>';
   }
 
   grid.innerHTML = html;
@@ -4765,52 +4741,6 @@ async function renderCalendarWithDefaults() {
   await renderCalendar();
 }
 
-// Add Event Modal
-function showAddEventModal(dateStr) {
-  const dateLabel = new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', {weekday:'long',month:'short',day:'numeric'});
-  
-  let html = '<div style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:1000;" onclick="this.style.display=\'none\';">' +
-    '<div style="background:white;border-radius:12px;padding:24px;max-width:400px;width:90%" onclick="event.stopPropagation();">' +
-    '<div style="font-size:16px;font-weight:700;color:var(--navy);margin-bottom:4px;">Add Event</div>' +
-    '<div style="font-size:12px;color:var(--g600);margin-bottom:16px;">' + dateLabel + '</div>' +
-    '<input type="text" id="event-name" placeholder="Event name..." maxlength="50" style="width:100%;padding:10px;border:1px solid var(--g200);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;margin-bottom:16px;" />' +
-    '<div style="display:flex;gap:8px;">' +
-    '<button onclick="saveEvent(\'' + dateStr + '\')" style="flex:1;background:var(--orange);color:white;border:none;padding:10px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;">Add</button>' +
-    '<button onclick="this.parentElement.parentElement.parentElement.style.display=\'none\';" style="flex:1;background:var(--g200);color:var(--navy);border:none;padding:10px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;">Cancel</button>' +
-    '</div>' +
-    '</div></div>';
-  
-  const modal = document.createElement('div');
-  modal.innerHTML = html;
-  document.body.appendChild(modal);
-  
-  // Focus on input field
-  setTimeout(() => document.getElementById('event-name').focus(), 100);
-}
-
-async function saveEvent(dateStr) {
-  const eventName = document.getElementById('event-name')?.value?.trim();
-  
-  if (!eventName) {
-    alert('Please enter an event name');
-    return;
-  }
-  
-  const { error } = await sb.from('events').insert({
-    user_id: user.id,
-    date: dateStr,
-    name: eventName,
-    created_at: new Date().toISOString()
-  });
-  
-  if (error) {
-    alert('Error saving event: ' + error.message);
-    return;
-  }
-  
-  document.querySelectorAll('[style*="z-index:1000"]').forEach(el => el.remove());
-  renderCalendar();
-}
 
 </script>
 </body>
