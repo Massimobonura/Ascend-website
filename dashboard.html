@@ -359,12 +359,17 @@
       #cal-dow-header { gap: 5px !important; margin-bottom: 6px !important; }
       #cal-dow-header > div { font-size: 10px !important; padding: 2px !important; }
 
+      .cal-day-slot {
+        min-height: 44px;
+      }
       .cal-cell {
         display: none !important; /* full detail cell is desktop-only */
       }
       .cal-cell-mobile {
         display: flex !important;
-        aspect-ratio: 1 / 1;
+        width: 100%;
+        height: 44px;
+        box-sizing: border-box;
         border-radius: 8px;
         align-items: center;
         justify-content: center;
