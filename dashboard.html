@@ -4552,10 +4552,11 @@ async function loadAdherence() {
   const daysElapsed = weekDates.length;
   const startOfWeek = weekDates[0];
 
-  const [workoutsRes, nutritionRes, habitsRes] = await Promise.all([
+  const [workoutsRes, nutritionRes, habitsRes, profileRes] = await Promise.all([
     sb.from('workouts').select('date').eq('user_id', user.id).gte('date', startOfWeek).lte('date', today),
     sb.from('nutrition').select('date').eq('user_id', user.id).gte('date', startOfWeek).lte('date', today),
-    sb.from('habits').select('*').eq('user_id', user.id).gte('date', startOfWeek).lte('date', today)
+    sb.from('habits').select('*').eq('user_id', user.id).gte('date', startOfWeek).lte('date', today),
+    sb.from('profiles').select('workout_schedule,active_workout_plan_id').eq('id', user.id).single()
   ]);
 
   const workoutDays = new Set((workoutsRes.data || []).map(r => r.date));
@@ -4563,10 +4564,23 @@ async function loadAdherence() {
   const habitsByDate = {};
   (habitsRes.data || []).forEach(h => { habitsByDate[h.date] = h; });
 
+  // Figure out which days this week the member is actually scheduled to train,
+  // same smart-default logic used by the calendar, so a Mon-Fri schedule
+  // isn't penalized for Saturday/Sunday not having a workout.
+  let scheduleArray = profileRes.data?.workout_schedule || [];
+  if (scheduleArray.length === 0 && profileRes.data?.active_workout_plan_id) {
+    const { data: plan } = await sb.from('workout_plans').select('days_per_week').eq('id', profileRes.data.active_workout_plan_id).single();
+    if (plan?.days_per_week === 3) scheduleArray = [1, 3, 5];
+    else if (plan?.days_per_week === 4) scheduleArray = [1, 2, 4, 5];
+    else if (plan?.days_per_week === 5) scheduleArray = [1, 2, 3, 4, 5];
+    else if (plan?.days_per_week === 6) scheduleArray = [1, 2, 3, 4, 5, 6];
+  }
+  scheduleArray = scheduleArray.map(s => typeof s === 'string' ? parseInt(s) : s);
+  const scheduledDatesThisWeek = weekDates.filter(d => scheduleArray.includes(new Date(d + 'T12:00:00').getDay()));
+
   // Average across days elapsed so far this week — a missed/unlogged day counts as 0% for that day
   let workoutHits = 0, nutritionHits = 0, waterSum = 0, stepsSum = 0, sleepSum = 0, devoHits = 0;
   weekDates.forEach(d => {
-    if (workoutDays.has(d)) workoutHits++;
     if (nutritionDays.has(d)) nutritionHits++;
     const h = habitsByDate[d];
     if (h) {
@@ -4576,8 +4590,10 @@ async function loadAdherence() {
       if (h.devotional_done) devoHits++;
     }
   });
+  scheduledDatesThisWeek.forEach(d => { if (workoutDays.has(d)) workoutHits++; });
 
-  const workoutPct = Math.round(workoutHits / daysElapsed * 100);
+  const workoutDenominator = scheduledDatesThisWeek.length || daysElapsed;
+  const workoutPct = Math.round(workoutHits / workoutDenominator * 100);
   const nutritionPct = Math.round(nutritionHits / daysElapsed * 100);
   const waterPct = Math.round(waterSum / daysElapsed);
   const stepsPct = Math.round(stepsSum / daysElapsed);
