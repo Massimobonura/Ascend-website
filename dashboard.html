@@ -3422,21 +3422,21 @@ async function renderCalendar() {
     const waterDone = h && h.water_cups >= habitTargets.water;
     html += '<div style="display:flex;align-items:center;gap:5px;margin-bottom:3px;">' +
       '<span style="width:5px;height:5px;border-radius:50%;background:' + (waterDone ? 'var(--navy)' : 'transparent') + ';border:' + (waterDone ? 'none' : '1.5px solid var(--g300)') + ';flex-shrink:0;"></span>' +
-      '<span style="color:' + (waterDone ? 'var(--navy)' : 'var(--g600)') + ';font-size:9px;font-weight:' + (waterDone ? '600' : '400') + ';">Water</span>' +
+      '<span style="color:' + (waterDone ? 'var(--navy)' : 'var(--g600)') + ';font-size:9px;font-weight:' + (waterDone ? '600' : '400') + ';">Water ' + habitTargets.water + 'oz</span>' +
       '</div>';
     
     // Steps  
     const stepsDone = h && h.steps >= habitTargets.steps;
     html += '<div style="display:flex;align-items:center;gap:5px;margin-bottom:3px;">' +
       '<span style="width:5px;height:5px;border-radius:50%;background:' + (stepsDone ? 'var(--navy)' : 'transparent') + ';border:' + (stepsDone ? 'none' : '1.5px solid var(--g300)') + ';flex-shrink:0;"></span>' +
-      '<span style="color:' + (stepsDone ? 'var(--navy)' : 'var(--g600)') + ';font-size:9px;font-weight:' + (stepsDone ? '600' : '400') + ';">Steps</span>' +
+      '<span style="color:' + (stepsDone ? 'var(--navy)' : 'var(--g600)') + ';font-size:9px;font-weight:' + (stepsDone ? '600' : '400') + ';">Steps ' + habitTargets.steps.toLocaleString() + '</span>' +
       '</div>';
     
     // Sleep
     const sleepDone = h && h.sleep_hrs >= habitTargets.sleep;
     html += '<div style="display:flex;align-items:center;gap:5px;margin-bottom:3px;">' +
       '<span style="width:5px;height:5px;border-radius:50%;background:' + (sleepDone ? 'var(--navy)' : 'transparent') + ';border:' + (sleepDone ? 'none' : '1.5px solid var(--g300)') + ';flex-shrink:0;"></span>' +
-      '<span style="color:' + (sleepDone ? 'var(--navy)' : 'var(--g600)') + ';font-size:9px;font-weight:' + (sleepDone ? '600' : '400') + ';">Sleep</span>' +
+      '<span style="color:' + (sleepDone ? 'var(--navy)' : 'var(--g600)') + ';font-size:9px;font-weight:' + (sleepDone ? '600' : '400') + ';">Sleep ' + habitTargets.sleep + 'hrs</span>' +
       '</div>';
     
     // Devotional
