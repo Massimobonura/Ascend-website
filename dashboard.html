@@ -3491,20 +3491,33 @@ async function renderCalendar() {
     
     // Devotional
     const devotionDone = h && h.devotional_done;
-    html += '<div style="display:flex;align-items:center;gap:5px;margin-bottom:6px;">' +
+    html += '<div style="display:flex;align-items:center;gap:5px;margin-bottom:' + (customHabitsList.length ? '3px' : '6px') + ';">' +
       '<span style="width:5px;height:5px;border-radius:50%;background:' + (devotionDone ? 'var(--navy)' : 'transparent') + ';border:' + (devotionDone ? 'none' : '1.5px solid var(--g300)') + ';flex-shrink:0;"></span>' +
       '<span style="color:' + (devotionDone ? 'var(--navy)' : 'var(--g600)') + ';font-size:9px;font-weight:' + (devotionDone ? '600' : '400') + ';">Devotion</span>' +
       '</div>';
-    
-    // Events - compact display
+
+    // Custom habits — same style/logic as the built-in ones above
+    customHabitsList.forEach((ch, chIdx) => {
+      const val = customLogsForDay[ch.id] || 0;
+      const goal = ch.goal_value || 1;
+      const chDone = val >= goal;
+      const isLast = chIdx === customHabitsList.length - 1;
+      const label = ch.name + ' ' + goal + (ch.goal_unit ? ' ' + ch.goal_unit : '');
+      html += '<div style="display:flex;align-items:center;gap:5px;margin-bottom:' + (isLast ? '6px' : '3px') + ';">' +
+        '<span style="width:5px;height:5px;border-radius:50%;background:' + (chDone ? 'var(--navy)' : 'transparent') + ';border:' + (chDone ? 'none' : '1.5px solid var(--g300)') + ';flex-shrink:0;"></span>' +
+        '<span style="color:' + (chDone ? 'var(--navy)' : 'var(--g600)') + ';font-size:9px;font-weight:' + (chDone ? '600' : '400') + ';">' + label + '</span>' +
+        '</div>';
+    });
+
+    // Events — deliberately styled as a tag, not a dot, so it's never mistaken for a habit's done/not-done state
     const events = calDayData[dateStr]?.events || [];
     if (events.length > 0) {
-      html += '<div style="border-top:1px solid rgba(0,0,0,0.08);padding-top:4px;">';
+      html += '<div style="border-top:1px solid rgba(0,0,0,0.08);padding-top:5px;display:flex;flex-direction:column;gap:3px;">';
       events.slice(0, 2).forEach(e => {
-        const truncated = e.name.length > 15 ? e.name.substring(0, 12) + '...' : e.name;
-        html += '<div style="display:flex;align-items:flex-start;gap:4px;margin-bottom:2px;font-size:8px;color:var(--navy);font-weight:500;">' +
-          '<span style="width:4px;height:4px;border-radius:50%;background:var(--navy);flex-shrink:0;margin-top:1.5px;"></span>' +
-          '<span style="word-break:break-word;">' + truncated + '</span>' +
+        const truncated = e.name.length > 18 ? e.name.substring(0, 16) + '...' : e.name;
+        html += '<div style="display:inline-flex;align-items:center;gap:3px;background:rgba(13,27,42,0.06);border-radius:5px;padding:2px 6px;max-width:100%;box-sizing:border-box;">' +
+          '<i class="ti ti-calendar-event" style="font-size:9px;color:var(--navy);flex-shrink:0;" aria-hidden="true"></i>' +
+          '<span style="color:var(--navy);font-size:9px;font-weight:500;word-break:break-word;">' + truncated + '</span>' +
           '</div>';
       });
       if (events.length > 2) {
