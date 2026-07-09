@@ -360,6 +360,7 @@
       #cal-dow-header > div { font-size: 10px !important; padding: 2px !important; }
 
       .cal-day-slot {
+        display: flex !important;
         min-height: 44px;
       }
       .cal-cell {
@@ -367,7 +368,8 @@
       }
       .cal-cell-mobile {
         display: flex !important;
-        width: 100%;
+        flex: 1 1 auto;
+        min-width: 0;
         height: 44px;
         box-sizing: border-box;
         border-radius: 8px;
