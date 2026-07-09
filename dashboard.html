@@ -354,13 +354,32 @@
       #milestone-modal > div { max-width: 90vw; padding: 32px 24px; }
 
       /* Calendar on mobile: keep it a real grid (like Apple/Google Calendar month view) —
-         compact squares showing status at a glance, tap a day to see the full breakdown below. */
-      #cal-grid { gap: 5px !important; }
-      #cal-dow-header { gap: 5px !important; margin-bottom: 6px !important; }
-      #cal-dow-header > div { font-size: 10px !important; padding: 2px !important; }
+         compact squares showing status at a glance, tap a day to see the full breakdown below.
+         Using explicit flexbox math instead of CSS Grid auto-sizing, since grid item sizing
+         was computing to zero width in some mobile browsers. */
+      #cal-grid {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 4px !important;
+      }
+      #cal-dow-header {
+        display: flex !important;
+        gap: 4px !important;
+        margin-bottom: 6px !important;
+      }
+      #cal-dow-header > div {
+        font-size: 10px !important;
+        padding: 2px !important;
+        width: calc((100% - 24px) / 7) !important;
+        flex: 0 0 auto !important;
+        box-sizing: border-box !important;
+      }
 
       .cal-day-slot {
-        display: flex !important;
+        width: calc((100% - 24px) / 7) !important;
+        flex: 0 0 auto !important;
+        box-sizing: border-box !important;
+        display: block !important;
         min-height: 44px;
       }
       .cal-cell {
@@ -368,8 +387,7 @@
       }
       .cal-cell-mobile {
         display: flex !important;
-        flex: 1 1 auto;
-        min-width: 0;
+        width: 100% !important;
         height: 44px;
         box-sizing: border-box;
         border-radius: 8px;
