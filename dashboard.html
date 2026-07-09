@@ -139,6 +139,7 @@
     .verse-ref { font-size: 13px; color: var(--orange); font-weight: 600; }
 
     /* CHECKLIST */
+    .cal-cell-dow-label { display: none; }
     .checklist-card {
       background: white;
       border: 1px solid var(--g200);
@@ -351,6 +352,46 @@
 
       /* Milestone modal fits narrow screens */
       #milestone-modal > div { max-width: 90vw; padding: 32px 24px; }
+
+      /* Calendar: switch from a cramped 7-column grid to a clean stacked agenda list */
+      #cal-dow-header { display: none !important; }
+      #cal-grid {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 10px !important;
+      }
+      .cal-cell {
+        min-height: auto !important;
+        flex-direction: row !important;
+        align-items: flex-start !important;
+        gap: 14px !important;
+        padding: 14px !important;
+      }
+      .cal-cell-daynum {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        gap: 2px !important;
+        min-width: 38px !important;
+        flex-shrink: 0 !important;
+        font-size: 20px !important;
+        margin-bottom: 0 !important;
+      }
+      .cal-cell-dow-label {
+        display: block !important;
+        font-size: 10px !important;
+        font-weight: 700 !important;
+        color: var(--g400) !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.02em;
+      }
+      .cal-cell-content {
+        font-size: 12px !important;
+        overflow-y: visible !important;
+      }
+      .cal-cell-content div, .cal-cell-content span, .cal-cell-content button {
+        font-size: 12px !important;
+      }
     }
   </style>
 </head>
@@ -821,7 +862,7 @@
           <div id="cal-title" style="font-size:18px;font-weight:800;color:var(--navy);"></div>
           <button onclick="calNext()" style="background:none;border:1px solid var(--g200);border-radius:8px;width:36px;height:36px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;"><i class="ti ti-chevron-right"></i></button>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:8px;">
+        <div id="cal-dow-header" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:8px;">
           <div style="text-align:center;font-size:11px;font-weight:700;color:var(--g400);padding:4px;">Sun</div>
           <div style="text-align:center;font-size:11px;font-weight:700;color:var(--g400);padding:4px;">Mon</div>
           <div style="text-align:center;font-size:11px;font-weight:700;color:var(--g400);padding:4px;">Tue</div>
@@ -3439,9 +3480,10 @@ async function renderCalendar() {
       cellBorder = 'var(--orange)';
     }
     
-    html += '<div style="border:2px solid ' + cellBorder + ';border-radius:8px;background:' + cellBg + ';padding:10px;min-height:140px;display:flex;flex-direction:column;font-family:Inter,sans-serif;overflow:hidden;">' +
-      '<div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:6px;line-height:1;">' + d + '</div>' +
-      '<div style="flex:1;font-size:10px;line-height:1.4;color:var(--g700);overflow-y:auto;">';
+    const dowShort = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dayOfWeek];
+    html += '<div class="cal-cell" style="border:2px solid ' + cellBorder + ';border-radius:8px;background:' + cellBg + ';padding:10px;min-height:140px;display:flex;flex-direction:column;font-family:Inter,sans-serif;overflow:hidden;">' +
+      '<div class="cal-cell-daynum" style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:6px;line-height:1;">' + d + '<span class="cal-cell-dow-label">' + dowShort + '</span></div>' +
+      '<div class="cal-cell-content" style="flex:1;font-size:10px;line-height:1.4;color:var(--g700);overflow-y:auto;">';
     
     // Workout section
     if (hasWorkout) {
@@ -3507,7 +3549,7 @@ async function renderCalendar() {
         '</div>';
     });
 
-    html += '</div></div>';
+    html += '</div></div></div>';
   }
 
   grid.innerHTML = html;
