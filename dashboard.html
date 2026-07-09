@@ -704,15 +704,7 @@
     <!-- HABITS -->
     <div class="page" id="page-habits">
       <div class="page-title">Habit Tracker</div>
-      <div class="page-sub">Track your daily habits. Consistency is everything.</div>
-
-      <div style="background:white;border:1px solid var(--g200);border-radius:14px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
-        <div>
-          <label style="display:block;font-size:12px;font-weight:600;color:var(--g600);margin-bottom:6px;">Logging for</label>
-          <input type="date" id="habits-log-date" style="padding:8px 12px;border:1.5px solid var(--g200);border-radius:8px;font-size:14px;font-family:Inter,sans-serif;outline:none;" onchange="onHabitsLogDateChange()" />
-        </div>
-        <div id="habits-log-date-note" style="font-size:12px;color:var(--g600);"></div>
-      </div>
+      <div class="page-sub" id="habits-log-date-note">Track your daily habits. Consistency is everything.</div>
 
       <!-- Editable habit goals -->
       <div style="background:white;border:1px solid var(--g200);border-radius:14px;padding:24px;margin-bottom:24px;">
@@ -837,7 +829,12 @@
         No custom habits yet. Add one above to track anything that matters to you!
       </div>
 
-      <button class="log-btn" id="save-habits-btn" onclick="saveHabits()">Save today's habits</button>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <button class="log-btn" id="save-habits-btn" onclick="saveHabits()">Save today's habits</button>
+        <button type="button" id="log-prev-day-btn" onclick="togglePrevDayPicker()" style="background:white;color:var(--navy);border:1.5px solid var(--g200);padding:11px 20px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">Log previous day</button>
+        <input type="date" id="habits-log-date" style="display:none;padding:10px 12px;border:1.5px solid var(--orange);border-radius:8px;font-size:14px;font-family:Inter,sans-serif;outline:none;" onchange="onHabitsLogDateChange()" />
+        <button type="button" id="back-to-today-btn" onclick="resetHabitsToToday()" style="display:none;background:none;border:none;color:var(--g600);font-size:13px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;text-decoration:underline;">Back to today</button>
+      </div>
 
       <!-- Habit history -->
       <div style="margin-top:28px;">
@@ -1683,7 +1680,11 @@ function showPage(name) {
   if (name === 'habits') {
     habitsLogDate = localToday();
     const dateInput = document.getElementById('habits-log-date');
-    if (dateInput) { dateInput.value = habitsLogDate; dateInput.max = habitsLogDate; }
+    if (dateInput) { dateInput.value = ''; dateInput.max = habitsLogDate; dateInput.style.display = 'none'; }
+    const prevBtn = document.getElementById('log-prev-day-btn');
+    if (prevBtn) prevBtn.style.display = 'inline-block';
+    const backBtn = document.getElementById('back-to-today-btn');
+    if (backBtn) backBtn.style.display = 'none';
     loadHabitsForDate(habitsLogDate);
     loadHabitsHistory();
     applyHabitTargetLabels();
@@ -2544,6 +2545,24 @@ async function loadWeightHistory() {
 // ── HABITS ──
 let habitsLogDate = localToday();
 
+function togglePrevDayPicker() {
+  const input = document.getElementById('habits-log-date');
+  input.style.display = 'inline-block';
+  input.max = localToday();
+  if (!input.value) input.value = localToday();
+  input.focus();
+  document.getElementById('log-prev-day-btn').style.display = 'none';
+}
+
+function resetHabitsToToday() {
+  habitsLogDate = localToday();
+  document.getElementById('habits-log-date').style.display = 'none';
+  document.getElementById('habits-log-date').value = '';
+  document.getElementById('log-prev-day-btn').style.display = 'inline-block';
+  document.getElementById('back-to-today-btn').style.display = 'none';
+  loadHabitsForDate(habitsLogDate);
+}
+
 function onHabitsLogDateChange() {
   const val = document.getElementById('habits-log-date').value;
   const today = localToday();
@@ -2554,6 +2573,7 @@ function onHabitsLogDateChange() {
     return;
   }
   habitsLogDate = val;
+  document.getElementById('back-to-today-btn').style.display = (val === today) ? 'none' : 'inline-block';
   loadHabitsForDate(habitsLogDate);
 }
 
@@ -2564,7 +2584,7 @@ async function loadHabitsForDate(dateStr) {
   const dateLabel = new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
 
   if (dateStr === today) {
-    note.textContent = '';
+    note.textContent = 'Track your daily habits. Consistency is everything.';
     saveBtn.textContent = "Save today's habits";
   } else {
     note.textContent = 'Logging for ' + dateLabel + ' — not today';
