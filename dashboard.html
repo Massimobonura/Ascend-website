@@ -706,6 +706,14 @@
       <div class="page-title">Habit Tracker</div>
       <div class="page-sub">Track your daily habits. Consistency is everything.</div>
 
+      <div style="background:white;border:1px solid var(--g200);border-radius:14px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+        <div>
+          <label style="display:block;font-size:12px;font-weight:600;color:var(--g600);margin-bottom:6px;">Logging for</label>
+          <input type="date" id="habits-log-date" style="padding:8px 12px;border:1.5px solid var(--g200);border-radius:8px;font-size:14px;font-family:Inter,sans-serif;outline:none;" onchange="onHabitsLogDateChange()" />
+        </div>
+        <div id="habits-log-date-note" style="font-size:12px;color:var(--g600);"></div>
+      </div>
+
       <!-- Editable habit goals -->
       <div style="background:white;border:1px solid var(--g200);border-radius:14px;padding:24px;margin-bottom:24px;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
@@ -829,7 +837,7 @@
         No custom habits yet. Add one above to track anything that matters to you!
       </div>
 
-      <button class="log-btn" onclick="saveHabits()">Save today's habits</button>
+      <button class="log-btn" id="save-habits-btn" onclick="saveHabits()">Save today's habits</button>
 
       <!-- Habit history -->
       <div style="margin-top:28px;">
@@ -1672,7 +1680,14 @@ function showPage(name) {
   if (name === 'plans') { loadPlans(); loadWorkoutSchedule(); }
   if (name === 'tdee') initTdeeCalculator();
   if (name === 'resources') { loadMemberResources(); markResourcesVisited(); }
-  if (name === 'habits') { loadCustomHabits(); loadHabitsHistory(); applyHabitTargetLabels(); }
+  if (name === 'habits') {
+    habitsLogDate = localToday();
+    const dateInput = document.getElementById('habits-log-date');
+    if (dateInput) { dateInput.value = habitsLogDate; dateInput.max = habitsLogDate; }
+    loadHabitsForDate(habitsLogDate);
+    loadHabitsHistory();
+    applyHabitTargetLabels();
+  }
   if (name === 'announcements') loadMemberAnnouncements();
   if (name === 'challenges') loadChallenges();
   if (name === 'community') loadCommunityFeed();
@@ -2527,6 +2542,48 @@ async function loadWeightHistory() {
 }
 
 // ── HABITS ──
+let habitsLogDate = localToday();
+
+function onHabitsLogDateChange() {
+  const val = document.getElementById('habits-log-date').value;
+  const today = localToday();
+  if (!val) return;
+  if (val > today) {
+    alert("You can't log habits for a future date.");
+    document.getElementById('habits-log-date').value = habitsLogDate;
+    return;
+  }
+  habitsLogDate = val;
+  loadHabitsForDate(habitsLogDate);
+}
+
+async function loadHabitsForDate(dateStr) {
+  const today = localToday();
+  const note = document.getElementById('habits-log-date-note');
+  const saveBtn = document.getElementById('save-habits-btn');
+  const dateLabel = new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+
+  if (dateStr === today) {
+    note.textContent = '';
+    saveBtn.textContent = "Save today's habits";
+  } else {
+    note.textContent = 'Logging for ' + dateLabel + ' — not today';
+    saveBtn.textContent = 'Save habits for ' + new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+
+  const { data: h } = await sb.from('habits').select('*').eq('user_id', user.id).eq('date', dateStr).maybeSingle();
+  document.getElementById('h-water').value = h?.water_cups || '';
+  document.getElementById('h-steps').value = h?.steps || '';
+  document.getElementById('h-sleep').value = h?.sleep_hrs || '';
+  document.getElementById('h-devo').checked = !!h?.devotional_done;
+  updateRing('water', h?.water_cups || 0, habitTargets.water, 'ring-water', 'lbl-water');
+  updateRing('steps', h?.steps || 0, habitTargets.steps, 'ring-steps', 'lbl-steps');
+  updateRing('sleep', h?.sleep_hrs || 0, habitTargets.sleep, 'ring-sleep', 'lbl-sleep');
+  updateDevo(!!h?.devotional_done);
+
+  await loadCustomHabits(dateStr);
+}
+
 function updateRing(name, val, goal, ringId, lblId) {
   const pct = Math.min(parseFloat(val) / goal, 1);
   document.getElementById(ringId).style.strokeDashoffset = 201 - (201 * pct);
@@ -2539,10 +2596,10 @@ function updateDevo(checked) {
 }
 
 async function saveHabits() {
-  const today = localToday();
+  const dateToSave = habitsLogDate || localToday();
   const { error } = await sb.from('habits').upsert({
     user_id: user.id,
-    date: today,
+    date: dateToSave,
     water_cups: parseFloat(document.getElementById('h-water').value) || 0,
     steps: parseInt(document.getElementById('h-steps').value) || 0,
     sleep_hrs: parseFloat(document.getElementById('h-sleep').value) || 0,
@@ -2552,11 +2609,13 @@ async function saveHabits() {
 
   // Save custom habit logs
   const logPromises = Object.entries(customHabitLogs).map(([habitId, value]) =>
-    sb.from('habit_logs').upsert({ user_id: user.id, habit_id: habitId, date: today, value }, { onConflict: 'user_id,habit_id,date' })
+    sb.from('habit_logs').upsert({ user_id: user.id, habit_id: habitId, date: dateToSave, value }, { onConflict: 'user_id,habit_id,date' })
   );
   await Promise.all(logPromises);
-  alert('Habits saved!');
-  loadDailyChecklist();
+
+  const dateLabel = new Date(dateToSave + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  alert(dateToSave === localToday() ? 'Habits saved!' : 'Habits saved for ' + dateLabel + '!');
+  if (dateToSave === localToday()) loadDailyChecklist();
   loadHabitsHistory();
 }
 
@@ -3150,11 +3209,11 @@ async function deleteCustomHabit(id) {
   loadCustomHabits();
 }
 
-async function loadCustomHabits() {
+async function loadCustomHabits(dateStr) {
+  dateStr = dateStr || habitsLogDate || localToday();
   const { data } = await sb.from('custom_habits').select('*').eq('user_id', user.id).order('created_at');
   customHabits = data || [];
-  const today = localToday();
-  const { data: logs } = await sb.from('habit_logs').select('*').eq('user_id', user.id).eq('date', today);
+  const { data: logs } = await sb.from('habit_logs').select('*').eq('user_id', user.id).eq('date', dateStr);
   customHabitLogs = {};
   (logs || []).forEach(l => { customHabitLogs[l.habit_id] = l.value; });
 
@@ -4778,7 +4837,7 @@ function showHabitLogger(dateStr) {
     '</div>' +
     '</div>' +
     '<div style="display:flex;gap:8px;">' +
-    '<button onclick="saveHabits(\'' + dateStr + '\')" style="flex:1;background:var(--orange);color:white;border:none;padding:10px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;">Save</button>' +
+    '<button onclick="saveHabitsForDate(\'' + dateStr + '\')" style="flex:1;background:var(--orange);color:white;border:none;padding:10px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;">Save</button>' +
     '<button onclick="this.closest(\'[style*=\\\"z-index:1000\\\"]\').remove();" style="flex:1;background:var(--g200);color:var(--navy);border:none;padding:10px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;">Cancel</button>' +
     '</div>' +
     '</div></div>';
@@ -4788,7 +4847,7 @@ function showHabitLogger(dateStr) {
   document.body.appendChild(modal);
 }
 
-async function saveHabits(dateStr) {
+async function saveHabitsForDate(dateStr) {
   const water = parseInt(document.getElementById('habit-water')?.value || 0);
   const steps = parseInt(document.getElementById('habit-steps')?.value || 0);
   const sleep = parseFloat(document.getElementById('habit-sleep')?.value || 0);
