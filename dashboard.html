@@ -353,45 +353,42 @@
       /* Milestone modal fits narrow screens */
       #milestone-modal > div { max-width: 90vw; padding: 32px 24px; }
 
-      /* Calendar: switch from a cramped 7-column grid to a clean stacked agenda list */
-      #cal-dow-header { display: none !important; }
-      #cal-grid {
-        display: flex !important;
-        flex-direction: column !important;
-        gap: 10px !important;
-      }
+      /* Calendar on mobile: keep it a real grid (like Apple/Google Calendar month view) —
+         compact squares showing status at a glance, tap a day to see the full breakdown below. */
+      #cal-grid { gap: 5px !important; }
+      #cal-dow-header { gap: 5px !important; margin-bottom: 6px !important; }
+      #cal-dow-header > div { font-size: 10px !important; padding: 2px !important; }
+
       .cal-cell {
-        min-height: auto !important;
-        flex-direction: row !important;
-        align-items: flex-start !important;
-        gap: 14px !important;
-        padding: 14px !important;
+        display: none !important; /* full detail cell is desktop-only */
       }
-      .cal-cell-daynum {
+      .cal-cell-mobile {
         display: flex !important;
-        flex-direction: column !important;
-        align-items: center !important;
-        gap: 2px !important;
-        min-width: 38px !important;
-        flex-shrink: 0 !important;
-        font-size: 20px !important;
-        margin-bottom: 0 !important;
+        aspect-ratio: 1 / 1;
+        border-radius: 8px;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        position: relative;
+        font-family: 'Inter', sans-serif;
       }
-      .cal-cell-dow-label {
-        display: block !important;
-        font-size: 10px !important;
-        font-weight: 700 !important;
-        color: var(--g400) !important;
-        text-transform: uppercase !important;
-        letter-spacing: 0.02em;
+      .cal-cell-mobile .cal-cell-mobile-num {
+        font-size: 15px;
+        font-weight: 700;
       }
-      .cal-cell-content {
-        font-size: 12px !important;
-        overflow-y: visible !important;
+      .cal-cell-mobile .cal-cell-mobile-dot {
+        position: absolute;
+        bottom: 5px;
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
       }
-      .cal-cell-content div, .cal-cell-content span, .cal-cell-content button {
-        font-size: 12px !important;
+      .cal-cell-mobile.is-selected {
+        box-shadow: 0 0 0 2px var(--navy);
       }
+    }
+    @media (min-width: 769px) {
+      .cal-cell-mobile { display: none !important; }
     }
   </style>
 </head>
@@ -877,7 +874,10 @@
           <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--g600);"><div style="width:14px;height:14px;border-radius:50%;border:1px solid var(--g400);background:transparent;"></div>Not completed</div>
         </div>
         <div id="cal-detail" style="display:none;margin-top:20px;padding-top:20px;border-top:1px solid var(--g200);">
-          <div id="cal-detail-date" style="font-size:15px;font-weight:700;color:var(--navy);margin-bottom:12px;"></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <div id="cal-detail-date" style="font-size:15px;font-weight:700;color:var(--navy);"></div>
+            <button onclick="closeCalDayDetail()" style="background:none;border:none;color:var(--g400);font-size:13px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;">Close ✕</button>
+          </div>
           <div id="cal-detail-items" style="display:flex;flex-direction:column;gap:8px;"></div>
         </div>
       </div>
@@ -3481,6 +3481,7 @@ async function renderCalendar() {
     }
     
     const dowShort = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dayOfWeek];
+    html += '<div class="cal-day-slot">';
     html += '<div class="cal-cell" style="border:2px solid ' + cellBorder + ';border-radius:8px;background:' + cellBg + ';padding:10px;min-height:140px;display:flex;flex-direction:column;font-family:Inter,sans-serif;overflow:hidden;">' +
       '<div class="cal-cell-daynum" style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:6px;line-height:1;">' + d + '<span class="cal-cell-dow-label">' + dowShort + '</span></div>' +
       '<div class="cal-cell-content" style="flex:1;font-size:10px;line-height:1.4;color:var(--g700);overflow-y:auto;">';
@@ -3549,7 +3550,15 @@ async function renderCalendar() {
         '</div>';
     });
 
-    html += '</div></div></div>';
+    html += '</div></div>';
+
+    // Compact mobile grid cell — same color logic as the desktop cell, tap to see full detail below
+    html += '<div class="cal-cell-mobile" data-date="' + dateStr + '" onclick="showCalDayDetail(\'' + dateStr + '\')" style="border:2px solid ' + cellBorder + ';background:' + cellBg + ';">' +
+      '<span class="cal-cell-mobile-num" style="color:' + textColor + ';">' + d + '</span>' +
+      (workoutDay || hasWorkout ? '<span class="cal-cell-mobile-dot" style="background:' + (hasWorkout ? 'var(--navy)' : 'var(--orange)') + ';"></span>' : '') +
+      '</div>';
+
+    html += '</div></div>';
   }
 
   grid.innerHTML = html;
@@ -3568,6 +3577,11 @@ function closeCalDetailAndShowHistory(dateStr) {
   }, 150);
 }
 
+function closeCalDayDetail() {
+  document.getElementById('cal-detail').style.display = 'none';
+  document.querySelectorAll('.cal-cell-mobile').forEach(el => el.classList.remove('is-selected'));
+}
+
 async function showCalDayDetail(dateStr) {
   const day = calDayData[dateStr] || {};
   const detailPanel = document.getElementById('cal-detail');
@@ -3578,6 +3592,11 @@ async function showCalDayDetail(dateStr) {
   const isPast = dateStr < today;
   const dayOfWeek = new Date(dateStr + 'T12:00:00').getDay();
 
+  // Highlight the tapped day on the mobile grid
+  document.querySelectorAll('.cal-cell-mobile').forEach(el => {
+    el.classList.toggle('is-selected', el.dataset.date === dateStr);
+  });
+
   detailPanel.style.display = 'block';
   dateLabel.textContent = new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
@@ -3586,7 +3605,7 @@ async function showCalDayDetail(dateStr) {
   // Get workout plan and schedule
   const plan = window._calActivePlan;
   let schedule = window._calSchedule || [];
-  
+
   // Apply smart defaults if no schedule set
   if (schedule.length === 0 && plan?.days_per_week) {
     if (plan.days_per_week === 3) schedule = [1, 3, 5];
@@ -3595,11 +3614,25 @@ async function showCalDayDetail(dateStr) {
     else if (plan.days_per_week === 6) schedule = [1, 2, 3, 4, 5, 6];
   }
 
-  // Find which workout day this date maps to
+  // Check this week's overrides, same logic the grid uses
+  const weekStartForDay = getWeekStart(dateStr);
+  const overridesThisWeek = (window._calOverridesByWeek || {})[weekStartForDay] || [];
+  const movedAway = overridesThisWeek.find(o => Number(o.original_day) === dayOfWeek);
+  const movedIn = overridesThisWeek.find(o => Number(o.moved_to_day) === dayOfWeek);
+
+  // Find which workout day this date maps to, accounting for moves
   let workoutDay = null;
   let workoutDayName = null;
-  
-  if (schedule.includes(dayOfWeek) && plan?.plan_days) {
+
+  if (movedIn) {
+    workoutDay = schedule.indexOf(Number(movedIn.original_day)) + 1;
+    if (workoutDay > 0 && plan?.plan_days) {
+      const planDay = plan.plan_days.find(pd => pd.day === workoutDay);
+      workoutDayName = planDay?.day_name || ('Day ' + workoutDay);
+    } else {
+      workoutDay = null;
+    }
+  } else if (schedule.includes(dayOfWeek) && !movedAway && plan?.plan_days) {
     const dayIndex = schedule.indexOf(dayOfWeek);
     workoutDay = dayIndex + 1;
     const planDay = plan.plan_days.find(pd => pd.day === workoutDay);
@@ -3609,13 +3642,21 @@ async function showCalDayDetail(dateStr) {
   // Show logged or scheduled workout
   const hasLoggedWorkout = day.workouts && day.workouts.length;
   if (hasLoggedWorkout) {
-    html += '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#FFF7ED;border-radius:8px;border:1px solid #FFE0C2;margin-bottom:12px;">' +
+    html += '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#FFF7ED;border-radius:8px;border:1px solid #FFE0C2;margin-bottom:8px;">' +
       '<i class="ti ti-circle-check" style="color:var(--orange);font-size:16px;flex-shrink:0;" aria-hidden="true"></i>' +
       '<span style="font-size:13px;color:var(--g800);font-weight:600;">' + (workoutDayName || 'Workout') + ' completed ✓</span></div>';
   } else if (workoutDay) {
-    html += '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#FFF7ED;border-radius:8px;border:1px solid #FFE0C2;margin-bottom:12px;">' +
+    html += '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#FFF7ED;border-radius:8px;border:1px solid #FFE0C2;margin-bottom:8px;">' +
       '<i class="ti ti-barbell" style="color:var(--orange);font-size:16px;flex-shrink:0;" aria-hidden="true"></i>' +
-      '<span style="font-size:13px;color:var(--g800);font-weight:600;">Scheduled: ' + workoutDayName + '</span></div>';
+      '<span style="font-size:13px;color:var(--g800);font-weight:600;flex:1;">Scheduled: ' + workoutDayName + '</span></div>';
+
+    if (!isPast) {
+      if (movedIn) {
+        html += '<button onclick="undoWorkoutMove(' + movedIn.original_day + ', \'' + movedIn.week_start_date + '\')" style="background:none;border:none;color:var(--g600);font-size:12px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;padding:0 0 10px;text-decoration:underline;">Undo move</button>';
+      } else {
+        html += '<button onclick="showMoveWorkoutModal(\'' + dateStr + '\')" style="background:none;border:none;color:var(--g600);font-size:12px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;padding:0 0 10px;text-decoration:underline;">Move to another day</button>';
+      }
+    }
   }
 
   // Show cardio
