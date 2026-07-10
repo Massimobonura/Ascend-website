@@ -961,9 +961,8 @@
             <label style="font-size:12px;font-weight:600;color:var(--g600);display:block;margin-bottom:8px;">Filter by Equipment:</label>
             <select id="equipment-filter" onchange="filterWorkoutPlans()" style="width:100%;max-width:300px;padding:8px 12px;border:1.5px solid var(--g200);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;cursor:pointer;background:white;">
               <option value="">All equipment</option>
-              <option value="Full gym equipment">Full gym equipment</option>
-              <option value="Limited equipment">Limited equipment</option>
-              <option value="No equipment/bodyweight">No equipment/bodyweight</option>
+              <option value="full_gym">Full gym</option>
+              <option value="limited_equipment">At-Home / Limited Equipment</option>
             </select>
           </div>
           <div id="plans-container"><div class="empty" style="padding:48px;text-align:center;">Loading plans...</div></div>
@@ -2772,11 +2771,27 @@ function switchTrainingTab(tabName) {
 function filterWorkoutPlans() {
   const equipmentFilter = document.getElementById('equipment-filter').value;
   let filtered = allWorkoutPlans;
-  
+
   if (equipmentFilter) {
-    filtered = allWorkoutPlans.filter(p => p.equipment === equipmentFilter);
+    filtered = allWorkoutPlans.filter(p => {
+      if (equipmentFilter === 'limited_equipment') {
+        return p.equipment_category === 'limited_equipment' || p.equipment_category === 'bodyweight';
+      }
+      return p.equipment_category === equipmentFilter;
+    });
   }
-  
+
+  // Sort: days ascending, beginner before intermediate, member's own custom plan(s) always last
+  const levelRank = (lvl) => lvl === 'beginner' ? 0 : lvl === 'intermediate' ? 1 : 2;
+  filtered = [...filtered].sort((a, b) => {
+    const customA = a.created_by ? 1 : 0, customB = b.created_by ? 1 : 0;
+    if (customA !== customB) return customA - customB;
+    if ((a.days_per_week || 0) !== (b.days_per_week || 0)) return (a.days_per_week || 0) - (b.days_per_week || 0);
+    const lr = levelRank(a.level) - levelRank(b.level);
+    if (lr !== 0) return lr;
+    return (a.name || '').localeCompare(b.name || '');
+  });
+
   let html = '';
   if (filtered.length === 0) {
     html = '<div class="empty" style="padding:48px;text-align:center;">No plans found</div>';
