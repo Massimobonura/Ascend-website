@@ -111,6 +111,7 @@
     <div class="sb-label">Content</div>
     <button class="sb-item" id="sb-workouts" onclick="showPage('workouts')"><i class="ti ti-barbell"></i> Workout Plans</button>
     <button class="sb-item" id="sb-exercises" onclick="showPage('exercises')"><i class="ti ti-list-details"></i> Exercise Library</button>
+    <button class="sb-item" id="sb-pain" onclick="showPage('pain')"><i class="ti ti-medical-cross"></i> Pain Management</button>
     <button class="sb-item" id="sb-devotionals" onclick="showPage('devotionals')"><i class="ti ti-book"></i> Devotionals</button>
     <button class="sb-item" id="sb-announcements" onclick="showPage('announcements')"><i class="ti ti-speakerphone"></i> Announcements</button>
     <button class="sb-item" id="sb-resources" onclick="showPage('resources')"><i class="ti ti-video"></i> Resources</button>
@@ -332,6 +333,24 @@
       <div class="card">
         <div class="card-header"><h3>All exercises</h3><span id="exercise-count" style="font-size:13px;color:var(--gray-400);"></span></div>
         <div id="exercises-list"><div class="empty">Loading...</div></div>
+      </div>
+    </div>
+
+    <!-- PAIN MANAGEMENT -->
+    <div class="page" id="page-pain">
+      <div class="page-title">Pain Management</div>
+      <div class="page-sub">Create pain management routines members can add to their weekly schedule.</div>
+      <div id="alert-pain" class="alert alert-success"></div>
+      <div class="form-card">
+        <h3 id="pain-form-title">Create new pain management plan</h3>
+        <div class="fg" style="margin-bottom:18px;"><label>Name</label><input type="text" id="pain-name" placeholder="e.g. Lower Back Pain Relief" /></div>
+        <div class="fg" style="margin-bottom:18px;"><label>Description / Routine</label><textarea id="pain-description" placeholder="Describe the stretches/exercises members should do — this is what members will see." style="min-height:140px;"></textarea></div>
+        <button class="btn btn-primary" id="pain-save-btn" onclick="savePainPlan()">Save pain management plan</button>
+        <button class="btn btn-ghost" id="pain-cancel-btn" onclick="cancelEditPainPlan()" style="display:none;margin-left:8px;">Cancel edit</button>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>All pain management plans</h3><span id="pain-count" style="font-size:13px;color:var(--gray-400);"></span></div>
+        <div id="pain-list"><div class="empty">Loading...</div></div>
       </div>
     </div>
 
@@ -590,6 +609,7 @@ function showPage(name) {
   if (name === 'testimonials') loadTestimonials();
   if (name === 'workouts') loadPlans();
   if (name === 'exercises') loadExerciseLibrary();
+  if (name === 'pain') loadPainManagementPlans();
   if (name === 'devotionals') loadDevotionals();
   if (name === 'announcements') loadAnnouncements();
   if (name === 'resources') loadResources();
@@ -1390,6 +1410,64 @@ async function saveAlternates() {
   loadExerciseLibrary();
 }
 
+// ── PAIN MANAGEMENT ──
+let editingPainPlanId = null;
+
+async function loadPainManagementPlans() {
+  const { data } = await sb.from('pain_management_plans').select('*').order('name');
+  const el = document.getElementById('pain-list');
+  document.getElementById('pain-count').textContent = (data?.length || 0) + ' plans';
+  if (!data?.length) { el.innerHTML = '<div class="empty">No pain management plans yet. Add one above.</div>'; return; }
+  el.innerHTML = '<table><thead><tr><th>Name</th><th>Description</th><th>Action</th></tr></thead><tbody>' +
+    data.map(p => '<tr><td style="font-weight:600;">' + p.name + '</td><td style="max-width:400px;font-size:12px;color:var(--gray-600);">' + (p.description || '').substring(0, 120) + ((p.description || '').length > 120 ? '...' : '') + '</td><td style="display:flex;gap:8px;"><button class="btn btn-ghost" onclick="editPainPlan(\'' + p.id + '\')">Edit</button><button class="btn btn-danger" onclick="deletePainPlan(\'' + p.id + '\')">Delete</button></td></tr>').join('') +
+    '</tbody></table>';
+}
+
+async function savePainPlan() {
+  const name = document.getElementById('pain-name').value.trim();
+  const description = document.getElementById('pain-description').value.trim();
+  if (!name) { alert('Please enter a name.'); return; }
+
+  const payload = { name, description };
+  let error;
+  if (editingPainPlanId) {
+    ({ error } = await sb.from('pain_management_plans').update(payload).eq('id', editingPainPlanId));
+  } else {
+    ({ error } = await sb.from('pain_management_plans').insert(payload));
+  }
+  if (error) { alert('Error: ' + error.message); return; }
+
+  showAlert('alert-pain', editingPainPlanId ? 'Pain management plan updated!' : 'Pain management plan created!');
+  cancelEditPainPlan();
+  loadPainManagementPlans();
+}
+
+async function editPainPlan(id) {
+  const { data: p, error } = await sb.from('pain_management_plans').select('*').eq('id', id).single();
+  if (error || !p) { alert('Could not load plan.'); return; }
+  editingPainPlanId = id;
+  document.getElementById('pain-name').value = p.name || '';
+  document.getElementById('pain-description').value = p.description || '';
+  document.getElementById('pain-form-title').textContent = 'Edit "' + p.name + '"';
+  document.getElementById('pain-save-btn').textContent = 'Save changes';
+  document.getElementById('pain-cancel-btn').style.display = 'inline-block';
+  document.querySelector('#page-pain .form-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function cancelEditPainPlan() {
+  editingPainPlanId = null;
+  document.getElementById('pain-name').value = '';
+  document.getElementById('pain-description').value = '';
+  document.getElementById('pain-form-title').textContent = 'Create new pain management plan';
+  document.getElementById('pain-save-btn').textContent = 'Save pain management plan';
+  document.getElementById('pain-cancel-btn').style.display = 'none';
+}
+
+async function deletePainPlan(id) {
+  if (!confirm('Delete this pain management plan? Members who added it to their routine will keep their existing entries, but it will no longer be available to add.')) return;
+  await sb.from('pain_management_plans').delete().eq('id', id);
+  loadPainManagementPlans();
+}
 
 // ── DEVOTIONALS ──
 
