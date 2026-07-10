@@ -1751,7 +1751,7 @@ function parseDevotionals(text) {
     
     // Extract Application
     const appMatch = section.match(/Application:\s*(.+?)$/is);
-    if (appMatch) dev.application = appMatch[1].trim();
+    if (appMatch) dev.application = appMatch[1].replace(/[=\-_*]{3,}\s*$/g, '').trim();
     
     // Only add if we have all required fields
     if (dev.title && dev.scripture_reference && dev.content && dev.application) {
