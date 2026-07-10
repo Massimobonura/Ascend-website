@@ -1277,14 +1277,15 @@
       <div class="page-title">Resources</div>
       <div class="page-sub">Everything you need to learn, grow, and succeed.</div>
       <div id="resources-dynamic"><div class="empty" style="padding:32px;text-align:center;">Loading...</div></div>
-      <div class="resource-item" style="margin-top:16px;">
+      <div class="resource-item" style="margin-top:16px;cursor:pointer;" onclick="toggleFoundationalVideos()">
         <div class="resource-icon"><i class="ti ti-video" style="color:white;font-size:20px;" aria-hidden="true"></i></div>
         <div class="resource-info">
           <h4>Foundational Videos</h4>
           <p>Start here — a step-by-step walkthrough of the whole platform.</p>
         </div>
-        <button onclick="openFoundationalVideos()" class="resource-link" style="border:none;cursor:pointer;font-family:Inter,sans-serif;">View Videos →</button>
+        <i id="foundational-videos-chevron" class="ti ti-chevron-down" style="color:var(--g400);font-size:20px;margin-left:auto;transition:transform 0.2s;" aria-hidden="true"></i>
       </div>
+      <div id="foundational-videos-dropdown" style="display:none;background:var(--off);border:1px solid var(--g200);border-radius:12px;padding:16px;margin-top:-6px;margin-bottom:14px;"></div>
       <div class="resource-item" style="margin-top:16px;">
         <div class="resource-icon"><i class="ti ti-player-play" style="color:white;font-size:20px;" aria-hidden="true"></i></div>
         <div class="resource-info">
@@ -1293,18 +1294,7 @@
         </div>
         <a href="https://www.youtube.com/@jessicabonurafit" target="_blank" class="resource-link">Listen →</a>
       </div>
-    </div>
-
-    <!-- FOUNDATIONAL VIDEOS MODAL -->
-    <div id="foundational-videos-modal" style="display:none;position:fixed;inset:0;background:rgba(13,27,42,0.7);z-index:999;align-items:center;justify-content:center;padding:20px;">
-      <div style="background:white;border-radius:16px;padding:28px;max-width:480px;width:100%;max-height:85vh;overflow-y:auto;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-          <div style="font-size:18px;font-weight:800;color:var(--navy);">Foundational Videos</div>
-          <button onclick="document.getElementById('foundational-videos-modal').style.display='none';" style="background:none;border:none;cursor:pointer;color:var(--g400);font-size:20px;">✕</button>
-        </div>
-        <p style="font-size:13px;color:var(--g600);margin-bottom:18px;">Watch these in order to get the most out of Ascend.</p>
-        <div id="foundational-videos-list" style="display:flex;flex-direction:column;gap:10px;"></div>
-      </div>
+      <p style="text-align:center;font-size:13px;color:var(--g400);margin-top:16px;">More videos coming soon.</p>
     </div>
 
   </div>
@@ -3474,27 +3464,57 @@ const foundationalVideos = [
   'https://www.loom.com/share/fc76cdec3e0f4599a05769ca21716363'
 ];
 
-function openFoundationalVideos() {
-  const list = document.getElementById('foundational-videos-list');
-  list.innerHTML = foundationalVideos.map((url, i) =>
-    '<a href="' + url + '" target="_blank" style="display:flex;align-items:center;gap:12px;background:var(--off);border:1px solid var(--g200);border-radius:10px;padding:12px 16px;text-decoration:none;">' +
-    '<div style="width:26px;height:26px;border-radius:50%;background:var(--orange);color:white;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' + (i + 1) + '</div>' +
-    '<span style="font-size:14px;font-weight:600;color:var(--navy);">Video ' + (i + 1) + '</span>' +
-    '<i class="ti ti-external-link" style="margin-left:auto;color:var(--g400);font-size:16px;" aria-hidden="true"></i>' +
-    '</a>'
-  ).join('');
-  document.getElementById('foundational-videos-modal').style.display = 'flex';
+function toggleFoundationalVideos() {
+  const dropdown = document.getElementById('foundational-videos-dropdown');
+  const chevron = document.getElementById('foundational-videos-chevron');
+  const isOpen = dropdown.style.display === 'block';
+
+  if (isOpen) {
+    dropdown.style.display = 'none';
+    chevron.style.transform = 'rotate(0deg)';
+    return;
+  }
+
+  if (!dropdown.dataset.built) {
+    dropdown.innerHTML = foundationalVideos.map((url, i) =>
+      '<div style="margin-bottom:8px;">' +
+      '<div onclick="event.stopPropagation(); toggleVideoEmbed(' + i + ')" style="display:flex;align-items:center;gap:10px;background:white;border:1px solid var(--g200);border-radius:8px;padding:10px 14px;cursor:pointer;">' +
+      '<div style="width:24px;height:24px;border-radius:50%;background:var(--orange);color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' + (i + 1) + '</div>' +
+      '<span style="font-size:14px;font-weight:600;color:var(--navy);">Video ' + (i + 1) + '</span>' +
+      '<i class="ti ti-chevron-down" id="video-chevron-' + i + '" style="margin-left:auto;color:var(--g400);transition:transform 0.2s;" aria-hidden="true"></i>' +
+      '</div>' +
+      '<div id="video-embed-' + i + '" style="display:none;margin-top:8px;"></div>' +
+      '</div>'
+    ).join('');
+    dropdown.dataset.built = 'true';
+  }
+  dropdown.style.display = 'block';
+  chevron.style.transform = 'rotate(180deg)';
+}
+
+function toggleVideoEmbed(i) {
+  const container = document.getElementById('video-embed-' + i);
+  const chevron = document.getElementById('video-chevron-' + i);
+  const isOpen = container.style.display === 'block';
+
+  if (isOpen) {
+    container.style.display = 'none';
+    container.innerHTML = ''; // unload the iframe so it's not playing/loaded in the background
+    chevron.style.transform = 'rotate(0deg)';
+    return;
+  }
+
+  const id = foundationalVideos[i].split('/share/')[1];
+  container.innerHTML = '<div style="position:relative;padding-bottom:56.25%;height:0;"><iframe src="https://www.loom.com/embed/' + id + '" frameborder="0" allowfullscreen style="position:absolute;top:0;left:0;width:100%;height:100%;border-radius:8px;"></iframe></div>';
+  container.style.display = 'block';
+  chevron.style.transform = 'rotate(180deg)';
 }
 
 async function loadMemberResources() {
   const { data } = await sb.from('resources').select('*').order('category').order('created_at');
   const el = document.getElementById('resources-dynamic');
   if (!data || !data.length) {
-    el.innerHTML = '<div style="background:var(--navy);border-radius:14px;padding:28px;margin-bottom:16px;">' +
-      '<div style="font-size:11px;font-weight:700;color:var(--orange);letter-spacing:0.18em;text-transform:uppercase;margin-bottom:12px;">Tutorial Videos</div>' +
-      '<div style="font-size:16px;font-weight:700;color:white;margin-bottom:8px;">Video guides coming soon</div>' +
-      '<div style="font-size:14px;color:rgba(255,255,255,0.6);line-height:1.6;">Step-by-step video guides are being recorded. Check back soon!</div>' +
-      '</div>';
+    el.innerHTML = '';
     return;
   }
   const cats = [...new Set(data.map(r => r.category))];
