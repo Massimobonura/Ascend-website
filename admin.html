@@ -363,6 +363,17 @@
     </div>
 
     <!-- ALTERNATES MODAL -->
+    <!-- CLIENT DETAIL MODAL -->
+    <div id="client-detail-modal" style="display:none;position:fixed;inset:0;background:rgba(8,15,23,0.7);z-index:999;align-items:flex-start;justify-content:center;padding:40px 20px;overflow-y:auto;">
+      <div style="background:white;border-radius:16px;padding:28px;max-width:720px;width:100%;margin-bottom:40px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+          <div id="cd-name" style="font-size:20px;font-weight:800;color:var(--navy);"></div>
+          <button onclick="closeClientDetail()" style="background:none;border:none;cursor:pointer;color:var(--gray-400);font-size:20px;">✕</button>
+        </div>
+        <div id="client-detail-body"></div>
+      </div>
+    </div>
+
     <div id="alternates-modal" style="display:none;position:fixed;inset:0;background:rgba(8,15,23,0.6);z-index:998;align-items:center;justify-content:center;padding:20px;">
       <div style="background:white;border-radius:16px;padding:28px;max-width:440px;width:100%;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
@@ -2215,7 +2226,7 @@ function filterCoachingClients() {
     html += '<td>' + endDate + '</td>';
     html += '<td><span class="badge ' + expiryBadgeClass + '">' + expiryText + '</span></td>';
     html += '<td>' + status + '</td>';
-    html += '<td style="display:flex;gap:6px;"><button class="btn btn-ghost" style="font-size:12px;padding:5px 10px;" onclick="viewCoachingClientDashboard(\'' + (c.user_id || '') + '\', \'' + encodeURIComponent(name) + '\')">View</button><button class="btn btn-danger" style="font-size:12px;padding:5px 10px;" onclick="removeFromCoaching(\'' + c.id + '\', \'' + encodeURIComponent(name) + '\')">Remove</button></td>';
+    html += '<td style="display:flex;gap:6px;"><button class="btn btn-ghost" style="font-size:12px;padding:5px 10px;" onclick="openClientDetail(\'' + (c.user_id || '') + '\', \'' + encodeURIComponent(name) + '\')">View</button><button class="btn btn-danger" style="font-size:12px;padding:5px 10px;" onclick="removeFromCoaching(\'' + c.id + '\', \'' + encodeURIComponent(name) + '\')">Remove</button></td>';
     html += '</tr>';
   });
   
@@ -2223,13 +2234,121 @@ function filterCoachingClients() {
   document.getElementById('coaching-clients-table').innerHTML = html;
 }
 
-async function viewCoachingClientDashboard(userId, clientName) {
+async function openClientDetail(userId, clientName) {
   if (!userId) {
     alert('This client has not yet created an account. Their dashboard will be available once they sign up.');
     return;
   }
-  // Open their dashboard with clientName in URL
-  window.open(`/dashboard.html?viewClient=${userId}&clientName=${clientName || 'Client'}`, '_blank');
+  document.getElementById('cd-name').textContent = decodeURIComponent(clientName || 'Client');
+
+  const body = document.getElementById('client-detail-body');
+  body.innerHTML =
+    '<div class="section-card" style="margin-bottom:16px;">' +
+      '<h4 style="margin-bottom:10px;">Active Workout Plan</h4>' +
+      '<div id="cd-current-plan" style="font-size:13px;color:var(--gray-600);margin-bottom:10px;">Loading...</div>' +
+      '<div style="display:flex;gap:10px;flex-wrap:wrap;">' +
+        '<select id="cd-plan-select" style="flex:1;min-width:220px;padding:8px 12px;border:1.5px solid var(--gray-200);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;"></select>' +
+        '<button class="btn btn-primary" onclick="reassignClientPlan(\'' + userId + '\')">Change plan</button>' +
+      '</div>' +
+    '</div>' +
+    '<div class="section-card" style="margin-bottom:16px;">' +
+      '<h4 style="margin-bottom:10px;">Nutrition Targets</h4>' +
+      '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px;">' +
+        '<div class="fg" style="margin-bottom:0;"><label>Calories</label><input type="number" id="cal-' + userId + '" /></div>' +
+        '<div class="fg" style="margin-bottom:0;"><label>Protein (g)</label><input type="number" id="pro-' + userId + '" /></div>' +
+        '<div class="fg" style="margin-bottom:0;"><label>Carbs (g)</label><input type="number" id="car-' + userId + '" /></div>' +
+        '<div class="fg" style="margin-bottom:0;"><label>Fats (g)</label><input type="number" id="fat-' + userId + '" /></div>' +
+      '</div>' +
+      '<button class="btn btn-primary" onclick="saveMacros(\'' + userId + '\')">Save nutrition targets</button>' +
+    '</div>' +
+    '<div class="section-card" style="margin-bottom:16px;">' +
+      '<h4 style="margin-bottom:10px;">Progress Photos</h4>' +
+      '<div id="cphotos-' + userId + '"><div class="empty">Loading...</div></div>' +
+    '</div>' +
+    '<div class="section-card" style="margin-bottom:16px;">' +
+      '<h4 style="margin-bottom:10px;">Recent Workouts</h4>' +
+      '<div id="cd-workouts-' + userId + '"><div class="empty">Loading...</div></div>' +
+    '</div>' +
+    '<div class="section-card" style="margin-bottom:16px;">' +
+      '<h4 style="margin-bottom:10px;">Recent Habits</h4>' +
+      '<div id="cd-habits-' + userId + '"><div class="empty">Loading...</div></div>' +
+    '</div>' +
+    '<div class="section-card">' +
+      '<h4 style="margin-bottom:10px;">Coach Notes</h4>' +
+      '<textarea id="note-' + userId + '" placeholder="Add a private note about this client..." style="min-height:70px;margin-bottom:8px;"></textarea>' +
+      '<button class="btn btn-primary" onclick="addNote(\'' + userId + '\')" style="margin-bottom:14px;">Add note</button>' +
+      '<div id="notes-' + userId + '"></div>' +
+    '</div>';
+
+  document.getElementById('client-detail-modal').style.display = 'flex';
+
+  loadClientPhotos(userId);
+  loadNotes(userId);
+  loadClientMacroInputs(userId);
+  loadClientPlanPicker(userId);
+  loadClientWorkoutHistory(userId);
+  loadClientHabitHistory(userId);
+}
+
+function closeClientDetail() {
+  document.getElementById('client-detail-modal').style.display = 'none';
+}
+
+async function loadClientMacroInputs(uid) {
+  const { data } = await sb.from('coaching_clients').select('calories,protein_g,carbs_g,fats_g').eq('user_id', uid).maybeSingle();
+  if (!data) return;
+  if (document.getElementById('cal-' + uid)) document.getElementById('cal-' + uid).value = data.calories || '';
+  if (document.getElementById('pro-' + uid)) document.getElementById('pro-' + uid).value = data.protein_g || '';
+  if (document.getElementById('car-' + uid)) document.getElementById('car-' + uid).value = data.carbs_g || '';
+  if (document.getElementById('fat-' + uid)) document.getElementById('fat-' + uid).value = data.fats_g || '';
+}
+
+async function loadClientPlanPicker(uid) {
+  const { data: profile } = await sb.from('profiles').select('active_workout_plan_id').eq('id', uid).maybeSingle();
+  const { data: plans } = await sb.from('workout_plans').select('id,name').order('name');
+
+  const currentEl = document.getElementById('cd-current-plan');
+  const current = (plans || []).find(p => p.id === profile?.active_workout_plan_id);
+  currentEl.textContent = current ? 'Currently on: ' + current.name : 'No plan currently assigned';
+
+  const select = document.getElementById('cd-plan-select');
+  select.innerHTML = '<option value="">— Select a plan —</option>' +
+    (plans || []).map(p => '<option value="' + p.id + '"' + (p.id === profile?.active_workout_plan_id ? ' selected' : '') + '>' + p.name + '</option>').join('');
+}
+
+async function reassignClientPlan(uid) {
+  const planId = document.getElementById('cd-plan-select').value;
+  if (!planId) { alert('Please select a plan first.'); return; }
+  const { error } = await sb.from('profiles').update({ active_workout_plan_id: planId }).eq('id', uid);
+  if (error) { alert('Error: ' + error.message); return; }
+  showAlert('alert-coaching-clients', 'Workout plan updated for this client!');
+  loadClientPlanPicker(uid);
+}
+
+async function loadClientWorkoutHistory(uid) {
+  const { data } = await sb.from('workouts').select('*').eq('user_id', uid).order('date', { ascending: false }).limit(20);
+  const el = document.getElementById('cd-workouts-' + uid);
+  if (!el) return;
+  if (!data?.length) { el.innerHTML = '<div class="empty">No workouts logged yet.</div>'; return; }
+  el.innerHTML = data.map(w =>
+    '<div style="display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid var(--gray-200);font-size:13px;">' +
+    '<span style="font-weight:600;color:var(--navy);">' + new Date(w.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' — ' + w.exercise + '</span>' +
+    '<span style="color:var(--gray-600);white-space:nowrap;">' + (w.sets || 0) + ' x ' + (w.reps || 0) + (w.weight_lbs ? ' @ ' + w.weight_lbs + ' lbs' : '') + '</span>' +
+    '</div>'
+  ).join('');
+}
+
+async function loadClientHabitHistory(uid) {
+  const { data } = await sb.from('habits').select('*').eq('user_id', uid).order('date', { ascending: false }).limit(14);
+  const el = document.getElementById('cd-habits-' + uid);
+  if (!el) return;
+  if (!data?.length) { el.innerHTML = '<div class="empty">No habits logged yet.</div>'; return; }
+  el.innerHTML = data.map(h =>
+    '<div style="padding:8px 0;border-top:1px solid var(--gray-200);font-size:13px;">' +
+    '<span style="font-weight:600;color:var(--navy);">' + new Date(h.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + '</span> — ' +
+    '<span style="color:var(--gray-600);">Water: ' + (h.water_cups || 0) + 'oz · Steps: ' + (h.steps || 0) + ' · Sleep: ' + (h.sleep_hrs || 0) + 'hrs · Devotional: ' + (h.devotional_done ? 'Yes' : 'No') + '</span>' +
+    '</div>'
+  ).join('');
 }
 
 async function assignCoachingClientToCoach(coachingClientId, coachId) {
@@ -2288,31 +2407,43 @@ async function addExistingMemberAsCoachingClient() {
     // Get logged-in user's coach ID
     const isAdmin = currentUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
     let coachId = null;
-    
+
     if (!isAdmin) {
       const { data: coachData } = await sb.from('coaches').select('id').eq('user_id', currentUser.id).single();
       coachId = coachData?.id;
     }
-    
+
+    // Resolve the member's email to their actual user_id first
+    const { data: memberProfile, error: profileError } = await sb.from('profiles')
+      .select('id')
+      .ilike('email', email)
+      .maybeSingle();
+
+    if (profileError || !memberProfile) {
+      alert('Could not find a member with that email. Make sure they have already signed up.');
+      return;
+    }
+    const memberUserId = memberProfile.id;
+
     // Check if they already exist in coaching_clients
     const { data: existing } = await sb.from('coaching_clients')
       .select('id')
-      .eq('email', email);
-    
+      .eq('user_id', memberUserId);
+
     if (existing && existing.length > 0) {
       alert('This member is already a coaching client');
       return;
     }
-    
+
     // Add to coaching_clients table (auto-assign to logged-in coach if not admin)
     const { error } = await sb.from('coaching_clients').insert({
-      email: email,
+      user_id: memberUserId,
       coaching_start_date: startDate,
       coaching_end_date: endDate,
       status: 'active',
       coach_id: coachId,
     });
-    
+
     if (error) throw error;
     
     // Show success message
