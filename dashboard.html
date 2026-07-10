@@ -601,7 +601,11 @@
           <div style="font-size:16px;font-weight:800;color:var(--navy);">Change this exercise</div>
           <button onclick="closeSwapExercise()" style="background:none;border:none;cursor:pointer;color:var(--g400);font-size:18px;"><i class="ti ti-x" aria-hidden="true"></i></button>
         </div>
-        <div id="swap-original-name" style="font-size:13px;color:var(--g600);margin-bottom:18px;"></div>
+        <div id="swap-original-name" style="font-size:13px;color:var(--g600);margin-bottom:14px;"></div>
+        <button type="button" id="swap-recommend-btn" onclick="showRecommendedAlternatives()" style="width:100%;background:#FFF7ED;color:var(--orange);border:1.5px solid #FFE0C2;padding:10px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;margin-bottom:16px;display:flex;align-items:center;justify-content:center;gap:6px;">
+          <i class="ti ti-bulb" aria-hidden="true"></i> Recommend alternatives
+        </button>
+        <div id="swap-recommendations" style="display:none;margin-bottom:16px;"></div>
         <label style="display:block;font-size:12px;font-weight:600;color:var(--g600);margin-bottom:6px;">What did you do instead?</label>
         <input type="text" id="swap-input" placeholder="e.g. Leg Press" style="width:100%;padding:10px 12px;border:1.5px solid var(--g200);border-radius:8px;font-size:14px;font-family:Inter,sans-serif;outline:none;margin-bottom:16px;" />
         <div style="display:flex;gap:10px;">
@@ -2147,12 +2151,48 @@ function openSwapExercise(originalName) {
   const current = exerciseSubstitutions[originalName];
   document.getElementById('swap-original-name').textContent = 'Originally: ' + originalName;
   document.getElementById('swap-input').value = current || '';
+  document.getElementById('swap-recommendations').style.display = 'none';
+  document.getElementById('swap-recommendations').innerHTML = '';
+  document.getElementById('swap-recommend-btn').style.display = 'flex';
   document.getElementById('swap-exercise-modal').style.display = 'flex';
 }
 
 function closeSwapExercise() {
   document.getElementById('swap-exercise-modal').style.display = 'none';
   currentSwapOriginal = null;
+}
+
+async function showRecommendedAlternatives() {
+  if (!currentSwapOriginal) return;
+  const btn = document.getElementById('swap-recommend-btn');
+  const box = document.getElementById('swap-recommendations');
+  btn.textContent = 'Loading...';
+
+  const { data } = await sb.from('exercise_alternatives').select('alternates').ilike('exercise_name', currentSwapOriginal).maybeSingle();
+
+  btn.style.display = 'none';
+  box.style.display = 'block';
+
+  const alternates = data?.alternates || [];
+  if (!alternates.length) {
+    box.innerHTML = '<div style="font-size:13px;color:var(--g400);text-align:center;padding:8px 0;">No alternatives listed for this exercise yet.</div>';
+    return;
+  }
+
+  box.innerHTML = '<div style="display:flex;flex-direction:column;gap:8px;">' +
+    alternates.map(a => {
+      const name = typeof a === 'string' ? a : a.name;
+      const isHome = typeof a === 'object' && a.home;
+      return '<button type="button" onclick="pickRecommendedAlternative(\'' + name.replace(/'/g, "\\'") + '\')" style="text-align:left;background:white;border:1.5px solid var(--g200);padding:10px 12px;border-radius:8px;font-size:13px;font-weight:600;color:var(--navy);cursor:pointer;font-family:Inter,sans-serif;display:flex;align-items:center;justify-content:space-between;gap:8px;">' +
+        '<span>' + name + '</span>' +
+        (isHome ? '<span style="font-size:10px;font-weight:700;color:#16A34A;background:#F0FDF4;padding:2px 8px;border-radius:20px;flex-shrink:0;">HOME OPTION</span>' : '') +
+        '</button>';
+    }).join('') +
+    '</div>';
+}
+
+function pickRecommendedAlternative(name) {
+  document.getElementById('swap-input').value = name;
 }
 
 async function saveExerciseSwap() {
