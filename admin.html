@@ -300,6 +300,27 @@
       </div>
     </div>
 
+    <!-- ALTERNATES MODAL -->
+    <div id="alternates-modal" style="display:none;position:fixed;inset:0;background:rgba(8,15,23,0.6);z-index:998;align-items:center;justify-content:center;padding:20px;">
+      <div style="background:white;border-radius:16px;padding:28px;max-width:440px;width:100%;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <div id="alt-modal-title" style="font-size:16px;font-weight:800;color:var(--navy);">Alternatives</div>
+          <button onclick="closeAlternatesModal()" style="background:none;border:none;cursor:pointer;color:var(--gray-400);font-size:18px;">✕</button>
+        </div>
+        <p style="font-size:13px;color:var(--gray-600);margin-bottom:16px;">Up to 4 alternates. Check "Home option" for any that work with little or no equipment.</p>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px;">
+          <div style="display:flex;gap:8px;align-items:center;"><input type="text" id="alt-name-0" placeholder="Alternate 1" style="flex:1;" /><label style="font-size:12px;display:flex;align-items:center;gap:4px;white-space:nowrap;"><input type="checkbox" id="alt-home-0" /> Home</label></div>
+          <div style="display:flex;gap:8px;align-items:center;"><input type="text" id="alt-name-1" placeholder="Alternate 2" style="flex:1;" /><label style="font-size:12px;display:flex;align-items:center;gap:4px;white-space:nowrap;"><input type="checkbox" id="alt-home-1" /> Home</label></div>
+          <div style="display:flex;gap:8px;align-items:center;"><input type="text" id="alt-name-2" placeholder="Alternate 3" style="flex:1;" /><label style="font-size:12px;display:flex;align-items:center;gap:4px;white-space:nowrap;"><input type="checkbox" id="alt-home-2" /> Home</label></div>
+          <div style="display:flex;gap:8px;align-items:center;"><input type="text" id="alt-name-3" placeholder="Alternate 4" style="flex:1;" /><label style="font-size:12px;display:flex;align-items:center;gap:4px;white-space:nowrap;"><input type="checkbox" id="alt-home-3" /> Home</label></div>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button class="btn btn-primary" onclick="saveAlternates()" style="flex:1;">Save alternatives</button>
+          <button class="btn btn-ghost" onclick="closeAlternatesModal()">Cancel</button>
+        </div>
+      </div>
+    </div>
+
     <!-- DEVOTIONALS -->
     <div class="page" id="page-devotionals">
       <div class="page-title">Faith & Devotionals</div>
@@ -1222,8 +1243,18 @@ async function loadExerciseLibrary() {
   const el = document.getElementById('exercises-list');
   document.getElementById('exercise-count').textContent = (data?.length || 0) + ' exercises';
   if (!data?.length) { el.innerHTML = '<div class="empty">No exercises yet. Add one above, or they\'ll auto-populate as you build plans.</div>'; return; }
-  el.innerHTML = '<table><thead><tr><th>Exercise</th><th>Equipment</th><th>Action</th></tr></thead><tbody>' +
-    data.map(e => '<tr><td style="font-weight:600;">' + e.name + '</td><td><select onchange="updateExerciseCategory(\'' + e.id + '\', this.value)" class="status-select"><option value="full_gym"' + (e.equipment_category==='full_gym'?' selected':'') + '>Full Gym</option><option value="limited_equipment"' + (e.equipment_category==='limited_equipment'?' selected':'') + '>Limited Equipment</option><option value="bodyweight"' + (e.equipment_category==='bodyweight'?' selected':'') + '>Bodyweight</option></select></td><td><button class="btn btn-danger" onclick="deleteLibraryExercise(\'' + e.id + '\')">Delete</button></td></tr>').join('') +
+
+  const { data: altData } = await sb.from('exercise_alternatives').select('exercise_name, alternates');
+  const altCountByName = {};
+  (altData || []).forEach(a => { altCountByName[a.exercise_name.toLowerCase()] = (a.alternates || []).length; });
+
+  el.innerHTML = '<table><thead><tr><th>Exercise</th><th>Equipment</th><th>Alternatives</th><th>Action</th></tr></thead><tbody>' +
+    data.map(e => {
+      const altCount = altCountByName[e.name.toLowerCase()] || 0;
+      return '<tr><td style="font-weight:600;">' + e.name + '</td><td><select onchange="updateExerciseCategory(\'' + e.id + '\', this.value)" class="status-select"><option value="full_gym"' + (e.equipment_category==='full_gym'?' selected':'') + '>Full Gym</option><option value="limited_equipment"' + (e.equipment_category==='limited_equipment'?' selected':'') + '>Limited Equipment</option><option value="bodyweight"' + (e.equipment_category==='bodyweight'?' selected':'') + '>Bodyweight</option></select></td>' +
+        '<td>' + (altCount > 0 ? altCount + ' set' : '<span style="color:var(--gray-400);">None</span>') + '</td>' +
+        '<td><button class="btn btn-ghost" onclick="openAlternatesModal(\'' + e.name.replace(/'/g, "\\'") + '\')">Alternates</button> <button class="btn btn-danger" onclick="deleteLibraryExercise(\'' + e.id + '\')">Delete</button></td></tr>';
+    }).join('') +
     '</tbody></table>';
 }
 
@@ -1234,6 +1265,49 @@ async function updateExerciseCategory(id, category) {
 async function deleteLibraryExercise(id) {
   if (!confirm('Remove this exercise from the library?')) return;
   await sb.from('exercises').delete().eq('id', id);
+  loadExerciseLibrary();
+}
+
+// ── EXERCISE ALTERNATIVES ──
+let currentAltExerciseName = null;
+
+async function openAlternatesModal(exerciseName) {
+  currentAltExerciseName = exerciseName;
+  document.getElementById('alt-modal-title').textContent = 'Alternatives for: ' + exerciseName;
+
+  const { data } = await sb.from('exercise_alternatives').select('alternates').ilike('exercise_name', exerciseName).maybeSingle();
+  const alternates = data?.alternates || [];
+
+  for (let i = 0; i < 4; i++) {
+    const alt = alternates[i];
+    document.getElementById('alt-name-' + i).value = alt ? (typeof alt === 'string' ? alt : alt.name) : '';
+    document.getElementById('alt-home-' + i).checked = !!(alt && typeof alt === 'object' && alt.home);
+  }
+
+  document.getElementById('alternates-modal').style.display = 'flex';
+}
+
+function closeAlternatesModal() {
+  document.getElementById('alternates-modal').style.display = 'none';
+  currentAltExerciseName = null;
+}
+
+async function saveAlternates() {
+  if (!currentAltExerciseName) return;
+  const alternates = [];
+  for (let i = 0; i < 4; i++) {
+    const name = document.getElementById('alt-name-' + i).value.trim();
+    if (!name) continue;
+    alternates.push({ name, home: document.getElementById('alt-home-' + i).checked });
+  }
+
+  const { error } = await sb.from('exercise_alternatives').upsert({
+    exercise_name: currentAltExerciseName,
+    alternates
+  }, { onConflict: 'exercise_name' });
+
+  if (error) { alert('Error: ' + error.message); return; }
+  closeAlternatesModal();
   loadExerciseLibrary();
 }
 
