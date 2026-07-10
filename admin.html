@@ -255,19 +255,53 @@
           <div class="fg"><label>Equipment needed</label>
             <select id="plan-equipment">
               <option value="full_gym">Full Gym</option>
-              <option value="limited_equipment">Limited Equipment</option>
-              <option value="bodyweight">No Equipment / Bodyweight</option>
+              <option value="limited_equipment">At-Home / Limited Equipment</option>
             </select>
           </div>
         </div>
         <div style="display:flex;gap:18px;margin-bottom:18px;">
           <label style="display:flex;align-items:center;gap:7px;font-size:13px;color:var(--gray-800);cursor:pointer;font-weight:500;"><input type="checkbox" id="plan-is-default" style="accent-color:var(--orange);width:16px;height:16px;"> Show as default option</label>
-          <label style="display:flex;align-items:center;gap:7px;font-size:13px;color:var(--gray-800);cursor:pointer;font-weight:500;"><input type="checkbox" id="plan-has-cardio" style="accent-color:var(--orange);width:16px;height:16px;"> Includes cardio</label>
         </div>
         <div class="fg" style="margin-bottom:18px;"><label>Description</label><textarea id="plan-desc" placeholder="Brief description (members see this when choosing a plan)..."></textarea></div>
         <div id="days-builder"></div>
         <button class="btn btn-primary" id="plan-save-btn" onclick="savePlan()">Save workout plan</button>
         <button class="btn btn-ghost" id="plan-cancel-btn" onclick="cancelEditPlan()" style="display:none;margin-left:8px;">Cancel edit</button>
+      </div>
+
+      <div class="card" style="padding:16px 20px;margin-bottom:16px;">
+        <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;">
+          <div class="fg" style="margin-bottom:0;"><label>Days</label>
+            <select id="pf-days" onchange="loadPlans()">
+              <option value="">All</option>
+              <option value="3">3 days</option>
+              <option value="4">4 days</option>
+              <option value="5">5 days</option>
+              <option value="6">6 days</option>
+            </select>
+          </div>
+          <div class="fg" style="margin-bottom:0;"><label>Level</label>
+            <select id="pf-level" onchange="loadPlans()">
+              <option value="">All</option>
+              <option value="beginner">Beginner</option>
+              <option value="intermediate">Intermediate</option>
+              <option value="unleveled">Unleveled</option>
+            </select>
+          </div>
+          <div class="fg" style="margin-bottom:0;"><label>Equipment</label>
+            <select id="pf-equipment" onchange="loadPlans()">
+              <option value="">All</option>
+              <option value="full_gym">Full Gym</option>
+              <option value="limited_equipment">At-Home / Limited Equipment</option>
+            </select>
+          </div>
+          <div class="fg" style="margin-bottom:0;"><label>Type</label>
+            <select id="pf-type" onchange="loadPlans()">
+              <option value="">All</option>
+              <option value="official">Official</option>
+              <option value="custom">Custom (member-created)</option>
+            </select>
+          </div>
+        </div>
       </div>
       <div style="font-size:12px;color:var(--gray-400);margin-top:-12px;margin-bottom:24px;">Members with this day count will see all matching plans as named options and pick the one that fits them. "Show as default option" just highlights it first.</div>
       <div class="card">
@@ -1065,7 +1099,6 @@ async function savePlan() {
   const days = parseInt(document.getElementById('plan-days').value);
   const equipment = document.getElementById('plan-equipment').value;
   const isDefault = document.getElementById('plan-is-default').checked;
-  const hasCardio = document.getElementById('plan-has-cardio').checked;
   const desc = document.getElementById('plan-desc').value.trim();
   if (!name) { alert('Please enter a plan name.'); return; }
 
@@ -1102,7 +1135,7 @@ async function savePlan() {
     await q;
   }
 
-  const payload = { name, level, days_per_week: days, equipment_category: equipment, is_default: isDefault, has_cardio: hasCardio, description: desc, plan_days };
+  const payload = { name, level, days_per_week: days, equipment_category: equipment, is_default: isDefault, description: desc, plan_days };
 
   let error;
   if (editingPlanId) {
@@ -1132,7 +1165,6 @@ async function editPlan(id) {
   document.getElementById('plan-days').value = p.days_per_week || 4;
   document.getElementById('plan-equipment').value = p.equipment_category || 'full_gym';
   document.getElementById('plan-is-default').checked = !!p.is_default;
-  document.getElementById('plan-has-cardio').checked = !!p.has_cardio;
   document.getElementById('plan-desc').value = p.description || '';
 
   buildDaysUI();
@@ -1175,7 +1207,6 @@ function cancelEditPlan() {
   document.getElementById('plan-name').value = '';
   document.getElementById('plan-desc').value = '';
   document.getElementById('plan-is-default').checked = false;
-  document.getElementById('plan-has-cardio').checked = false;
   document.getElementById('plan-form-title').textContent = 'Create new plan';
   document.getElementById('plan-save-btn').textContent = 'Save workout plan';
   document.getElementById('plan-cancel-btn').style.display = 'none';
@@ -1183,13 +1214,57 @@ function cancelEditPlan() {
 }
 
 async function loadPlans() {
-  const { data } = await sb.from('workout_plans').select('*').order('created_at', { ascending: false });
+  const { data } = await sb.from('workout_plans').select('*');
   const el = document.getElementById('plans-list');
   if (!data?.length) { el.innerHTML = '<div class="empty">No plans yet.</div>'; return; }
-  const eqLabels = { full_gym: 'Full Gym', limited_equipment: 'Limited Equip.', bodyweight: 'Bodyweight' };
-  el.innerHTML = '<table><thead><tr><th>Name</th><th>Level</th><th>Equipment</th><th>Days</th><th>Default</th><th>Cardio</th><th>Action</th></tr></thead><tbody>' +
-    data.map(p => {
-      return '<tr><td style="font-weight:600;">' + p.name + '</td><td>' + (p.level||'—') + '</td><td style="font-size:12px;">' + (eqLabels[p.equipment_category] || '—') + '</td><td>' + p.days_per_week + ' days</td><td>' + (p.is_default ? '<span class="badge badge-green">Default</span>' : '—') + '</td><td>' + (p.has_cardio ? '<span class="badge badge-orange">Yes</span>' : '—') + '</td><td style="display:flex;gap:8px;"><button class="btn btn-ghost" onclick="editPlan(\'' + p.id + '\')">Edit</button><button class="btn btn-ghost" onclick="duplicatePlan(\'' + p.id + '\')">Duplicate</button><button class="btn btn-danger" onclick="deletePlan(\'' + p.id + '\')">Delete</button></td></tr>';
+
+  // Look up creator names for member-created custom plans
+  const customCreatorIds = [...new Set(data.filter(p => p.created_by).map(p => p.created_by))];
+  let creatorNames = {};
+  if (customCreatorIds.length) {
+    const { data: creators } = await sb.from('profiles').select('id,first_name,last_name,email').in('id', customCreatorIds);
+    (creators || []).forEach(c => {
+      creatorNames[c.id] = (c.first_name || c.last_name) ? (c.first_name + ' ' + (c.last_name || '')).trim() : (c.email || 'Unknown');
+    });
+  }
+
+  // Apply filters
+  const fDays = document.getElementById('pf-days')?.value || '';
+  const fLevel = document.getElementById('pf-level')?.value || '';
+  const fEquipment = document.getElementById('pf-equipment')?.value || '';
+  const fType = document.getElementById('pf-type')?.value || '';
+
+  let filtered = data.filter(p => {
+    if (fDays && String(p.days_per_week) !== fDays) return false;
+    if (fEquipment && p.equipment_category !== fEquipment) return false;
+    if (fType === 'official' && p.created_by) return false;
+    if (fType === 'custom' && !p.created_by) return false;
+    if (fLevel) {
+      const isUnleveled = !p.level;
+      if (fLevel === 'unleveled' && !isUnleveled) return false;
+      if (fLevel !== 'unleveled' && p.level !== fLevel) return false;
+    }
+    return true;
+  });
+
+  // Sort: official plans first (custom always last), then by days ascending, then beginner before intermediate
+  const levelRank = (lvl) => lvl === 'beginner' ? 0 : lvl === 'intermediate' ? 1 : 2;
+  filtered.sort((a, b) => {
+    const customA = a.created_by ? 1 : 0, customB = b.created_by ? 1 : 0;
+    if (customA !== customB) return customA - customB;
+    if (a.days_per_week !== b.days_per_week) return a.days_per_week - b.days_per_week;
+    const lr = levelRank(a.level) - levelRank(b.level);
+    if (lr !== 0) return lr;
+    return a.name.localeCompare(b.name);
+  });
+
+  const eqLabels = { full_gym: 'Full Gym', limited_equipment: 'At-Home / Limited Equip.', bodyweight: 'At-Home / Limited Equip.' };
+  el.innerHTML = '<table><thead><tr><th>Name</th><th>Level</th><th>Equipment</th><th>Days</th><th>Default</th><th>Type</th><th>Action</th></tr></thead><tbody>' +
+    filtered.map(p => {
+      const typeCell = p.created_by
+        ? '<span class="badge badge-purple">Custom</span><div style="font-size:11px;color:var(--gray-400);margin-top:2px;">by ' + (creatorNames[p.created_by] || 'Unknown') + '</div>'
+        : '<span class="badge badge-gray">Official</span>';
+      return '<tr><td style="font-weight:600;">' + p.name + '</td><td>' + (p.level||'—') + '</td><td style="font-size:12px;">' + (eqLabels[p.equipment_category] || '—') + '</td><td>' + p.days_per_week + ' days</td><td>' + (p.is_default ? '<span class="badge badge-green">Default</span>' : '—') + '</td><td>' + typeCell + '</td><td style="display:flex;gap:8px;"><button class="btn btn-ghost" onclick="editPlan(\'' + p.id + '\')">Edit</button><button class="btn btn-ghost" onclick="duplicatePlan(\'' + p.id + '\')">Duplicate</button><button class="btn btn-danger" onclick="deletePlan(\'' + p.id + '\')">Delete</button></td></tr>';
     }).join('') +
     '</tbody></table>';
 }
@@ -1212,7 +1287,6 @@ async function duplicatePlan(id) {
     days_per_week: originalPlan.days_per_week,
     equipment_category: originalPlan.equipment_category,
     description: originalPlan.description,
-    has_cardio: originalPlan.has_cardio,
     is_default: false, // Don't duplicate the default status
     plan_days: originalPlan.plan_days // Clone all the days/sections/exercises
   };
