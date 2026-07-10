@@ -1597,8 +1597,7 @@ async function loadDevotionals() {
             <th>Title</th>
             <th>Scripture</th>
             <th>Published Date</th>
-            <th>Views</th>
-            <th>Likes</th>
+            <th>Completions</th>
           </tr>
         </thead>
         <tbody>
@@ -1608,7 +1607,6 @@ async function loadDevotionals() {
               <td>${d.scripture_reference}</td>
               <td>${new Date(d.published_date).toLocaleDateString()}</td>
               <td>${d.views_count || 0}</td>
-              <td>${d.likes_count || 0}</td>
             </tr>
           `).join('')}
         </tbody>
@@ -1702,8 +1700,7 @@ async function uploadBulkDevotionals() {
       return {
         ...dev,
         published_date: publishDate.toISOString().split('T')[0],
-        views_count: 0,
-        likes_count: 0
+        views_count: 0
       };
     });
 
