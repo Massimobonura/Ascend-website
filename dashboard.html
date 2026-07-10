@@ -2880,20 +2880,6 @@ function togglePlanDetails(planId) {
   }
 }
 
-async function selectWorkoutPlan(planId) {
-  try {
-    const { error } = await sb.from('profiles').update({ active_workout_plan_id: planId }).eq('id', user.id);
-    if (error) throw error;
-    window.activePlanId = planId;
-    filterWorkoutPlans();
-    renderCalendar();
-    alert('✓ Plan selected!');
-  } catch (err) {
-    console.error('Error:', err);
-    alert('Error: ' + err.message);
-  }
-}
-
 async function loadCardioOptions() {
   allCardioOptions = []; // Clear to prevent duplicates
   const { data: cardioData } = await sb.from('cardio_options').select('*').order('name');
@@ -3100,26 +3086,14 @@ async function selectWorkoutPlan(planId, planName) {
   try {
     const { error } = await sb.from('profiles').update({ active_workout_plan_id: planId }).eq('id', user.id);
     if (error) throw error;
-    alert('✓ ' + decodeURIComponent(planName) + ' selected!');
+    const matchedPlan = (allWorkoutPlans || []).find(p => p.id === planId);
+    const displayName = planName ? decodeURIComponent(planName) : (matchedPlan ? matchedPlan.name : 'Plan');
+    alert('✓ ' + displayName + ' selected!');
     window.activePlanId = planId;
     filterWorkoutPlans();
     renderCalendar();
   } catch (err) {
     console.error('Error selecting plan:', err);
-    alert('Error: ' + err.message);
-  }
-}
-
-async function unselectPlan() {
-  try {
-    const { error } = await sb.from('profiles').update({ active_workout_plan_id: null }).eq('id', user.id);
-    if (error) throw error;
-    alert('✓ Workout plan deselected');
-    window.activePlanId = null;
-    filterWorkoutPlans();
-    renderCalendar();
-  } catch (err) {
-    console.error('Error deselecting plan:', err);
     alert('Error: ' + err.message);
   }
 }
