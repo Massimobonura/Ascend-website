@@ -1278,12 +1278,32 @@
       <div class="page-sub">Everything you need to learn, grow, and succeed.</div>
       <div id="resources-dynamic"><div class="empty" style="padding:32px;text-align:center;">Loading...</div></div>
       <div class="resource-item" style="margin-top:16px;">
+        <div class="resource-icon"><i class="ti ti-video" style="color:white;font-size:20px;" aria-hidden="true"></i></div>
+        <div class="resource-info">
+          <h4>Foundational Videos</h4>
+          <p>Start here — a step-by-step walkthrough of the whole platform.</p>
+        </div>
+        <button onclick="openFoundationalVideos()" class="resource-link" style="border:none;cursor:pointer;font-family:Inter,sans-serif;">View Videos →</button>
+      </div>
+      <div class="resource-item" style="margin-top:16px;">
         <div class="resource-icon"><i class="ti ti-player-play" style="color:white;font-size:20px;" aria-hidden="true"></i></div>
         <div class="resource-info">
           <h4>The Mind Gains Podcast</h4>
           <p>Hosted by Jessica Bonura · Faith, health & fitness on YouTube.</p>
         </div>
         <a href="https://www.youtube.com/@jessicabonurafit" target="_blank" class="resource-link">Listen →</a>
+      </div>
+    </div>
+
+    <!-- FOUNDATIONAL VIDEOS MODAL -->
+    <div id="foundational-videos-modal" style="display:none;position:fixed;inset:0;background:rgba(13,27,42,0.7);z-index:999;align-items:center;justify-content:center;padding:20px;">
+      <div style="background:white;border-radius:16px;padding:28px;max-width:480px;width:100%;max-height:85vh;overflow-y:auto;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <div style="font-size:18px;font-weight:800;color:var(--navy);">Foundational Videos</div>
+          <button onclick="document.getElementById('foundational-videos-modal').style.display='none';" style="background:none;border:none;cursor:pointer;color:var(--g400);font-size:20px;">✕</button>
+        </div>
+        <p style="font-size:13px;color:var(--g600);margin-bottom:18px;">Watch these in order to get the most out of Ascend.</p>
+        <div id="foundational-videos-list" style="display:flex;flex-direction:column;gap:10px;"></div>
       </div>
     </div>
 
@@ -3440,6 +3460,32 @@ async function loadMyProgram() {
 }
 
 // ── RESOURCES ──
+const foundationalVideos = [
+  'https://www.loom.com/share/0da1cd4f0832481491c1ff5fd3fa08cb',
+  'https://www.loom.com/share/083182bfbc20403691f75494021f39f9',
+  'https://www.loom.com/share/d4276d5d4a454ef59e996d0d273e1dee',
+  'https://www.loom.com/share/994ccdf78dca47f093787109e9cedd43',
+  'https://www.loom.com/share/6f7cbfb7abbb47f9a4d93315c8db9c0f',
+  'https://www.loom.com/share/f1444694ddaf473cbf568192af1558bb',
+  'https://www.loom.com/share/42965c2315034e678413b2185e240243',
+  'https://www.loom.com/share/b64ed1deefc24231873a9e0833f72880',
+  'https://www.loom.com/share/1967889aa5ce444ab49c09894f4a4693',
+  'https://www.loom.com/share/77d488d9ada84acc8e4fee329379f011',
+  'https://www.loom.com/share/fc76cdec3e0f4599a05769ca21716363'
+];
+
+function openFoundationalVideos() {
+  const list = document.getElementById('foundational-videos-list');
+  list.innerHTML = foundationalVideos.map((url, i) =>
+    '<a href="' + url + '" target="_blank" style="display:flex;align-items:center;gap:12px;background:var(--off);border:1px solid var(--g200);border-radius:10px;padding:12px 16px;text-decoration:none;">' +
+    '<div style="width:26px;height:26px;border-radius:50%;background:var(--orange);color:white;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' + (i + 1) + '</div>' +
+    '<span style="font-size:14px;font-weight:600;color:var(--navy);">Video ' + (i + 1) + '</span>' +
+    '<i class="ti ti-external-link" style="margin-left:auto;color:var(--g400);font-size:16px;" aria-hidden="true"></i>' +
+    '</a>'
+  ).join('');
+  document.getElementById('foundational-videos-modal').style.display = 'flex';
+}
+
 async function loadMemberResources() {
   const { data } = await sb.from('resources').select('*').order('category').order('created_at');
   const el = document.getElementById('resources-dynamic');
