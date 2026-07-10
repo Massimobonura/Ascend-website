@@ -249,6 +249,7 @@
               <option value="3">3 days</option>
               <option value="4">4 days</option>
               <option value="5">5 days</option>
+              <option value="6">6 days</option>
             </select>
           </div>
           <div class="fg"><label>Equipment needed</label>
@@ -1090,9 +1091,13 @@ async function savePlan() {
     plan_days.push({ day: d, day_name: dayName, sections });
   }
 
-  // If marking as default, unset any other plan with the same day count first
+  // If marking as default, unset any other plan with the same day count, equipment type, and level first
+  // (so a full-gym default and an at-home default for the same day count can coexist, etc.)
   if (isDefault) {
-    let q = sb.from('workout_plans').update({ is_default: false }).eq('days_per_week', days);
+    let q = sb.from('workout_plans').update({ is_default: false })
+      .eq('days_per_week', days)
+      .eq('equipment_category', equipment)
+      .eq('level', level);
     if (editingPlanId) q = q.neq('id', editingPlanId);
     await q;
   }
