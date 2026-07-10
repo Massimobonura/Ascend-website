@@ -4850,17 +4850,6 @@ async function loadNutritionChart() {
 
 init();
 
-// Check if viewing as coach
-const urlParams = new URLSearchParams(window.location.search);
-const clientName = urlParams.get('clientName');
-const viewingAsCoach = urlParams.get('viewClient');
-
-if (viewingAsCoach && clientName) {
-  // Show client name at top instead of email
-  document.getElementById('nav-email').textContent = 'Coaching: ' + decodeURIComponent(clientName);
-  document.getElementById('nav-email').style.color = 'var(--orange)';
-}
-
 // ===== NEW CALENDAR FUNCTIONS =====
 function getWeekStart(dateStr) {
   const date = new Date(dateStr + 'T12:00:00');
