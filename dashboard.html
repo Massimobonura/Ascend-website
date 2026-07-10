@@ -3003,9 +3003,18 @@ function filterPainPlans() {
     html = '<div class="empty" style="padding:48px;text-align:center;">No pain management plans found. Check back soon!</div>';
   } else {
     html = filtered.map(p => {
+      const exercisesHtml = (p.exercises && p.exercises.length)
+        ? '<div style="margin-bottom:14px;">' +
+          p.exercises.map(ex => '<div style="display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--g200);font-size:13px;">' +
+            '<span style="font-weight:600;color:var(--navy);">' + ex.exercise + '</span>' +
+            '<span style="color:var(--g600);white-space:nowrap;">' + (ex.sets ? ex.sets + ' x ' : '') + (ex.reps || '') + (ex.notes ? ' · ' + ex.notes : '') + '</span>' +
+            '</div>').join('') +
+          '</div>'
+        : '';
       return '<div style="background:white;border:1px solid var(--g200);border-radius:14px;padding:24px;margin-bottom:16px;">' +
         '<div style="font-size:18px;font-weight:700;color:var(--navy);margin-bottom:12px;">' + p.name + '</div>' +
         (p.description ? '<div style="font-size:14px;color:var(--g600);margin-bottom:12px;">' + p.description + '</div>' : '') +
+        exercisesHtml +
         '<div style="margin-bottom:12px;"><label style="font-size:12px;font-weight:600;color:var(--g600);display:block;margin-bottom:8px;">Select Days:</label>' +
         '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;" id="pain-days-' + p.id + '">' +
         ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, i) => '<button class="day-btn" data-day="' + i + '" data-selected="false" onclick="togglePainDay(this,\'' + p.id + '\')" style="background:var(--g100);color:var(--navy);border:none;padding:8px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;">' + day + '</button>').join('') +
