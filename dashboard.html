@@ -1108,8 +1108,8 @@
       <div class="page-title">Faith & Devotionals</div>
       <div class="page-sub">Daily scripture and devotionals to strengthen your spirit.</div>
       <div class="verse-card" style="margin-bottom:24px;">
-        <div class="verse-text">"No discipline seems pleasant at the time, but painful. Later on, however, it produces a harvest of righteousness and peace for those who have been trained by it."</div>
-        <div class="verse-ref">— Hebrews 12:11</div>
+        <div class="verse-text">"All Scripture is God-breathed and is useful for teaching, rebuking, correcting and training in righteousness, so that the servant of God may be thoroughly equipped for every good work."</div>
+        <div class="verse-ref">— 2 Timothy 3:16-17</div>
       </div>
       <div id="devotionals-container"><div class="empty" style="padding:40px;text-align:center;">Loading devotionals...</div></div>
     </div>
@@ -3156,22 +3156,23 @@ async function loadDevotionals() {
   }
   const todayDevo = data.find(d => d.published_date === today);
   const rest = data.filter(d => d.published_date !== today);
+  const cleanText = (t) => (t || '').replace(/[=\-_*]{3,}\s*$/g, '').trim();
   let html = '';
   if (todayDevo) {
     html += '<div class="devo-today">' +
       '<div class="devo-tag">Today\'s Devotional</div>' +
       '<div class="devo-title">' + todayDevo.title + '</div>' +
       '<div class="devo-ref">' + todayDevo.scripture_reference + '</div>' +
-      '<div class="devo-msg">' + todayDevo.content + '</div>' +
-      (todayDevo.application ? '<div class="devo-app"><div class="devo-app-label">Application</div><div class="devo-app-text">' + todayDevo.application + '</div></div>' : '') +
+      '<div class="devo-msg">' + cleanText(todayDevo.content) + '</div>' +
+      (todayDevo.application ? '<div class="devo-app"><div class="devo-app-label">Application</div><div class="devo-app-text">' + cleanText(todayDevo.application) + '</div></div>' : '') +
       '</div>';
   }
   rest.forEach(d => {
     html += '<div class="devo-past">' +
       '<div class="devo-title">' + d.title + '</div>' +
       '<div class="devo-ref">' + d.scripture_reference + '</div>' +
-      '<div class="devo-msg">' + d.content + '</div>' +
-      (d.application ? '<div class="devo-app"><div class="devo-app-label">Application</div><div class="devo-app-text">' + d.application + '</div></div>' : '') +
+      '<div class="devo-msg">' + cleanText(d.content) + '</div>' +
+      (d.application ? '<div class="devo-app"><div class="devo-app-label">Application</div><div class="devo-app-text">' + cleanText(d.application) + '</div></div>' : '') +
       '</div>';
   });
   el.innerHTML = html;
