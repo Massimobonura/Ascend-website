@@ -2153,7 +2153,9 @@ function openSwapExercise(originalName) {
   document.getElementById('swap-input').value = current || '';
   document.getElementById('swap-recommendations').style.display = 'none';
   document.getElementById('swap-recommendations').innerHTML = '';
-  document.getElementById('swap-recommend-btn').style.display = 'flex';
+  const recommendBtn = document.getElementById('swap-recommend-btn');
+  recommendBtn.innerHTML = '<i class="ti ti-bulb" aria-hidden="true"></i> Recommend alternatives';
+  recommendBtn.style.display = 'flex';
   document.getElementById('swap-exercise-modal').style.display = 'flex';
 }
 
@@ -2168,7 +2170,7 @@ async function showRecommendedAlternatives() {
   const box = document.getElementById('swap-recommendations');
   btn.textContent = 'Loading...';
 
-  const { data } = await sb.from('exercise_alternatives').select('alternates').ilike('exercise_name', currentSwapOriginal).maybeSingle();
+  const { data } = await sb.from('exercise_alternatives').select('alternates').ilike('exercise_name', currentSwapOriginal.trim()).maybeSingle();
 
   btn.style.display = 'none';
   box.style.display = 'block';
