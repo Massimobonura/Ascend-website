@@ -158,6 +158,7 @@
           <option value="3">3 days</option>
           <option value="4">4 days</option>
           <option value="5">5 days</option>
+          <option value="6">6 days</option>
         </select>
       </div>
       <div class="fg"><label>Gym access</label>
@@ -361,12 +362,22 @@
 
   async function loadPlanChoices() {
     const days = parseInt(a.days || '4');
-    let { data: plans } = await sb.from('workout_plans').select('*').eq('days_per_week', days);
+    const isHome = a.gym === 'home';
+
+    let query = sb.from('workout_plans').select('*').eq('days_per_week', days);
+    // Full gym members only see full-gym plans; home/limited-equipment members only see that track.
+    query = isHome ? query.eq('equipment_category', 'limited_equipment') : query.eq('equipment_category', 'full_gym');
+    let { data: plans } = await query;
     plans = plans || [];
 
-    // Prefer matching level, but show all plans for this day count if none match level exactly
-    let levelMatches = plans.filter(p => p.level === a.level);
-    availablePlans = levelMatches.length ? levelMatches : plans;
+    // At-home plans aren't leveled (beginner/intermediate) — show them all as-is.
+    // Full-gym plans: prefer matching level, but fall back to showing all for this day count if none match.
+    if (isHome) {
+      availablePlans = plans;
+    } else {
+      let levelMatches = plans.filter(p => p.level === a.level);
+      availablePlans = levelMatches.length ? levelMatches : plans;
+    }
     // Default-flagged plan shows first
     availablePlans.sort((x, y) => (y.is_default ? 1 : 0) - (x.is_default ? 1 : 0));
 
@@ -387,7 +398,6 @@
         (p.description ? '<div style="font-size:13px;color:#6B7280;margin-bottom:8px;">' + p.description + '</div>' : '') +
         '<div style="display:flex;gap:8px;">' +
         '<span style="font-size:11px;font-weight:600;color:#1D4ED8;background:#EFF6FF;padding:3px 10px;border-radius:20px;">' + p.days_per_week + ' days/week</span>' +
-        (p.has_cardio ? '<span style="font-size:11px;font-weight:600;color:#E87722;background:#FFF7ED;padding:3px 10px;border-radius:20px;">Includes cardio</span>' : '') +
         '</div>' +
         '</div>';
     }).join('');
