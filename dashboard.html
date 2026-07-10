@@ -3148,7 +3148,12 @@ async function unselectPlan() {
 // ── DEVOTIONALS ──
 async function loadDevotionals() {
   const today = localToday();
-  const { data } = await sb.from('devotionals').select('*').lte('published_date', today).order('published_date', { ascending: false });
+  const [devoRes, habitsRes] = await Promise.all([
+    sb.from('devotionals').select('*').lte('published_date', today).order('published_date', { ascending: false }),
+    sb.from('habits').select('devotional_done').eq('user_id', user.id).eq('date', today).maybeSingle()
+  ]);
+  const data = devoRes.data;
+  const todayCompleted = !!habitsRes.data?.devotional_done;
   const el = document.getElementById('devotionals-container');
   if (!data || !data.length) {
     el.innerHTML = '<div style="background:var(--off);border:1px solid var(--g200);border-radius:14px;padding:28px;text-align:center;"><p style="font-size:15px;color:var(--g600);">Devotionals coming soon. Check back daily!</p></div>';
@@ -3165,6 +3170,9 @@ async function loadDevotionals() {
       '<div class="devo-ref">' + todayDevo.scripture_reference + '</div>' +
       '<div class="devo-msg">' + cleanText(todayDevo.content) + '</div>' +
       (todayDevo.application ? '<div class="devo-app"><div class="devo-app-label">Application</div><div class="devo-app-text">' + cleanText(todayDevo.application) + '</div></div>' : '') +
+      (todayCompleted
+        ? '<div style="display:flex;align-items:center;gap:8px;margin-top:20px;color:#4ADE80;font-size:14px;font-weight:700;"><i class="ti ti-circle-check" aria-hidden="true"></i>Completed</div>'
+        : '<button onclick="markDevotionalComplete(\'' + todayDevo.id + '\')" style="margin-top:20px;background:var(--orange);color:white;border:none;padding:11px 22px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">Mark as complete</button>') +
       '</div>';
   }
   rest.forEach(d => {
@@ -3176,6 +3184,24 @@ async function loadDevotionals() {
       '</div>';
   });
   el.innerHTML = html;
+}
+
+async function markDevotionalComplete(devotionalId) {
+  const today = localToday();
+
+  const { error } = await sb.from('habits').upsert({
+    user_id: user.id,
+    date: today,
+    devotional_done: true
+  }, { onConflict: 'user_id,date' });
+  if (error) { alert('Error: ' + error.message); return; }
+
+  // Bump the completion count on the devotional itself (best-effort, not critical if it misses)
+  const { data: devo } = await sb.from('devotionals').select('views_count').eq('id', devotionalId).single();
+  await sb.from('devotionals').update({ views_count: (devo?.views_count || 0) + 1 }).eq('id', devotionalId);
+
+  loadDevotionals();
+  if (typeof loadDailyChecklist === 'function') loadDailyChecklist();
 }
 
 // ── ANNOUNCEMENTS ──
