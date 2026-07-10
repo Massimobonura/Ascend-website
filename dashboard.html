@@ -3142,14 +3142,14 @@ async function unselectPlan() {
 // ── DEVOTIONALS ──
 async function loadDevotionals() {
   const today = localToday();
-  const { data } = await sb.from('devotionals').select('*').lte('publish_date', today).order('publish_date', { ascending: false });
+  const { data } = await sb.from('devotionals').select('*').lte('published_date', today).order('published_date', { ascending: false });
   const el = document.getElementById('devotionals-container');
   if (!data || !data.length) {
     el.innerHTML = '<div style="background:var(--off);border:1px solid var(--g200);border-radius:14px;padding:28px;text-align:center;"><p style="font-size:15px;color:var(--g600);">Devotionals coming soon. Check back daily!</p></div>';
     return;
   }
-  const todayDevo = data.find(d => d.publish_date === today);
-  const rest = data.filter(d => d.publish_date !== today);
+  const todayDevo = data.find(d => d.published_date === today);
+  const rest = data.filter(d => d.published_date !== today);
   let html = '';
   if (todayDevo) {
     html += '<div class="devo-today">' +
