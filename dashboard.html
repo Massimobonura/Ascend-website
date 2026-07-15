@@ -2303,6 +2303,20 @@ async function submitRPE() {
   const { error } = await sb.from('workouts').insert(inserts);
   if (!error) {
     await clearWorkoutDraft();
+
+    // Swaps are one-time-use: the swapped name is already saved into this session's
+    // history above, so now revert to the original plan exercise for future sessions.
+    let substitutionsChanged = false;
+    flatList.forEach(ex => {
+      if (exerciseSubstitutions[ex.exercise]) {
+        delete exerciseSubstitutions[ex.exercise];
+        substitutionsChanged = true;
+      }
+    });
+    if (substitutionsChanged) {
+      await sb.from('profiles').update({ exercise_substitutions: exerciseSubstitutions }).eq('id', user.id);
+    }
+
     document.getElementById('rpe-modal').style.display = 'none';
     selectedRPE = null;
     alert('Workout saved! Great session 💪');
