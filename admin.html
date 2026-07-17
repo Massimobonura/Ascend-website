@@ -202,6 +202,23 @@
         </div>
       </div>
 
+      <!-- Generate Free Signup Link -->
+      <div class="form-card">
+        <h3>Generate Free Signup Link</h3>
+        <p style="font-size:13px;color:var(--g600);margin-bottom:14px;">For coaching clients who already paid you directly (outside the app). Creates a one-time-use link — they create their account and go straight to onboarding, no payment screen at all. The link stops working the moment it's used once.</p>
+        <div class="form-grid">
+          <div class="fg"><label>Client Email (recommended — locks the link to this email)</label><input type="email" id="free-signup-email" placeholder="client@email.com" /></div>
+          <div class="fg"><label>Coaching Start Date</label><input type="date" id="free-signup-start-date" /></div>
+          <div class="fg"><label>Coaching End Date</label><input type="date" id="free-signup-end-date" /></div>
+        </div>
+        <button class="btn btn-primary" onclick="generateFreeSignupLink()" style="margin-top:12px;">Generate Free Signup Link</button>
+        <div id="free-signup-link-result" style="margin-top:16px;display:none;">
+          <p style="font-size:12px;color:var(--g600);margin-bottom:6px;">Share this one-time-use link with the client:</p>
+          <div style="background:var(--off);padding:12px;border-radius:8px;word-break:break-all;font-family:monospace;font-size:12px;" id="free-signup-link-text"></div>
+          <button class="btn btn-secondary" onclick="copyFreeSignupLink()" style="margin-top:8px;">Copy Link</button>
+        </div>
+      </div>
+
       <!-- Add Existing Member as Coaching Client -->
       <div class="form-card">
         <h3>Add Existing Member as Coaching Client</h3>
@@ -2501,6 +2518,44 @@ async function generateCoachingCheckout() {
 
 function copyCheckoutLink() {
   const linkText = document.getElementById('checkout-link-text').textContent;
+  navigator.clipboard.writeText(linkText).then(() => {
+    alert('Link copied to clipboard!');
+  });
+}
+
+async function generateFreeSignupLink() {
+  const email = document.getElementById('free-signup-email').value.trim();
+  const startDate = document.getElementById('free-signup-start-date').value;
+  let endDate = document.getElementById('free-signup-end-date').value;
+
+  if (!startDate) { alert('Please enter a coaching start date.'); return; }
+  if (!endDate) { alert('Please enter a coaching end date.'); return; }
+
+  try {
+    const { data, error } = await sb.from('signup_tokens').insert({
+      email: email || null,
+      coaching_start_date: startDate,
+      coaching_end_date: endDate
+    }).select('id').single();
+
+    if (error) throw error;
+
+    const url = window.location.origin + '/signup.html?token=' + data.id;
+    document.getElementById('free-signup-link-text').textContent = url;
+    document.getElementById('free-signup-link-result').style.display = 'block';
+    document.getElementById('free-signup-email').value = '';
+    document.getElementById('free-signup-start-date').value = '';
+    document.getElementById('free-signup-end-date').value = '';
+
+    showAlert('alert-coaching-clients', 'Free signup link generated! One-time use only.');
+  } catch (err) {
+    console.error('Error:', err);
+    alert('Error: ' + err.message);
+  }
+}
+
+function copyFreeSignupLink() {
+  const linkText = document.getElementById('free-signup-link-text').textContent;
   navigator.clipboard.writeText(linkText).then(() => {
     alert('Link copied to clipboard!');
   });
