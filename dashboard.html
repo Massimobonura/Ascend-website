@@ -36,11 +36,11 @@
     /* NAV */
     nav {
       background: var(--navy);
-      height: 64px;
+      min-height: 64px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 24px;
+      padding: env(safe-area-inset-top, 0px) 24px 0 24px;
       position: sticky;
       top: 0;
       z-index: 100;
@@ -297,6 +297,8 @@
         transition: transform 0.25s ease;
         width: 260px;
         height: 100vh;
+        padding-top: env(safe-area-inset-top, 0px);
+        box-sizing: border-box;
         box-shadow: 4px 0 24px rgba(0,0,0,0.2);
       }
       .sidebar.open { transform: translateX(0); }
