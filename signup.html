@@ -139,12 +139,12 @@
 <div class="page-wrap">
   <div class="card">
     <div class="card-header">
-      <h1>Start your journey</h1>
-      <p>Choose your plan and create your account below.</p>
+      <h1 id="page-heading">Start your journey</h1>
+      <p id="page-subheading">Choose your plan and create your account below.</p>
     </div>
 
     <!-- Plan selector -->
-    <div class="plan-selector">
+    <div class="plan-selector" id="plan-selector">
       <div class="plan-option selected" data-plan="monthly" data-price="price_monthly" onclick="selectPlan(this)">
         <div class="plan-name">Monthly</div>
         <div class="plan-price">$50<span>/mo</span></div>
@@ -164,6 +164,10 @@
 
     <div id="error-msg" class="error-msg"></div>
     <div id="success-msg" class="success-msg"></div>
+    <div id="invalid-token-msg" style="display:none;text-align:center;padding:20px 0;">
+      <p style="font-size:16px;font-weight:700;color:var(--navy);margin-bottom:10px;">This link isn't valid</p>
+      <p style="font-size:14px;color:var(--gray-600);">This signup link has already been used or is no longer valid. Please reach out to your coach for a new link.</p>
+    </div>
 
     <form id="signup-form">
       <div class="form-group" style="display:flex;gap:12px;">
@@ -215,6 +219,39 @@
   const stripe = Stripe(STRIPE_KEY);
 
   let selectedPlan = 'monthly';
+  let freeSignupToken = null; // set if a valid, unused one-time signup link is being used
+
+  async function checkForFreeSignupToken() {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    if (!token) return;
+
+    const { data, error } = await sb.from('signup_tokens').select('*').eq('id', token).eq('used', false).maybeSingle();
+
+    if (error || !data) {
+      document.getElementById('signup-form').style.display = 'none';
+      document.getElementById('plan-selector').style.display = 'none';
+      document.querySelector('.divider').style.display = 'none';
+      document.querySelector('.login-link').style.display = 'none';
+      document.getElementById('invalid-token-msg').style.display = 'block';
+      return;
+    }
+
+    freeSignupToken = data;
+    document.getElementById('plan-selector').style.display = 'none';
+    document.getElementById('page-heading').textContent = 'Welcome! Let\'s get you set up';
+    document.getElementById('page-subheading').textContent = 'Create your account below to get started with your coaching program.';
+    document.getElementById('btn-text').textContent = 'Create my account';
+
+    if (data.email) {
+      const emailInput = document.getElementById('email');
+      emailInput.value = data.email;
+      emailInput.readOnly = true;
+      emailInput.style.background = 'var(--off-white)';
+    }
+  }
+
+  checkForFreeSignupToken();
 
   function selectPlan(el) {
     document.querySelectorAll('.plan-option').forEach(p => p.classList.remove('selected'));
@@ -271,6 +308,25 @@
 
       // Save name to profile
       await sb.from('profiles').upsert({ id: userId, email, first_name: firstName, last_name: lastName }, { onConflict: 'id' });
+
+      if (freeSignupToken) {
+        // One-time free signup link: mark them as a coaching client, mark the link used, skip payment entirely
+        document.getElementById('btn-text').textContent = 'Setting up your account...';
+
+        await sb.from('profiles').update({ is_member: true, plan: 'coaching' }).eq('id', userId);
+
+        await sb.from('coaching_clients').insert({
+          user_id: userId,
+          coaching_start_date: freeSignupToken.coaching_start_date,
+          coaching_end_date: freeSignupToken.coaching_end_date,
+          status: 'active'
+        });
+
+        await sb.from('signup_tokens').update({ used: true, used_by: userId, used_at: new Date().toISOString() }).eq('id', freeSignupToken.id);
+
+        window.location.href = '/onboarding.html';
+        return;
+      }
 
       // Create checkout session
       document.getElementById('btn-text').textContent = 'Redirecting to payment...';
