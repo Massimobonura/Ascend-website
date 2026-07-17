@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Dashboard — Ascend Faith & Fitness</title>
 
   <!-- App icons for home screen install -->
@@ -36,11 +36,11 @@
     /* NAV */
     nav {
       background: var(--navy);
-      min-height: 64px;
+      height: 64px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: env(safe-area-inset-top, 0px) 24px 0 24px;
+      padding: 0 24px;
       position: sticky;
       top: 0;
       z-index: 100;
@@ -297,12 +297,10 @@
         transition: transform 0.25s ease;
         width: 260px;
         height: 100vh;
-        padding-top: env(safe-area-inset-top, 0px);
-        box-sizing: border-box;
         box-shadow: 4px 0 24px rgba(0,0,0,0.2);
       }
       .sidebar.open { transform: translateX(0); }
-      .main { padding: 20px 16px calc(100px + env(safe-area-inset-bottom, 0px)); }
+      .main { padding: 20px 16px 110px; }
       .mobile-nav {
         display: flex;
         justify-content: space-evenly;
@@ -313,7 +311,7 @@
         z-index: 99;
         border-radius: 20px 20px 0 0;
         box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
-        padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 10px);
+        padding-bottom: 20px;
         padding-left: 0;
         padding-right: 0;
         overflow: hidden;
