@@ -209,7 +209,14 @@
         <div class="form-grid">
           <div class="fg"><label>Client Email (recommended — locks the link to this email)</label><input type="email" id="free-signup-email" placeholder="client@email.com" /></div>
           <div class="fg"><label>Coaching Start Date</label><input type="date" id="free-signup-start-date" /></div>
-          <div class="fg"><label>Coaching End Date</label><input type="date" id="free-signup-end-date" /></div>
+          <div class="fg"><label>Coaching End Date</label>
+            <input type="date" id="free-signup-end-date" />
+            <div style="display:flex;gap:6px;margin-top:6px;">
+              <button type="button" class="btn btn-ghost" style="font-size:11px;padding:5px 10px;" onclick="setEndDateFromStart('free-signup-start-date','free-signup-end-date',3)">3 months</button>
+              <button type="button" class="btn btn-ghost" style="font-size:11px;padding:5px 10px;" onclick="setEndDateFromStart('free-signup-start-date','free-signup-end-date',6)">6 months</button>
+              <button type="button" class="btn btn-ghost" style="font-size:11px;padding:5px 10px;" onclick="setEndDateFromStart('free-signup-start-date','free-signup-end-date',12)">12 months</button>
+            </div>
+          </div>
         </div>
         <button class="btn btn-primary" onclick="generateFreeSignupLink()" style="margin-top:12px;">Generate Free Signup Link</button>
         <div id="free-signup-link-result" style="margin-top:16px;display:none;">
@@ -226,7 +233,14 @@
         <div class="form-grid">
           <div class="fg"><label>Member Email</label><input type="email" id="existing-member-email" placeholder="member@email.com" /></div>
           <div class="fg"><label>Coaching Start Date</label><input type="date" id="coaching-start-date" /></div>
-          <div class="fg"><label>Coaching End Date (6 months auto)</label><input type="date" id="coaching-end-date" /></div>
+          <div class="fg"><label>Coaching End Date</label>
+            <input type="date" id="coaching-end-date" />
+            <div style="display:flex;gap:6px;margin-top:6px;">
+              <button type="button" class="btn btn-ghost" style="font-size:11px;padding:5px 10px;" onclick="setEndDateFromStart('coaching-start-date','coaching-end-date',3)">3 months</button>
+              <button type="button" class="btn btn-ghost" style="font-size:11px;padding:5px 10px;" onclick="setEndDateFromStart('coaching-start-date','coaching-end-date',6)">6 months</button>
+              <button type="button" class="btn btn-ghost" style="font-size:11px;padding:5px 10px;" onclick="setEndDateFromStart('coaching-start-date','coaching-end-date',12)">12 months</button>
+            </div>
+          </div>
         </div>
         <button class="btn btn-primary" onclick="addExistingMemberAsCoachingClient()" style="margin-top:12px;">Add as Coaching Client</button>
         <div id="existing-member-result" style="margin-top:16px;display:none;padding:12px;background:var(--off);border-radius:8px;font-size:13px;" id="existing-member-result-text"></div>
@@ -2412,11 +2426,12 @@ async function addExistingMemberAsCoachingClient() {
     return;
   }
   
-  // Auto-calculate end date if not provided (6 months from start)
+  // Auto-calculate end date if not provided (6 months from start, using real calendar months)
   if (!endDate) {
-    const start = new Date(startDate);
-    const end = new Date(start.getTime() + 6 * 30 * 24 * 60 * 60 * 1000);
-    endDate = end.toISOString().split('T')[0];
+    const start = new Date(startDate + 'T12:00:00');
+    const end = new Date(start);
+    end.setMonth(end.getMonth() + 6);
+    endDate = end.getFullYear() + '-' + String(end.getMonth() + 1).padStart(2, '0') + '-' + String(end.getDate()).padStart(2, '0');
     document.getElementById('coaching-end-date').value = endDate;
   }
   
@@ -2514,6 +2529,18 @@ async function generateCoachingCheckout() {
     console.error('Error:', err);
     alert('Error: ' + err.message);
   }
+}
+
+function setEndDateFromStart(startId, endId, months) {
+  const startVal = document.getElementById(startId).value;
+  if (!startVal) { alert('Please enter a start date first.'); return; }
+  const start = new Date(startVal + 'T12:00:00');
+  const end = new Date(start);
+  end.setMonth(end.getMonth() + months);
+  const yyyy = end.getFullYear();
+  const mm = String(end.getMonth() + 1).padStart(2, '0');
+  const dd = String(end.getDate()).padStart(2, '0');
+  document.getElementById(endId).value = yyyy + '-' + mm + '-' + dd;
 }
 
 function copyCheckoutLink() {
