@@ -394,6 +394,25 @@
     </div>
 
     <!-- ALTERNATES MODAL -->
+    <!-- EXTEND COACHING MODAL -->
+    <div id="extend-modal" style="display:none;position:fixed;inset:0;background:rgba(8,15,23,0.7);z-index:999;align-items:center;justify-content:center;padding:20px;">
+      <div style="background:white;border-radius:16px;padding:28px;max-width:420px;width:100%;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <div id="extend-modal-name" style="font-size:16px;font-weight:800;color:var(--navy);"></div>
+          <button onclick="closeExtendModal()" style="background:none;border:none;cursor:pointer;color:var(--gray-400);font-size:20px;">✕</button>
+        </div>
+        <p style="font-size:13px;color:var(--gray-600);margin-bottom:16px;">Current end date: <span id="extend-current-date" style="font-weight:600;"></span></p>
+        <div class="fg" style="margin-bottom:8px;"><label>New end date</label><input type="date" id="extend-new-date" /></div>
+        <div style="display:flex;gap:6px;margin-bottom:18px;">
+          <button type="button" class="btn btn-ghost" style="font-size:11px;padding:5px 10px;" onclick="setExtendDate(3)">+3 months</button>
+          <button type="button" class="btn btn-ghost" style="font-size:11px;padding:5px 10px;" onclick="setExtendDate(6)">+6 months</button>
+          <button type="button" class="btn btn-ghost" style="font-size:11px;padding:5px 10px;" onclick="setExtendDate(12)">+12 months</button>
+        </div>
+        <p style="font-size:11px;color:var(--gray-400);margin-bottom:16px;">These buttons add time onto the current end date, not from today — so renewing early doesn't cost the client any days.</p>
+        <button class="btn btn-primary" onclick="confirmExtend()" style="width:100%;">Save new end date</button>
+      </div>
+    </div>
+
     <!-- CLIENT DETAIL MODAL -->
     <div id="client-detail-modal" style="display:none;position:fixed;inset:0;background:rgba(8,15,23,0.7);z-index:999;align-items:flex-start;justify-content:center;padding:40px 20px;overflow-y:auto;">
       <div style="background:white;border-radius:16px;padding:28px;max-width:720px;width:100%;margin-bottom:40px;">
@@ -2257,7 +2276,7 @@ function filterCoachingClients() {
     html += '<td>' + endDate + '</td>';
     html += '<td><span class="badge ' + expiryBadgeClass + '">' + expiryText + '</span></td>';
     html += '<td>' + status + '</td>';
-    html += '<td style="display:flex;gap:6px;"><button class="btn btn-ghost" style="font-size:12px;padding:5px 10px;" onclick="openClientDetail(\'' + (c.user_id || '') + '\', \'' + encodeURIComponent(name) + '\')">View</button><button class="btn btn-danger" style="font-size:12px;padding:5px 10px;" onclick="removeFromCoaching(\'' + c.id + '\', \'' + encodeURIComponent(name) + '\')">Remove</button></td>';
+    html += '<td style="display:flex;gap:6px;"><button class="btn btn-ghost" style="font-size:12px;padding:5px 10px;" onclick="openClientDetail(\'' + (c.user_id || '') + '\', \'' + encodeURIComponent(name) + '\')">View</button><button class="btn btn-secondary" style="font-size:12px;padding:5px 10px;" onclick="openExtendModal(\'' + c.id + '\', \'' + (c.coaching_end_date || '') + '\', \'' + encodeURIComponent(name) + '\')">Extend</button><button class="btn btn-danger" style="font-size:12px;padding:5px 10px;" onclick="removeFromCoaching(\'' + c.id + '\', \'' + encodeURIComponent(name) + '\')">Remove</button></td>';
     html += '</tr>';
   });
   
@@ -2529,6 +2548,50 @@ async function generateCoachingCheckout() {
     console.error('Error:', err);
     alert('Error: ' + err.message);
   }
+}
+
+let currentExtendClientId = null;
+let currentExtendBaseDate = null;
+
+function openExtendModal(coachingClientId, currentEndDate, clientName) {
+  currentExtendClientId = coachingClientId;
+  currentExtendBaseDate = currentEndDate || localToday();
+  document.getElementById('extend-modal-name').textContent = 'Extend: ' + decodeURIComponent(clientName);
+  document.getElementById('extend-current-date').textContent = currentEndDate ? new Date(currentEndDate + 'T12:00:00').toLocaleDateString() : 'Not set';
+  document.getElementById('extend-new-date').value = currentEndDate || '';
+  document.getElementById('extend-modal').style.display = 'flex';
+}
+
+function closeExtendModal() {
+  document.getElementById('extend-modal').style.display = 'none';
+  currentExtendClientId = null;
+}
+
+function setExtendDate(months) {
+  const base = new Date(currentExtendBaseDate + 'T12:00:00');
+  base.setMonth(base.getMonth() + months);
+  const yyyy = base.getFullYear();
+  const mm = String(base.getMonth() + 1).padStart(2, '0');
+  const dd = String(base.getDate()).padStart(2, '0');
+  document.getElementById('extend-new-date').value = yyyy + '-' + mm + '-' + dd;
+}
+
+async function confirmExtend() {
+  if (!currentExtendClientId) return;
+  const newDate = document.getElementById('extend-new-date').value;
+  if (!newDate) { alert('Please choose a new end date.'); return; }
+
+  const { error } = await sb.from('coaching_clients').update({ coaching_end_date: newDate, status: 'active' }).eq('id', currentExtendClientId);
+  if (error) { alert('Error: ' + error.message); return; }
+
+  closeExtendModal();
+  showAlert('alert-coaching-clients', 'Coaching extended successfully!');
+  loadCoachingClients();
+}
+
+function localToday() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
 
 function setEndDateFromStart(startId, endId, months) {
