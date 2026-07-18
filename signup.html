@@ -306,18 +306,17 @@
 
       const userId = data.user.id;
 
-      // Save name to profile
-      await sb.from('profiles').upsert({ id: userId, email, first_name: firstName, last_name: lastName }, { onConflict: 'id' });
-
       if (freeSignupToken) {
         // One-time free signup link: activate their account via a secure server-side
-        // endpoint (avoids the RLS timing issue with unconfirmed sessions), skip payment entirely
+        // endpoint that creates their whole profile in one atomic step (name, email,
+        // membership, plan) — this never depends on a separate client-side write
+        // succeeding first, avoiding the RLS timing issue with unconfirmed sessions.
         document.getElementById('btn-text').textContent = 'Setting up your account...';
 
         const activateResponse = await fetch('/api/redeem-signup-token', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token: freeSignupToken.id, userId })
+          body: JSON.stringify({ token: freeSignupToken.id, userId, email, firstName, lastName })
         });
 
         const activateResult = await activateResponse.json();
@@ -328,6 +327,9 @@
         window.location.href = '/onboarding.html';
         return;
       }
+
+      // Save name to profile
+      await sb.from('profiles').upsert({ id: userId, email, first_name: firstName, last_name: lastName }, { onConflict: 'id' });
 
       // Create checkout session
       document.getElementById('btn-text').textContent = 'Redirecting to payment...';
