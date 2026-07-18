@@ -9,7 +9,7 @@ module.exports = async (req, res) => {
   if (req.method !== 'POST') { res.status(405).json({ error: 'Method not allowed' }); return; }
 
   try {
-    const { plan, userId, email } = req.body;
+    const { plan, userId, email, firstName, lastName } = req.body;
 
     const priceId = plan === 'annual'
       ? 'price_1Tm5PhJ0GAtDMdjA4Ep3UjPc'
@@ -21,7 +21,7 @@ module.exports = async (req, res) => {
       mode,
       customer_email: email,
       line_items: [{ price: priceId, quantity: 1 }],
-      metadata: { userId, plan },
+      metadata: { userId, plan, firstName: firstName || '', lastName: lastName || '' },
       allow_promotion_codes: true,
       success_url: 'https://ascendfaithandfitness.com/dashboard.html?payment=success',
       cancel_url: 'https://ascendfaithandfitness.com/signup.html?cancelled=true',
