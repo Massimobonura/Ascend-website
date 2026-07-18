@@ -310,19 +310,20 @@
       await sb.from('profiles').upsert({ id: userId, email, first_name: firstName, last_name: lastName }, { onConflict: 'id' });
 
       if (freeSignupToken) {
-        // One-time free signup link: mark them as a coaching client, mark the link used, skip payment entirely
+        // One-time free signup link: activate their account via a secure server-side
+        // endpoint (avoids the RLS timing issue with unconfirmed sessions), skip payment entirely
         document.getElementById('btn-text').textContent = 'Setting up your account...';
 
-        await sb.from('profiles').update({ is_member: true, plan: 'coaching' }).eq('id', userId);
-
-        await sb.from('coaching_clients').insert({
-          user_id: userId,
-          coaching_start_date: freeSignupToken.coaching_start_date,
-          coaching_end_date: freeSignupToken.coaching_end_date,
-          status: 'active'
+        const activateResponse = await fetch('/api/redeem-signup-token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: freeSignupToken.id, userId })
         });
 
-        await sb.from('signup_tokens').update({ used: true, used_by: userId, used_at: new Date().toISOString() }).eq('id', freeSignupToken.id);
+        const activateResult = await activateResponse.json();
+        if (!activateResponse.ok || activateResult.error) {
+          throw new Error(activateResult.error || 'Could not activate your account. Please contact your coach.');
+        }
 
         window.location.href = '/onboarding.html';
         return;
