@@ -14,7 +14,7 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const { token, userId } = req.body;
+    const { token, userId, email, firstName, lastName } = req.body;
 
     if (!token || !userId) {
       res.status(400).json({ error: 'Missing token or userId' });
@@ -34,12 +34,19 @@ module.exports = async (req, res) => {
       return;
     }
 
-    // Mark the user as a full member (bypasses RLS via service role — safe here
-    // because we've already validated the token server-side above)
+    // Create (or fully repair, if a previous client-side write partially failed) their
+    // profile row in one atomic upsert — name, email, membership status, and plan all
+    // at once. This never depends on a row already existing, unlike a plain update.
     const { error: profileError } = await sb
       .from('profiles')
-      .update({ is_member: true, plan: 'coaching' })
-      .eq('id', userId);
+      .upsert({
+        id: userId,
+        email: email || null,
+        first_name: firstName || null,
+        last_name: lastName || null,
+        is_member: true,
+        plan: 'coaching'
+      }, { onConflict: 'id' });
 
     if (profileError) {
       console.error('Error updating profile:', profileError);
