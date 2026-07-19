@@ -1033,61 +1033,73 @@
     <!-- WEEKLY CHECK-IN FORM -->
     <div class="page" id="page-checkin">
       <button onclick="showPage('myprogram')" style="background:none;border:none;color:var(--orange);font-size:13px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;margin-bottom:12px;display:flex;align-items:center;gap:4px;"><i class="ti ti-arrow-left" aria-hidden="true"></i> Back to My Program</button>
-      <div class="page-title">Weekly Check-In</div>
-      <div class="page-sub">Take a few minutes to reflect on your week so Massimo can coach you best.</div>
+
+      <div style="background:var(--navy);border-radius:14px;padding:24px 28px;margin-bottom:20px;">
+        <div style="font-size:11px;font-weight:700;color:var(--orange);letter-spacing:0.14em;text-transform:uppercase;margin-bottom:6px;">Weekly Reflection</div>
+        <div style="font-size:22px;font-weight:800;color:white;margin-bottom:6px;">Weekly Check-In</div>
+        <div style="font-size:14px;color:rgba(255,255,255,0.65);">Take a few minutes to reflect on your week so Massimo can coach you best.</div>
+      </div>
 
       <div class="log-card">
+        <div style="font-size:12px;font-weight:700;color:var(--orange);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--g200);">The Basics</div>
         <div class="lg" style="margin-bottom:18px;"><label>Submission Date</label><input type="date" id="ci-date" /></div>
+        <div class="lg" style="margin-bottom:0;"><label>Let's Celebrate A Non-Scale Win! 👇🏼</label><textarea id="ci-nonscalewin" placeholder="Your answer"></textarea></div>
+      </div>
 
-        <div class="lg" style="margin-bottom:18px;"><label>Let's Celebrate A Non-Scale Win! 👇🏼</label><textarea id="ci-nonscalewin" placeholder="Your answer"></textarea></div>
+      <div class="log-card">
+        <div style="font-size:12px;font-weight:700;color:var(--orange);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--g200);">How You're Feeling</div>
 
-        <div class="lg" style="margin-bottom:18px;"><label>Rate your adherence to your habits/workouts! (1 = not at all, 10 = perfectly)</label>
-          <select id="ci-adherence"></select>
+        <div style="margin-bottom:20px;"><label style="display:block;font-size:13px;font-weight:600;color:var(--g800);margin-bottom:10px;">Rate your adherence to your habits/workouts!</label>
+          <div id="ci-adherence" class="rating-group"></div>
         </div>
 
-        <div class="lg" style="margin-bottom:6px;"><label>Be Real... Rate Your Energy Levels (1 = Always Exhausted, 10 = David Dancing Before the Lord)</label>
-          <select id="ci-energy"></select>
+        <div style="margin-bottom:6px;"><label style="display:block;font-size:13px;font-weight:600;color:var(--g800);margin-bottom:10px;">Be Real... Rate Your Energy Levels</label>
+          <div id="ci-energy" class="rating-group"></div>
         </div>
-        <div class="lg" style="margin-bottom:18px;"><label>Please elaborate on your reasoning behind your energy level rating so I can best serve you!</label><textarea id="ci-energy-reason" placeholder="Your answer"></textarea></div>
+        <div class="lg" style="margin-bottom:20px;"><label>Please elaborate on your reasoning behind your energy level rating so I can best serve you!</label><textarea id="ci-energy-reason" placeholder="Your answer"></textarea></div>
 
-        <div class="lg" style="margin-bottom:18px;"><label>Rate Your Strength & Endurance (1 = Very Weak, 10 = Feeling Strong)</label>
-          <select id="ci-strength"></select>
-        </div>
-
-        <div class="lg" style="margin-bottom:6px;"><label>Stress Levels (1 = Chillin, 10 = Going Crazy)</label>
-          <select id="ci-stress"></select>
-        </div>
-        <div class="lg" style="margin-bottom:18px;"><label>Please elaborate on your reasoning behind your stress level rating so I can best serve you!</label><textarea id="ci-stress-reason" placeholder="Your answer"></textarea></div>
-
-        <div class="lg" style="margin-bottom:18px;"><label>Rate your Hunger Levels (1 = Never Hungry, 10 = Always Starving)</label>
-          <select id="ci-hunger"></select>
+        <div style="margin-bottom:20px;"><label style="display:block;font-size:13px;font-weight:600;color:var(--g800);margin-bottom:10px;">Rate Your Strength & Endurance</label>
+          <div id="ci-strength" class="rating-group"></div>
         </div>
 
-        <div class="lg" style="margin-bottom:6px;"><label>How Many Hours of Sleep Do You Average? (1 = Basically Napping, 8 = 8+ Hours)</label>
-          <select id="ci-sleep"></select>
+        <div style="margin-bottom:6px;"><label style="display:block;font-size:13px;font-weight:600;color:var(--g800);margin-bottom:10px;">Stress Levels</label>
+          <div id="ci-stress" class="rating-group"></div>
         </div>
-        <div class="lg" style="margin-bottom:18px;"><label>Please elaborate on your reasoning behind your sleep rating so I can best serve you!</label><textarea id="ci-sleep-reason" placeholder="Your answer"></textarea></div>
+        <div class="lg" style="margin-bottom:20px;"><label>Please elaborate on your reasoning behind your stress level rating so I can best serve you!</label><textarea id="ci-stress-reason" placeholder="Your answer"></textarea></div>
+
+        <div style="margin-bottom:20px;"><label style="display:block;font-size:13px;font-weight:600;color:var(--g800);margin-bottom:10px;">Rate your Hunger Levels</label>
+          <div id="ci-hunger" class="rating-group"></div>
+        </div>
+
+        <div style="margin-bottom:6px;"><label style="display:block;font-size:13px;font-weight:600;color:var(--g800);margin-bottom:10px;">How Many Hours of Sleep Do You Average?</label>
+          <div id="ci-sleep" class="rating-group"></div>
+        </div>
+        <div class="lg" style="margin-bottom:0;"><label>Please elaborate on your reasoning behind your sleep rating so I can best serve you!</label><textarea id="ci-sleep-reason" placeholder="Your answer"></textarea></div>
+      </div>
+
+      <div class="log-card">
+        <div style="font-size:12px;font-weight:700;color:var(--orange);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--g200);">Nutrition & Body</div>
 
         <div class="lg" style="margin-bottom:18px;"><label>Specific days where macros or current eating habits were not met (either under or over) — indicate below & to what extent:</label><textarea id="ci-macros" placeholder="Your answer"></textarea></div>
-
         <div class="lg" style="margin-bottom:18px;"><label>Digestion Issues? Please describe below. (Examples: infrequent bowel movements, bloating, loose stool, gas, constipation, etc. Please be as detailed as possible.)</label><textarea id="ci-digestion" placeholder="Your answer"></textarea></div>
-
         <div class="lg" style="margin-bottom:18px;"><label>Performance: Are you getting stronger? Gym abilities improving?</label><textarea id="ci-performance" placeholder="Your answer"></textarea></div>
-
         <div class="lg" style="margin-bottom:18px;"><label>Relationship with food: Are you prioritizing whole foods? Do you feel tempted or restricted?</label><textarea id="ci-food-relationship" placeholder="Your answer"></textarea></div>
+        <div class="lg" style="margin-bottom:0;"><label>Clothing: Are your clothes fitting better? (Skip if reversing/building — we won't be assessing these changes week to week.)</label><textarea id="ci-clothing" placeholder="Your answer"></textarea></div>
+      </div>
+
+      <div class="log-card">
+        <div style="font-size:12px;font-weight:700;color:var(--orange);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--g200);">Mindset & Progress</div>
 
         <div class="lg" style="margin-bottom:18px;"><label>Mindset: How are you feeling with the process so far? Dealing with any big life stressors this week?</label><textarea id="ci-mindset" placeholder="Your answer"></textarea></div>
-
-        <div class="lg" style="margin-bottom:18px;"><label>Clothing: Are your clothes fitting better? (Skip if reversing/building — we won't be assessing these changes week to week.)</label><textarea id="ci-clothing" placeholder="Your answer"></textarea></div>
-
         <div class="lg" style="margin-bottom:18px;"><label>Daily Energy: Less energy crashes throughout the day? Do you feel you NEED caffeine to function?</label><textarea id="ci-daily-energy" placeholder="Your answer"></textarea></div>
+        <div class="lg" style="margin-bottom:0;"><label>Visual Appearance: Do you feel more confident when looking in the mirror?</label><textarea id="ci-visual" placeholder="Your answer"></textarea></div>
+      </div>
 
-        <div class="lg" style="margin-bottom:18px;"><label>Visual Appearance: Do you feel more confident when looking in the mirror?</label><textarea id="ci-visual" placeholder="Your answer"></textarea></div>
+      <div class="log-card">
+        <div style="font-size:12px;font-weight:700;color:var(--orange);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--g200);">Wrap-Up</div>
 
         <div class="lg" style="margin-bottom:18px;"><label>Important dates to be aware of (vacations, events, competitions/races, etc.)</label><textarea id="ci-important-dates" placeholder="Your answer"></textarea></div>
-
         <div class="lg" style="margin-bottom:18px;"><label>What is one thing you are proud of overcoming or accomplishing this week? (brightspot!!)</label><textarea id="ci-brightspot" placeholder="Your answer"></textarea></div>
-
         <div class="lg" style="margin-bottom:24px;"><label>What is one thing you'd like to learn more about within Ascend's educational content? How else can I support you better as a coach?</label><textarea id="ci-learning" placeholder="Your answer"></textarea></div>
 
         <button class="log-btn" onclick="submitCheckIn()">Submit Check-In</button>
@@ -3523,43 +3535,54 @@ async function loadCheckInStatus() {
   card.style.display = 'block';
 }
 
-function fillRatingSelect(id, max, lowLabel, highLabel) {
-  const select = document.getElementById(id);
-  let html = '<option value="">Select a rating...</option>';
+function renderRatingButtons(id, max, lowLabel, highLabel, selectedValue) {
+  const container = document.getElementById(id);
+  let html = '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;">';
   for (let i = 1; i <= max; i++) {
-    let label = String(i);
-    if (i === 1 && lowLabel) label += ' — ' + lowLabel;
-    if (i === max && highLabel) label += ' — ' + highLabel;
-    html += '<option value="' + i + '">' + label + '</option>';
+    const isSelected = selectedValue === i;
+    html += '<button type="button" onclick="selectRating(\'' + id + '\', ' + i + ')" data-rating-btn="' + i + '" style="width:36px;height:36px;border-radius:50%;border:2px solid ' + (isSelected ? 'var(--orange)' : 'var(--g200)') + ';background:' + (isSelected ? 'var(--orange)' : 'white') + ';color:' + (isSelected ? 'white' : 'var(--navy)') + ';font-size:13px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;flex-shrink:0;">' + i + '</button>';
   }
-  select.innerHTML = html;
+  html += '</div>';
+  if (lowLabel || highLabel) {
+    html += '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--g400);">' +
+      '<span>' + (lowLabel ? '1 = ' + lowLabel : '') + '</span>' +
+      '<span>' + (highLabel ? max + ' = ' + highLabel : '') + '</span>' +
+      '</div>';
+  }
+  container.innerHTML = html;
+  container.dataset.value = selectedValue || '';
+}
+
+function selectRating(id, value) {
+  const container = document.getElementById(id);
+  container.dataset.value = value;
+  container.querySelectorAll('[data-rating-btn]').forEach(btn => {
+    const isSelected = parseInt(btn.dataset.ratingBtn) === value;
+    btn.style.borderColor = isSelected ? 'var(--orange)' : 'var(--g200)';
+    btn.style.background = isSelected ? 'var(--orange)' : 'white';
+    btn.style.color = isSelected ? 'white' : 'var(--navy)';
+  });
 }
 
 async function openCheckInForm() {
-  fillRatingSelect('ci-adherence', 10);
-  fillRatingSelect('ci-energy', 10, 'Always Exhausted', 'David Dancing Before the Lord');
-  fillRatingSelect('ci-strength', 10, 'Very Weak', 'Feeling Strong');
-  fillRatingSelect('ci-stress', 10, 'Chillin', 'Going Crazy');
-  fillRatingSelect('ci-hunger', 10, 'Never Hungry', 'Always Starving');
-  fillRatingSelect('ci-sleep', 8, 'Basically Napping', '8+ Hours');
-
   document.getElementById('ci-date').value = localToday();
 
   // If they already submitted this week, load it back in so they can review/edit
   const weekStart = getWeekStart(localToday());
   const { data: existing } = await sb.from('check_ins').select('*').eq('user_id', user.id).gte('submission_date', weekStart).order('submission_date', { ascending: false }).limit(1).maybeSingle();
 
+  renderRatingButtons('ci-adherence', 10, null, null, existing?.adherence_rating);
+  renderRatingButtons('ci-energy', 10, 'Always Exhausted', 'David Dancing Before the Lord', existing?.energy_rating);
+  renderRatingButtons('ci-strength', 10, 'Very Weak', 'Feeling Strong', existing?.strength_rating);
+  renderRatingButtons('ci-stress', 10, 'Chillin', 'Going Crazy', existing?.stress_rating);
+  renderRatingButtons('ci-hunger', 10, 'Never Hungry', 'Always Starving', existing?.hunger_rating);
+  renderRatingButtons('ci-sleep', 8, 'Basically Napping', '8+ Hours', existing?.sleep_rating);
+
   if (existing) {
     document.getElementById('ci-date').value = existing.submission_date;
     document.getElementById('ci-nonscalewin').value = existing.non_scale_win || '';
-    document.getElementById('ci-adherence').value = existing.adherence_rating || '';
-    document.getElementById('ci-energy').value = existing.energy_rating || '';
     document.getElementById('ci-energy-reason').value = existing.energy_reasoning || '';
-    document.getElementById('ci-strength').value = existing.strength_rating || '';
-    document.getElementById('ci-stress').value = existing.stress_rating || '';
     document.getElementById('ci-stress-reason').value = existing.stress_reasoning || '';
-    document.getElementById('ci-hunger').value = existing.hunger_rating || '';
-    document.getElementById('ci-sleep').value = existing.sleep_rating || '';
     document.getElementById('ci-sleep-reason').value = existing.sleep_reasoning || '';
     document.getElementById('ci-macros').value = existing.macro_deviations || '';
     document.getElementById('ci-digestion').value = existing.digestion_issues || '';
@@ -3584,10 +3607,18 @@ async function openCheckInForm() {
 }
 
 async function submitCheckIn() {
-  const required = ['ci-date', 'ci-nonscalewin', 'ci-adherence', 'ci-energy', 'ci-energy-reason', 'ci-strength', 'ci-stress', 'ci-stress-reason', 'ci-hunger', 'ci-sleep', 'ci-sleep-reason'];
-  for (const id of required) {
+  const requiredText = ['ci-date', 'ci-nonscalewin', 'ci-energy-reason', 'ci-stress-reason', 'ci-sleep-reason'];
+  for (const id of requiredText) {
     if (!document.getElementById(id).value) {
       alert('Please fill in all required fields before submitting.');
+      document.getElementById(id).scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+  }
+  const requiredRatings = ['ci-adherence', 'ci-energy', 'ci-strength', 'ci-stress', 'ci-hunger', 'ci-sleep'];
+  for (const id of requiredRatings) {
+    if (!document.getElementById(id).dataset.value) {
+      alert('Please select a rating for all questions before submitting.');
       document.getElementById(id).scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
@@ -3597,14 +3628,14 @@ async function submitCheckIn() {
     user_id: user.id,
     submission_date: document.getElementById('ci-date').value,
     non_scale_win: document.getElementById('ci-nonscalewin').value,
-    adherence_rating: parseInt(document.getElementById('ci-adherence').value),
-    energy_rating: parseInt(document.getElementById('ci-energy').value),
+    adherence_rating: parseInt(document.getElementById('ci-adherence').dataset.value),
+    energy_rating: parseInt(document.getElementById('ci-energy').dataset.value),
     energy_reasoning: document.getElementById('ci-energy-reason').value,
-    strength_rating: parseInt(document.getElementById('ci-strength').value),
-    stress_rating: parseInt(document.getElementById('ci-stress').value),
+    strength_rating: parseInt(document.getElementById('ci-strength').dataset.value),
+    stress_rating: parseInt(document.getElementById('ci-stress').dataset.value),
     stress_reasoning: document.getElementById('ci-stress-reason').value,
-    hunger_rating: parseInt(document.getElementById('ci-hunger').value),
-    sleep_rating: parseInt(document.getElementById('ci-sleep').value),
+    hunger_rating: parseInt(document.getElementById('ci-hunger').dataset.value),
+    sleep_rating: parseInt(document.getElementById('ci-sleep').dataset.value),
     sleep_reasoning: document.getElementById('ci-sleep-reason').value,
     macro_deviations: document.getElementById('ci-macros').value,
     digestion_issues: document.getElementById('ci-digestion').value,
