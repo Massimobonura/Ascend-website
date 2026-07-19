@@ -1370,10 +1370,44 @@ let user = null;
 let habitTargets = { water: 64, steps: 10000, sleep: 8 };
 let exerciseSubstitutions = {};
 
+function showCoachViewBanner(firstName, lastName, email) {
+  const name = (firstName || lastName) ? (firstName + ' ' + (lastName || '')).trim() : email;
+  const banner = document.createElement('div');
+  banner.style.cssText = 'background:var(--orange);color:white;text-align:center;padding:10px 16px;font-size:13px;font-weight:600;position:sticky;top:64px;z-index:98;display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;font-family:Inter,sans-serif;';
+  banner.innerHTML = '<span>👁️ Coach View — viewing and editing <strong>' + name + '</strong>\'s account</span>' +
+    '<a href="/admin.html" style="color:white;text-decoration:underline;font-weight:700;">Exit coach view</a>';
+  const layout = document.querySelector('.layout');
+  document.body.insertBefore(banner, layout);
+}
+
 async function init() {
   const { data: { session } } = await sb.auth.getSession();
   if (!session) { window.location.href = '/login.html'; return; }
   user = session.user;
+
+  // Coach View: lets the admin view and edit a client's real dashboard, exactly
+  // as they see it. Swapping "user" here is what makes every function throughout
+  // this whole file automatically operate on the client's data instead of the
+  // admin's own — nothing else needs to change. The real security boundary is
+  // still enforced server-side by Supabase's own rules (based on the admin's
+  // actual login), this swap only controls what this page queries for.
+  const coachViewClientId = new URLSearchParams(window.location.search).get('coachView');
+  const ADMIN_EMAIL = 'ascend.ff.coaching@gmail.com';
+
+  if (coachViewClientId && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+    const { data: clientProfile, error: clientError } = await sb.from('profiles')
+      .select('id,email,first_name,last_name')
+      .eq('id', coachViewClientId)
+      .maybeSingle();
+
+    if (clientProfile) {
+      user = { id: clientProfile.id, email: clientProfile.email };
+      showCoachViewBanner(clientProfile.first_name, clientProfile.last_name, clientProfile.email);
+    } else {
+      alert('Could not load that client\'s account' + (clientError ? ': ' + clientError.message : '.'));
+    }
+  }
+
   document.getElementById('nav-email').textContent = user.email;
 
   const h = new Date().getHours();
