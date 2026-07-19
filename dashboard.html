@@ -1026,7 +1026,72 @@
     <div class="page" id="page-myprogram">
       <div class="page-title">My Program</div>
       <div class="page-sub">Your personalized coaching targets and notes from Massimo.</div>
+      <div id="checkin-status-card" style="display:none;"></div>
       <div id="myprogram-content"><div class="empty" style="padding:48px;text-align:center;">Loading...</div></div>
+    </div>
+
+    <!-- WEEKLY CHECK-IN FORM -->
+    <div class="page" id="page-checkin">
+      <button onclick="showPage('myprogram')" style="background:none;border:none;color:var(--orange);font-size:13px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;margin-bottom:12px;display:flex;align-items:center;gap:4px;"><i class="ti ti-arrow-left" aria-hidden="true"></i> Back to My Program</button>
+      <div class="page-title">Weekly Check-In</div>
+      <div class="page-sub">Take a few minutes to reflect on your week so Massimo can coach you best.</div>
+
+      <div class="log-card">
+        <div class="lg" style="margin-bottom:18px;"><label>Submission Date</label><input type="date" id="ci-date" /></div>
+
+        <div class="lg" style="margin-bottom:18px;"><label>Let's Celebrate A Non-Scale Win! 👇🏼</label><textarea id="ci-nonscalewin" placeholder="Your answer"></textarea></div>
+
+        <div class="lg" style="margin-bottom:18px;"><label>Rate your adherence to your habits/workouts! (1 = not at all, 10 = perfectly)</label>
+          <select id="ci-adherence"></select>
+        </div>
+
+        <div class="lg" style="margin-bottom:6px;"><label>Be Real... Rate Your Energy Levels (1 = Always Exhausted, 10 = David Dancing Before the Lord)</label>
+          <select id="ci-energy"></select>
+        </div>
+        <div class="lg" style="margin-bottom:18px;"><label>Please elaborate on your reasoning behind your energy level rating so I can best serve you!</label><textarea id="ci-energy-reason" placeholder="Your answer"></textarea></div>
+
+        <div class="lg" style="margin-bottom:18px;"><label>Rate Your Strength & Endurance (1 = Very Weak, 10 = Feeling Strong)</label>
+          <select id="ci-strength"></select>
+        </div>
+
+        <div class="lg" style="margin-bottom:6px;"><label>Stress Levels (1 = Chillin, 10 = Going Crazy)</label>
+          <select id="ci-stress"></select>
+        </div>
+        <div class="lg" style="margin-bottom:18px;"><label>Please elaborate on your reasoning behind your stress level rating so I can best serve you!</label><textarea id="ci-stress-reason" placeholder="Your answer"></textarea></div>
+
+        <div class="lg" style="margin-bottom:18px;"><label>Rate your Hunger Levels (1 = Never Hungry, 10 = Always Starving)</label>
+          <select id="ci-hunger"></select>
+        </div>
+
+        <div class="lg" style="margin-bottom:6px;"><label>How Many Hours of Sleep Do You Average? (1 = Basically Napping, 8 = 8+ Hours)</label>
+          <select id="ci-sleep"></select>
+        </div>
+        <div class="lg" style="margin-bottom:18px;"><label>Please elaborate on your reasoning behind your sleep rating so I can best serve you!</label><textarea id="ci-sleep-reason" placeholder="Your answer"></textarea></div>
+
+        <div class="lg" style="margin-bottom:18px;"><label>Specific days where macros or current eating habits were not met (either under or over) — indicate below & to what extent:</label><textarea id="ci-macros" placeholder="Your answer"></textarea></div>
+
+        <div class="lg" style="margin-bottom:18px;"><label>Digestion Issues? Please describe below. (Examples: infrequent bowel movements, bloating, loose stool, gas, constipation, etc. Please be as detailed as possible.)</label><textarea id="ci-digestion" placeholder="Your answer"></textarea></div>
+
+        <div class="lg" style="margin-bottom:18px;"><label>Performance: Are you getting stronger? Gym abilities improving?</label><textarea id="ci-performance" placeholder="Your answer"></textarea></div>
+
+        <div class="lg" style="margin-bottom:18px;"><label>Relationship with food: Are you prioritizing whole foods? Do you feel tempted or restricted?</label><textarea id="ci-food-relationship" placeholder="Your answer"></textarea></div>
+
+        <div class="lg" style="margin-bottom:18px;"><label>Mindset: How are you feeling with the process so far? Dealing with any big life stressors this week?</label><textarea id="ci-mindset" placeholder="Your answer"></textarea></div>
+
+        <div class="lg" style="margin-bottom:18px;"><label>Clothing: Are your clothes fitting better? (Skip if reversing/building — we won't be assessing these changes week to week.)</label><textarea id="ci-clothing" placeholder="Your answer"></textarea></div>
+
+        <div class="lg" style="margin-bottom:18px;"><label>Daily Energy: Less energy crashes throughout the day? Do you feel you NEED caffeine to function?</label><textarea id="ci-daily-energy" placeholder="Your answer"></textarea></div>
+
+        <div class="lg" style="margin-bottom:18px;"><label>Visual Appearance: Do you feel more confident when looking in the mirror?</label><textarea id="ci-visual" placeholder="Your answer"></textarea></div>
+
+        <div class="lg" style="margin-bottom:18px;"><label>Important dates to be aware of (vacations, events, competitions/races, etc.)</label><textarea id="ci-important-dates" placeholder="Your answer"></textarea></div>
+
+        <div class="lg" style="margin-bottom:18px;"><label>What is one thing you are proud of overcoming or accomplishing this week? (brightspot!!)</label><textarea id="ci-brightspot" placeholder="Your answer"></textarea></div>
+
+        <div class="lg" style="margin-bottom:24px;"><label>What is one thing you'd like to learn more about within Ascend's educational content? How else can I support you better as a coach?</label><textarea id="ci-learning" placeholder="Your answer"></textarea></div>
+
+        <button class="log-btn" onclick="submitCheckIn()">Submit Check-In</button>
+      </div>
     </div>
 
     <!-- NUTRITION GUIDE / TDEE -->
@@ -1748,18 +1813,19 @@ function showPage(name) {
   if (name === 'profile') loadProfileInfo();
   if (name === 'milestones') loadMilestonesPage();
   if (name === 'photos') loadProgressPhotos();
-  if (name === 'myprogram') loadMyProgram();
+  if (name === 'myprogram') { loadMyProgram(); loadCheckInStatus(); }
 }
 
 // ── DAILY CHECKLIST ──
 async function loadDailyChecklist() {
   const today = localToday();
-  const [w, n, wt, h, customHabitsRes] = await Promise.all([
+  const [w, n, wt, h, customHabitsRes, coachingClientRes] = await Promise.all([
     sb.from('workouts').select('id').eq('user_id', user.id).eq('date', today),
     sb.from('nutrition').select('id').eq('user_id', user.id).eq('date', today),
     sb.from('weight_logs').select('id').eq('user_id', user.id).eq('date', today),
     sb.from('habits').select('*').eq('user_id', user.id).eq('date', today).maybeSingle(),
-    sb.from('custom_habits').select('*').eq('user_id', user.id).order('created_at')
+    sb.from('custom_habits').select('*').eq('user_id', user.id).order('created_at'),
+    sb.from('coaching_clients').select('check_in_day').eq('user_id', user.id).maybeSingle()
   ]);
   const habits = h.data;
   const customHabitsList = customHabitsRes.data || [];
@@ -1779,6 +1845,16 @@ async function loadDailyChecklist() {
     { icon: 'ti-moon', label: habits ? 'Sleep — ' + (habits.sleep_hrs || 0) + ' hrs logged' : 'Log your sleep', done: habits && habits.sleep_hrs > 0, page: 'habits' },
     { icon: 'ti-cross', label: 'Read today\'s devotional', done: habits && habits.devotional_done, page: 'faith' }
   ];
+
+  const checkInDay = coachingClientRes.data?.check_in_day;
+  if (checkInDay !== null && checkInDay !== undefined) {
+    const todayDow = new Date(today + 'T12:00:00').getDay();
+    if (todayDow === checkInDay) {
+      const weekStart = getWeekStart(today);
+      const { data: thisWeekCheckIn } = await sb.from('check_ins').select('id').eq('user_id', user.id).gte('submission_date', weekStart).limit(1).maybeSingle();
+      items.push({ icon: 'ti-clipboard-check', label: 'Complete your weekly check-in', done: !!thisWeekCheckIn, page: 'checkinForm' });
+    }
+  }
 
   customHabitsList.forEach(ch => {
     const val = customLogsMap[ch.id] || 0;
@@ -1802,7 +1878,7 @@ async function loadDailyChecklist() {
     const div = document.createElement('div');
     div.className = 'cl-item' + (item.done ? ' done' : '');
     if (!item.done) {
-      div.onclick = () => showPage(item.page);
+      div.onclick = () => item.page === 'checkinForm' ? openCheckInForm() : showPage(item.page);
       div.onmouseover = () => { if (!item.done) div.style.background = 'var(--off)'; };
       div.onmouseout = () => { if (!item.done) div.style.background = 'white'; };
     }
@@ -3411,6 +3487,151 @@ function updateCustomRing(id, val, goal) {
   if (el) el.style.strokeDashoffset = 201 - 201 * pct;
   if (lbl) lbl.textContent = val || 0;
   customHabitLogs[id] = parseFloat(val) || 0;
+}
+
+// ── WEEKLY CHECK-IN ──
+async function loadCheckInStatus() {
+  const card = document.getElementById('checkin-status-card');
+  const { data: client } = await sb.from('coaching_clients').select('check_in_day').eq('user_id', user.id).maybeSingle();
+
+  if (!client || client.check_in_day === null || client.check_in_day === undefined) {
+    card.style.display = 'none';
+    return;
+  }
+
+  const today = localToday();
+  const weekStart = getWeekStart(today);
+  const { data: thisWeekCheckIn } = await sb.from('check_ins').select('id,submission_date').eq('user_id', user.id).gte('submission_date', weekStart).order('submission_date', { ascending: false }).limit(1).maybeSingle();
+
+  const todayDow = new Date(today + 'T12:00:00').getDay();
+  const isDueToday = todayDow === client.check_in_day;
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+  let html;
+  if (thisWeekCheckIn) {
+    html = '<div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:14px;padding:20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">' +
+      '<div><div style="font-weight:700;color:#16A34A;font-size:15px;margin-bottom:2px;">✓ Check-in submitted this week</div><div style="font-size:13px;color:var(--g600);">Next one is due ' + dayNames[client.check_in_day] + '.</div></div>' +
+      '<button onclick="openCheckInForm()" style="background:white;color:var(--navy);border:1.5px solid var(--g200);padding:9px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">View / Resubmit</button>' +
+      '</div>';
+  } else {
+    html = '<div style="background:' + (isDueToday ? '#FFF7ED' : 'white') + ';border:1.5px solid ' + (isDueToday ? 'var(--orange)' : 'var(--g200)') + ';border-radius:14px;padding:20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">' +
+      '<div><div style="font-weight:700;color:var(--navy);font-size:15px;margin-bottom:2px;">' + (isDueToday ? '📋 Your check-in is due today!' : 'Weekly Check-In') + '</div><div style="font-size:13px;color:var(--g600);">Due every ' + dayNames[client.check_in_day] + ' — you can always submit early.</div></div>' +
+      '<button onclick="openCheckInForm()" style="background:var(--orange);color:white;border:none;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">Start Check-In</button>' +
+      '</div>';
+  }
+  card.innerHTML = html;
+  card.style.display = 'block';
+}
+
+function fillRatingSelect(id, max, lowLabel, highLabel) {
+  const select = document.getElementById(id);
+  let html = '<option value="">Select a rating...</option>';
+  for (let i = 1; i <= max; i++) {
+    let label = String(i);
+    if (i === 1 && lowLabel) label += ' — ' + lowLabel;
+    if (i === max && highLabel) label += ' — ' + highLabel;
+    html += '<option value="' + i + '">' + label + '</option>';
+  }
+  select.innerHTML = html;
+}
+
+async function openCheckInForm() {
+  fillRatingSelect('ci-adherence', 10);
+  fillRatingSelect('ci-energy', 10, 'Always Exhausted', 'David Dancing Before the Lord');
+  fillRatingSelect('ci-strength', 10, 'Very Weak', 'Feeling Strong');
+  fillRatingSelect('ci-stress', 10, 'Chillin', 'Going Crazy');
+  fillRatingSelect('ci-hunger', 10, 'Never Hungry', 'Always Starving');
+  fillRatingSelect('ci-sleep', 8, 'Basically Napping', '8+ Hours');
+
+  document.getElementById('ci-date').value = localToday();
+
+  // If they already submitted this week, load it back in so they can review/edit
+  const weekStart = getWeekStart(localToday());
+  const { data: existing } = await sb.from('check_ins').select('*').eq('user_id', user.id).gte('submission_date', weekStart).order('submission_date', { ascending: false }).limit(1).maybeSingle();
+
+  if (existing) {
+    document.getElementById('ci-date').value = existing.submission_date;
+    document.getElementById('ci-nonscalewin').value = existing.non_scale_win || '';
+    document.getElementById('ci-adherence').value = existing.adherence_rating || '';
+    document.getElementById('ci-energy').value = existing.energy_rating || '';
+    document.getElementById('ci-energy-reason').value = existing.energy_reasoning || '';
+    document.getElementById('ci-strength').value = existing.strength_rating || '';
+    document.getElementById('ci-stress').value = existing.stress_rating || '';
+    document.getElementById('ci-stress-reason').value = existing.stress_reasoning || '';
+    document.getElementById('ci-hunger').value = existing.hunger_rating || '';
+    document.getElementById('ci-sleep').value = existing.sleep_rating || '';
+    document.getElementById('ci-sleep-reason').value = existing.sleep_reasoning || '';
+    document.getElementById('ci-macros').value = existing.macro_deviations || '';
+    document.getElementById('ci-digestion').value = existing.digestion_issues || '';
+    document.getElementById('ci-performance').value = existing.performance || '';
+    document.getElementById('ci-food-relationship').value = existing.food_relationship || '';
+    document.getElementById('ci-mindset').value = existing.mindset || '';
+    document.getElementById('ci-clothing').value = existing.clothing_fit || '';
+    document.getElementById('ci-daily-energy').value = existing.daily_energy || '';
+    document.getElementById('ci-visual').value = existing.visual_appearance || '';
+    document.getElementById('ci-important-dates').value = existing.important_dates || '';
+    document.getElementById('ci-brightspot').value = existing.brightspot || '';
+    document.getElementById('ci-learning').value = existing.learning_request || '';
+    window._currentCheckInId = existing.id;
+  } else {
+    ['ci-nonscalewin','ci-energy-reason','ci-stress-reason','ci-sleep-reason','ci-macros','ci-digestion','ci-performance','ci-food-relationship','ci-mindset','ci-clothing','ci-daily-energy','ci-visual','ci-important-dates','ci-brightspot','ci-learning'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    window._currentCheckInId = null;
+  }
+
+  showPage('checkin');
+}
+
+async function submitCheckIn() {
+  const required = ['ci-date', 'ci-nonscalewin', 'ci-adherence', 'ci-energy', 'ci-energy-reason', 'ci-strength', 'ci-stress', 'ci-stress-reason', 'ci-hunger', 'ci-sleep', 'ci-sleep-reason'];
+  for (const id of required) {
+    if (!document.getElementById(id).value) {
+      alert('Please fill in all required fields before submitting.');
+      document.getElementById(id).scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+  }
+
+  const payload = {
+    user_id: user.id,
+    submission_date: document.getElementById('ci-date').value,
+    non_scale_win: document.getElementById('ci-nonscalewin').value,
+    adherence_rating: parseInt(document.getElementById('ci-adherence').value),
+    energy_rating: parseInt(document.getElementById('ci-energy').value),
+    energy_reasoning: document.getElementById('ci-energy-reason').value,
+    strength_rating: parseInt(document.getElementById('ci-strength').value),
+    stress_rating: parseInt(document.getElementById('ci-stress').value),
+    stress_reasoning: document.getElementById('ci-stress-reason').value,
+    hunger_rating: parseInt(document.getElementById('ci-hunger').value),
+    sleep_rating: parseInt(document.getElementById('ci-sleep').value),
+    sleep_reasoning: document.getElementById('ci-sleep-reason').value,
+    macro_deviations: document.getElementById('ci-macros').value,
+    digestion_issues: document.getElementById('ci-digestion').value,
+    performance: document.getElementById('ci-performance').value,
+    food_relationship: document.getElementById('ci-food-relationship').value,
+    mindset: document.getElementById('ci-mindset').value,
+    clothing_fit: document.getElementById('ci-clothing').value,
+    daily_energy: document.getElementById('ci-daily-energy').value,
+    visual_appearance: document.getElementById('ci-visual').value,
+    important_dates: document.getElementById('ci-important-dates').value,
+    brightspot: document.getElementById('ci-brightspot').value,
+    learning_request: document.getElementById('ci-learning').value
+  };
+
+  let error;
+  if (window._currentCheckInId) {
+    ({ error } = await sb.from('check_ins').update(payload).eq('id', window._currentCheckInId));
+  } else {
+    ({ error } = await sb.from('check_ins').insert(payload));
+  }
+
+  if (error) { alert('Error: ' + error.message); return; }
+
+  alert('Check-in submitted! Thanks for taking the time to reflect. 💪');
+  showPage('myprogram');
+  loadCheckInStatus();
+  loadDailyChecklist();
 }
 
 // ── MY PROGRAM ──
