@@ -106,6 +106,7 @@
     <button class="sb-item" id="sb-members" onclick="showPage('members')"><i class="ti ti-users"></i> All Members</button>
     <button class="sb-item" id="sb-coaches" onclick="showPage('coaches')"><i class="ti ti-user-shield"></i> Coaches</button>
     <button class="sb-item" id="sb-coaching-clients" onclick="showPage('coaching-clients')"><i class="ti ti-user-check"></i> Coaching Clients</button>
+    <button class="sb-item" id="sb-checkins" onclick="showPage('checkins')"><i class="ti ti-clipboard-check"></i> Check-Ins</button>
     <button class="sb-item" id="sb-inquiries" onclick="showPage('inquiries')"><i class="ti ti-mail"></i> Coaching Inquiries</button>
     <button class="sb-item" id="sb-testimonials" onclick="showPage('testimonials')"><i class="ti ti-star"></i> Testimonials</button>
     <div class="sb-label">Content</div>
@@ -250,6 +251,43 @@
       <div class="card">
         <div class="card-header"><h3>Active Coaching Clients</h3><span id="coaching-clients-count" style="font-size:13px;color:var(--g400);"></span></div>
         <div id="coaching-clients-table"><div class="empty">Loading...</div></div>
+      </div>
+    </div>
+
+    <!-- CHECK-INS -->
+    <div class="page" id="page-checkins">
+      <div class="page-title">Check-Ins</div>
+      <div class="page-sub">Every weekly check-in submitted by your coaching clients.</div>
+
+      <div class="card" style="padding:16px 20px;margin-bottom:16px;">
+        <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;">
+          <div class="fg" style="margin-bottom:0;"><label>Client name</label>
+            <input type="text" id="ci-filter-name" placeholder="Search by name..." oninput="loadCheckIns()" />
+          </div>
+          <div class="fg" style="margin-bottom:0;"><label>From date</label>
+            <input type="date" id="ci-filter-from" onchange="loadCheckIns()" />
+          </div>
+          <div class="fg" style="margin-bottom:0;"><label>To date</label>
+            <input type="date" id="ci-filter-to" onchange="loadCheckIns()" />
+          </div>
+          <button class="btn btn-ghost" onclick="clearCheckInFilters()">Clear filters</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h3>Submissions</h3><span id="checkins-count" style="font-size:13px;color:var(--g400);"></span></div>
+        <div id="checkins-list"><div class="empty">Loading...</div></div>
+      </div>
+    </div>
+
+    <!-- CHECK-IN DETAIL MODAL -->
+    <div id="checkin-detail-modal" style="display:none;position:fixed;inset:0;background:rgba(8,15,23,0.7);z-index:999;align-items:flex-start;justify-content:center;padding:40px 20px;overflow-y:auto;">
+      <div style="background:white;border-radius:16px;padding:28px;max-width:640px;width:100%;margin-bottom:40px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <div id="checkin-detail-title" style="font-size:18px;font-weight:800;color:var(--navy);"></div>
+          <button onclick="document.getElementById('checkin-detail-modal').style.display='none';" style="background:none;border:none;cursor:pointer;color:var(--gray-400);font-size:20px;">✕</button>
+        </div>
+        <div id="checkin-detail-body" style="display:flex;flex-direction:column;gap:14px;"></div>
       </div>
     </div>
 
@@ -674,6 +712,7 @@ function showPage(name) {
   if (name === 'members') loadMembers();
   if (name === 'coaches') loadCoaches();
   if (name === 'coaching-clients') loadCoachingClients();
+  if (name === 'checkins') loadCheckIns();
   if (name === 'inquiries') loadInquiries();
   if (name === 'testimonials') loadTestimonials();
   if (name === 'workouts') loadPlans();
@@ -2225,7 +2264,7 @@ function filterCoachingClients() {
   }
   
   // Main table with expiry badges
-  html += '<table><thead><tr><th>Name</th><th>Coach</th><th>Start Date</th><th>End Date</th><th>Expires In</th><th>Status</th><th>Action</th></tr></thead><tbody>';
+  html += '<table><thead><tr><th>Name</th><th>Coach</th><th>Start Date</th><th>End Date</th><th>Expires In</th><th>Status</th><th>Check-in Day</th><th>Action</th></tr></thead><tbody>';
   
   clientsWithExpiry.forEach(c => {
     const profile = allCoachingProfiles[c.user_id];
@@ -2269,6 +2308,14 @@ function filterCoachingClients() {
     
     coachDropdown += '</select>';
     
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    let checkInDayDropdown = '<select onchange="setCheckInDay(\'' + c.id + '\', this.value)" style="padding:6px 10px;border:1.5px solid var(--g200);border-radius:6px;font-size:12px;font-family:Inter,sans-serif;outline:none;cursor:pointer;background:white;"><option value="">Not set</option>';
+    dayNames.forEach((d, i) => {
+      const selected = c.check_in_day === i ? ' selected' : '';
+      checkInDayDropdown += '<option value="' + i + '"' + selected + '>' + d + '</option>';
+    });
+    checkInDayDropdown += '</select>';
+
     html += '<tr>';
     html += '<td>' + name + '</td>';
     html += '<td>' + coachDropdown + '</td>';
@@ -2276,6 +2323,7 @@ function filterCoachingClients() {
     html += '<td>' + endDate + '</td>';
     html += '<td><span class="badge ' + expiryBadgeClass + '">' + expiryText + '</span></td>';
     html += '<td>' + status + '</td>';
+    html += '<td>' + checkInDayDropdown + '</td>';
     html += '<td style="display:flex;gap:6px;flex-wrap:wrap;"><button class="btn btn-primary" style="font-size:12px;padding:5px 10px;" onclick="openFullCoachDashboard(\'' + (c.user_id || '') + '\', \'' + encodeURIComponent(name) + '\')">View Dashboard</button><button class="btn btn-ghost" style="font-size:12px;padding:5px 10px;" onclick="openClientDetail(\'' + (c.user_id || '') + '\', \'' + encodeURIComponent(name) + '\')">Quick Info</button><button class="btn btn-secondary" style="font-size:12px;padding:5px 10px;" onclick="openExtendModal(\'' + c.id + '\', \'' + (c.coaching_end_date || '') + '\', \'' + encodeURIComponent(name) + '\')">Extend</button><button class="btn btn-danger" style="font-size:12px;padding:5px 10px;" onclick="removeFromCoaching(\'' + c.id + '\', \'' + encodeURIComponent(name) + '\')">Remove</button></td>';
     html += '</tr>';
   });
@@ -2560,6 +2608,112 @@ async function generateCoachingCheckout() {
 
 let currentExtendClientId = null;
 let currentExtendBaseDate = null;
+
+async function setCheckInDay(coachingClientId, dayValue) {
+  const dayInt = dayValue === '' ? null : parseInt(dayValue);
+  const { error } = await sb.from('coaching_clients').update({ check_in_day: dayInt }).eq('id', coachingClientId);
+  if (error) { alert('Error: ' + error.message); return; }
+  showAlert('alert-coaching-clients', 'Check-in day updated!');
+}
+
+async function loadCheckIns() {
+  const nameFilter = document.getElementById('ci-filter-name')?.value.trim().toLowerCase() || '';
+  const fromDate = document.getElementById('ci-filter-from')?.value || '';
+  const toDate = document.getElementById('ci-filter-to')?.value || '';
+
+  let query = sb.from('check_ins').select('*').order('submission_date', { ascending: false });
+  if (fromDate) query = query.gte('submission_date', fromDate);
+  if (toDate) query = query.lte('submission_date', toDate);
+
+  const { data: checkIns } = await query;
+  const el = document.getElementById('checkins-list');
+
+  if (!checkIns?.length) {
+    el.innerHTML = '<div class="empty">No check-ins found.</div>';
+    document.getElementById('checkins-count').textContent = '0 submissions';
+    return;
+  }
+
+  const userIds = [...new Set(checkIns.map(c => c.user_id))];
+  const { data: profiles } = await sb.from('profiles').select('id,first_name,last_name,email').in('id', userIds);
+  const profileMap = {};
+  (profiles || []).forEach(p => { profileMap[p.id] = p; });
+
+  let filtered = checkIns.map(c => {
+    const p = profileMap[c.user_id];
+    const name = p ? ((p.first_name || p.last_name) ? (p.first_name + ' ' + (p.last_name || '')).trim() : p.email) : 'Unknown';
+    return { ...c, _displayName: name };
+  });
+
+  if (nameFilter) {
+    filtered = filtered.filter(c => c._displayName.toLowerCase().includes(nameFilter));
+  }
+
+  document.getElementById('checkins-count').textContent = filtered.length + ' submission' + (filtered.length === 1 ? '' : 's');
+
+  if (!filtered.length) {
+    el.innerHTML = '<div class="empty">No check-ins match your filters.</div>';
+    return;
+  }
+
+  window._checkInsCache = {};
+  filtered.forEach(c => { window._checkInsCache[c.id] = c; });
+
+  el.innerHTML = '<table><thead><tr><th>Name</th><th>Date</th><th>Adherence</th><th>Energy</th><th>Stress</th><th>Action</th></tr></thead><tbody>' +
+    filtered.map(c =>
+      '<tr><td style="font-weight:600;">' + c._displayName + '</td>' +
+      '<td>' + new Date(c.submission_date + 'T12:00:00').toLocaleDateString() + '</td>' +
+      '<td>' + (c.adherence_rating != null ? c.adherence_rating + '/10' : '—') + '</td>' +
+      '<td>' + (c.energy_rating != null ? c.energy_rating + '/10' : '—') + '</td>' +
+      '<td>' + (c.stress_rating != null ? c.stress_rating + '/10' : '—') + '</td>' +
+      '<td><button class="btn btn-ghost" style="font-size:12px;padding:5px 10px;" onclick="viewCheckInDetail(\'' + c.id + '\')">View Full Answers</button></td></tr>'
+    ).join('') +
+    '</tbody></table>';
+}
+
+function clearCheckInFilters() {
+  document.getElementById('ci-filter-name').value = '';
+  document.getElementById('ci-filter-from').value = '';
+  document.getElementById('ci-filter-to').value = '';
+  loadCheckIns();
+}
+
+function viewCheckInDetail(id) {
+  const c = window._checkInsCache[id];
+  if (!c) return;
+  document.getElementById('checkin-detail-title').textContent = c._displayName + ' — ' + new Date(c.submission_date + 'T12:00:00').toLocaleDateString();
+
+  const rows = [
+    ['Non-Scale Win', c.non_scale_win],
+    ['Adherence Rating', c.adherence_rating != null ? c.adherence_rating + '/10' : null],
+    ['Energy Rating', c.energy_rating != null ? c.energy_rating + '/10' : null],
+    ['Energy Reasoning', c.energy_reasoning],
+    ['Strength & Endurance Rating', c.strength_rating != null ? c.strength_rating + '/10' : null],
+    ['Stress Rating', c.stress_rating != null ? c.stress_rating + '/10' : null],
+    ['Stress Reasoning', c.stress_reasoning],
+    ['Hunger Rating', c.hunger_rating != null ? c.hunger_rating + '/10' : null],
+    ['Sleep Rating', c.sleep_rating != null ? c.sleep_rating + '/8' : null],
+    ['Sleep Reasoning', c.sleep_reasoning],
+    ['Macro/Eating Deviations', c.macro_deviations],
+    ['Digestion Issues', c.digestion_issues],
+    ['Performance', c.performance],
+    ['Relationship with Food', c.food_relationship],
+    ['Mindset', c.mindset],
+    ['Clothing Fit', c.clothing_fit],
+    ['Daily Energy', c.daily_energy],
+    ['Visual Appearance', c.visual_appearance],
+    ['Important Dates', c.important_dates],
+    ['Brightspot', c.brightspot],
+    ['Learning Request', c.learning_request]
+  ];
+
+  document.getElementById('checkin-detail-body').innerHTML = rows.map(([label, value]) =>
+    '<div><div style="font-size:11px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px;">' + label + '</div>' +
+    '<div style="font-size:14px;color:var(--gray-800);white-space:pre-wrap;">' + (value || '—') + '</div></div>'
+  ).join('<hr style="border:none;border-top:1px solid var(--gray-200);margin:2px 0;">');
+
+  document.getElementById('checkin-detail-modal').style.display = 'flex';
+}
 
 function openExtendModal(coachingClientId, currentEndDate, clientName) {
   currentExtendClientId = coachingClientId;
