@@ -2276,12 +2276,20 @@ function filterCoachingClients() {
     html += '<td>' + endDate + '</td>';
     html += '<td><span class="badge ' + expiryBadgeClass + '">' + expiryText + '</span></td>';
     html += '<td>' + status + '</td>';
-    html += '<td style="display:flex;gap:6px;"><button class="btn btn-ghost" style="font-size:12px;padding:5px 10px;" onclick="openClientDetail(\'' + (c.user_id || '') + '\', \'' + encodeURIComponent(name) + '\')">View</button><button class="btn btn-secondary" style="font-size:12px;padding:5px 10px;" onclick="openExtendModal(\'' + c.id + '\', \'' + (c.coaching_end_date || '') + '\', \'' + encodeURIComponent(name) + '\')">Extend</button><button class="btn btn-danger" style="font-size:12px;padding:5px 10px;" onclick="removeFromCoaching(\'' + c.id + '\', \'' + encodeURIComponent(name) + '\')">Remove</button></td>';
+    html += '<td style="display:flex;gap:6px;flex-wrap:wrap;"><button class="btn btn-primary" style="font-size:12px;padding:5px 10px;" onclick="openFullCoachDashboard(\'' + (c.user_id || '') + '\', \'' + encodeURIComponent(name) + '\')">View Dashboard</button><button class="btn btn-ghost" style="font-size:12px;padding:5px 10px;" onclick="openClientDetail(\'' + (c.user_id || '') + '\', \'' + encodeURIComponent(name) + '\')">Quick Info</button><button class="btn btn-secondary" style="font-size:12px;padding:5px 10px;" onclick="openExtendModal(\'' + c.id + '\', \'' + (c.coaching_end_date || '') + '\', \'' + encodeURIComponent(name) + '\')">Extend</button><button class="btn btn-danger" style="font-size:12px;padding:5px 10px;" onclick="removeFromCoaching(\'' + c.id + '\', \'' + encodeURIComponent(name) + '\')">Remove</button></td>';
     html += '</tr>';
   });
   
   html += '</tbody></table>';
   document.getElementById('coaching-clients-table').innerHTML = html;
+}
+
+function openFullCoachDashboard(userId, clientName) {
+  if (!userId) {
+    alert('This client has not yet created an account. Their dashboard will be available once they sign up.');
+    return;
+  }
+  window.open('/dashboard.html?coachView=' + userId, '_blank');
 }
 
 async function openClientDetail(userId, clientName) {
