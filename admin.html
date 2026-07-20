@@ -397,6 +397,7 @@
             </select>
           </div>
         </div>
+        <label style="display:flex;align-items:center;gap:7px;font-size:13px;color:var(--gray-800);cursor:pointer;font-weight:500;margin-bottom:14px;"><input type="checkbox" id="ex-lib-core" style="accent-color:var(--orange);width:16px;height:16px;"> This is a core exercise (shows in the Core tab for members)</label>
         <button class="btn btn-primary" onclick="addLibraryExercise()">Add to library</button>
       </div>
       <div class="card">
@@ -1439,10 +1440,12 @@ const EQUIPMENT_BADGES = { full_gym: 'badge-blue', limited_equipment: 'badge-ora
 async function addLibraryExercise() {
   const name = document.getElementById('ex-lib-name').value.trim();
   const category = document.getElementById('ex-lib-category').value;
+  const isCore = document.getElementById('ex-lib-core').checked;
   if (!name) { alert('Please enter an exercise name.'); return; }
-  const { error } = await sb.from('exercises').upsert({ name, equipment_category: category }, { onConflict: 'name' });
+  const { error } = await sb.from('exercises').upsert({ name, equipment_category: category, is_core: isCore }, { onConflict: 'name' });
   if (!error) {
     document.getElementById('ex-lib-name').value = '';
+    document.getElementById('ex-lib-core').checked = false;
     showAlert('alert-exercises', '"' + name + '" added to the library!');
     loadExerciseLibrary();
   } else alert('Error: ' + error.message);
@@ -1458,14 +1461,19 @@ async function loadExerciseLibrary() {
   const altCountByName = {};
   (altData || []).forEach(a => { altCountByName[a.exercise_name.toLowerCase()] = (a.alternates || []).length; });
 
-  el.innerHTML = '<table><thead><tr><th>Exercise</th><th>Equipment</th><th>Alternatives</th><th>Action</th></tr></thead><tbody>' +
+  el.innerHTML = '<table><thead><tr><th>Exercise</th><th>Equipment</th><th>Core</th><th>Alternatives</th><th>Action</th></tr></thead><tbody>' +
     data.map(e => {
       const altCount = altCountByName[e.name.toLowerCase()] || 0;
       return '<tr><td style="font-weight:600;">' + e.name + '</td><td><select onchange="updateExerciseCategory(\'' + e.id + '\', this.value)" class="status-select"><option value="full_gym"' + (e.equipment_category==='full_gym'?' selected':'') + '>Full Gym</option><option value="limited_equipment"' + (e.equipment_category==='limited_equipment'?' selected':'') + '>Limited Equipment</option><option value="bodyweight"' + (e.equipment_category==='bodyweight'?' selected':'') + '>Bodyweight</option></select></td>' +
+        '<td><input type="checkbox" onchange="updateExerciseIsCore(\'' + e.id + '\', this.checked)"' + (e.is_core ? ' checked' : '') + ' style="width:16px;height:16px;accent-color:var(--orange);cursor:pointer;" /></td>' +
         '<td>' + (altCount > 0 ? altCount + ' set' : '<span style="color:var(--gray-400);">None</span>') + '</td>' +
         '<td><button class="btn btn-ghost" onclick="openAlternatesModal(\'' + e.name.replace(/'/g, "\\'") + '\')">Alternates</button> <button class="btn btn-danger" onclick="deleteLibraryExercise(\'' + e.id + '\')">Delete</button></td></tr>';
     }).join('') +
     '</tbody></table>';
+}
+
+async function updateExerciseIsCore(id, isCore) {
+  await sb.from('exercises').update({ is_core: isCore }).eq('id', id);
 }
 
 async function updateExerciseCategory(id, category) {
