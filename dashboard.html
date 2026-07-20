@@ -951,6 +951,7 @@
       <div style="margin-bottom:24px;">
         <div style="display:flex;gap:8px;border-bottom:2px solid var(--g200);margin-bottom:20px;">
           <button id="tab-workouts" onclick="switchTrainingTab('workouts')" style="background:none;border:none;padding:12px 16px;font-size:14px;font-weight:600;color:var(--navy);cursor:pointer;border-bottom:3px solid var(--orange);font-family:Inter,sans-serif;">Workout Plans</button>
+          <button id="tab-core" onclick="switchTrainingTab('core')" style="background:none;border:none;padding:12px 16px;font-size:14px;font-weight:600;color:var(--g600);cursor:pointer;border-bottom:3px solid transparent;font-family:Inter,sans-serif;">Core</button>
           <button id="tab-cardio" onclick="switchTrainingTab('cardio')" style="background:none;border:none;padding:12px 16px;font-size:14px;font-weight:600;color:var(--g600);cursor:pointer;border-bottom:3px solid transparent;font-family:Inter,sans-serif;">Cardio</button>
           <button id="tab-pain" onclick="switchTrainingTab('pain')" style="background:none;border:none;padding:12px 16px;font-size:14px;font-weight:600;color:var(--g600);cursor:pointer;border-bottom:3px solid transparent;font-family:Inter,sans-serif;">Pain Management</button>
         </div>
@@ -966,6 +967,14 @@
             </select>
           </div>
           <div id="plans-container"><div class="empty" style="padding:48px;text-align:center;">Loading plans...</div></div>
+        </div>
+
+        <!-- CORE TAB -->
+        <div id="training-tab-core" style="display:none;">
+          <div autocomplete="off" style="margin-bottom:16px;">
+            <input type="text" id="core-search" name="core-search" placeholder="Search core exercises..." autocomplete="off" style="width:100%;max-width:400px;padding:8px 12px;border:1.5px solid var(--g200);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;" onkeyup="filterCoreOptions()" />
+          </div>
+          <div id="core-options-container"></div>
         </div>
 
         <!-- CARDIO TAB -->
@@ -2887,19 +2896,22 @@ function getDayExerciseList(day) {
 
 // ── TRAINING TABS ──
 let allWorkoutPlans = [];
+let allCoreOptions = [];
 let allCardioOptions = [];
 let allPainPlans = [];
+let userCoreSelection = [];
 let userCardioSelection = [];
 let userPainSelection = [];
 
 function switchTrainingTab(tabName) {
   // Hide all tabs
   document.getElementById('training-tab-workouts').style.display = 'none';
+  document.getElementById('training-tab-core').style.display = 'none';
   document.getElementById('training-tab-cardio').style.display = 'none';
   document.getElementById('training-tab-pain').style.display = 'none';
   
   // Update button styles
-  ['workouts', 'cardio', 'pain'].forEach(tab => {
+  ['workouts', 'core', 'cardio', 'pain'].forEach(tab => {
     const btn = document.getElementById('tab-' + tab);
     btn.style.color = tab === tabName ? 'var(--navy)' : 'var(--g600)';
     btn.style.borderBottom = tab === tabName ? '3px solid var(--orange)' : '3px solid transparent';
@@ -2910,6 +2922,8 @@ function switchTrainingTab(tabName) {
   
   if (tabName === 'workouts') {
     filterWorkoutPlans();
+  } else if (tabName === 'core') {
+    loadCoreOptions();
   } else if (tabName === 'cardio') {
     loadCardioOptions();
   } else if (tabName === 'pain') {
@@ -3013,6 +3027,120 @@ function togglePlanDetails(planId) {
     detailsDiv.innerHTML = detailsHtml;
     detailsDiv.style.display = 'block';
     btn.innerHTML = '<i class="ti ti-chevron-up" aria-hidden="true"></i> Hide workout';
+  }
+}
+
+async function loadCoreOptions() {
+  allCoreOptions = [];
+  const { data: coreData } = await sb.from('exercises').select('*').eq('is_core', true).order('name');
+  allCoreOptions = coreData || [];
+
+  const { data: userCore } = await sb.from('user_core').select('*').eq('user_id', user.id);
+  userCoreSelection = userCore || [];
+
+  filterCoreOptions();
+}
+
+function filterCoreOptions() {
+  const search = document.getElementById('core-search').value.toLowerCase();
+  let filtered = allCoreOptions.filter(c => c.name.toLowerCase().includes(search));
+
+  let html = '';
+  if (filtered.length === 0) {
+    html = '<div class="empty" style="padding:48px;text-align:center;">' + (allCoreOptions.length === 0 ? 'No core exercises yet — check back soon!' : 'No matching core exercises found') + '</div>';
+  } else {
+    html = filtered.map(c => {
+      return '<div style="background:white;border:1px solid var(--g200);border-radius:14px;padding:24px;margin-bottom:16px;">' +
+        '<div style="font-size:18px;font-weight:700;color:var(--navy);margin-bottom:12px;">' + c.name + '</div>' +
+        '<div style="margin-bottom:12px;"><label style="font-size:12px;font-weight:600;color:var(--g600);display:block;margin-bottom:8px;">Sets x Reps:</label>' +
+        '<input type="text" id="core-setsreps-' + c.id + '" placeholder="e.g. 3x15" style="width:100%;max-width:200px;padding:8px 12px;border:1.5px solid var(--g200);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;" /></div>' +
+        '<div style="margin-bottom:12px;"><label style="font-size:12px;font-weight:600;color:var(--g600);display:block;margin-bottom:8px;">Select Days:</label>' +
+        '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;" id="core-days-' + c.id + '">' +
+        ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, i) => '<button class="day-btn" data-day="' + i + '" data-selected="false" onclick="toggleCoreDay(this,\'' + c.id + '\')" style="background:var(--g100);color:var(--navy);border:none;padding:8px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;">' + day + '</button>').join('') +
+        '</div></div>' +
+        '<div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;">' +
+        '<button onclick="showRecommendedAlternativesFor(\'' + c.name.replace(/'/g, "\\'") + '\', \'core-alts-' + c.id + '\')" style="background:none;border:none;color:var(--orange);font-size:12px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;display:flex;align-items:center;gap:4px;"><i class="ti ti-bulb" aria-hidden="true"></i> Recommend alternatives</button>' +
+        '</div>' +
+        '<div id="core-alts-' + c.id + '" style="display:none;margin-bottom:12px;"></div>' +
+        '<button onclick="addCore(\'' + c.id + '\', \'' + c.name.replace(/'/g, "\\'") + '\')" style="width:100%;background:var(--orange);color:white;border:none;padding:14px;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">Add to routine</button>' +
+        '</div>';
+    }).join('');
+  }
+
+  document.getElementById('core-options-container').innerHTML = html;
+}
+
+function toggleCoreDay(btn, coreId) {
+  const isSelected = btn.getAttribute('data-selected') === 'true';
+  btn.setAttribute('data-selected', !isSelected);
+
+  if (isSelected) {
+    btn.style.background = 'var(--g100)';
+    btn.style.color = 'var(--navy)';
+  } else {
+    btn.style.background = 'var(--orange)';
+    btn.style.color = 'white';
+  }
+}
+
+async function showRecommendedAlternativesFor(exerciseName, containerId) {
+  const box = document.getElementById(containerId);
+  const isOpen = box.style.display === 'block';
+  if (isOpen) { box.style.display = 'none'; return; }
+
+  const { data } = await sb.from('exercise_alternatives').select('alternates').ilike('exercise_name', exerciseName.trim()).maybeSingle();
+  const alternates = data?.alternates || [];
+
+  if (!alternates.length) {
+    box.innerHTML = '<div style="font-size:13px;color:var(--g400);text-align:center;padding:8px 0;">No alternatives listed for this exercise yet.</div>';
+  } else {
+    box.innerHTML = '<div style="display:flex;flex-direction:column;gap:8px;">' +
+      alternates.map(a => {
+        const name = typeof a === 'string' ? a : a.name;
+        const isHome = typeof a === 'object' && a.home;
+        return '<div style="background:var(--off);border:1px solid var(--g200);padding:10px 12px;border-radius:8px;font-size:13px;font-weight:600;color:var(--navy);display:flex;align-items:center;justify-content:space-between;gap:8px;">' +
+          '<span>' + name + '</span>' +
+          (isHome ? '<span style="font-size:10px;font-weight:700;color:#16A34A;background:#F0FDF4;padding:2px 8px;border-radius:20px;flex-shrink:0;">HOME OPTION</span>' : '') +
+          '</div>';
+      }).join('') +
+      '</div>';
+  }
+  box.style.display = 'block';
+}
+
+async function addCore(coreId, exerciseName) {
+  const daysContainer = document.getElementById('core-days-' + coreId);
+  const dayBtns = daysContainer.querySelectorAll('button');
+  const selectedDays = [];
+
+  dayBtns.forEach(btn => {
+    if (btn.getAttribute('data-selected') === 'true') {
+      selectedDays.push(btn.getAttribute('data-day'));
+    }
+  });
+
+  if (selectedDays.length === 0) {
+    alert('Please select at least one day');
+    return;
+  }
+
+  const setsReps = document.getElementById('core-setsreps-' + coreId).value.trim();
+
+  try {
+    const { error } = await sb.from('user_core').insert({
+      user_id: user.id,
+      exercise_name: exerciseName,
+      sets_reps: setsReps || null,
+      days: selectedDays
+    });
+
+    if (error) throw error;
+
+    alert('✓ Core exercise added!');
+    loadCoreOptions();
+  } catch (err) {
+    console.error('Error:', err);
+    alert('Error: ' + err.message);
   }
 }
 
