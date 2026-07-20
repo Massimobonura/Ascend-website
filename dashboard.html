@@ -288,6 +288,7 @@
     .mobile-nav { display: none; }
     @media (max-width: 768px) {
       #hamburger-btn { display: block !important; }
+      .training-tab-btn { padding: 10px 8px !important; font-size: 12px !important; }
       .sidebar {
         display: block;
         position: fixed;
@@ -950,11 +951,11 @@
       <!-- Training Tabs -->
       <div style="margin-bottom:24px;">
         <div style="display:flex;gap:8px;border-bottom:2px solid var(--g200);margin-bottom:20px;">
-          <button id="tab-workouts" onclick="switchTrainingTab('workouts')" style="background:none;border:none;padding:12px 16px;font-size:14px;font-weight:600;color:var(--navy);cursor:pointer;border-bottom:3px solid var(--orange);font-family:Inter,sans-serif;">Workout Plans</button>
-          <button id="tab-core" onclick="switchTrainingTab('core')" style="background:none;border:none;padding:12px 16px;font-size:14px;font-weight:600;color:var(--g600);cursor:pointer;border-bottom:3px solid transparent;font-family:Inter,sans-serif;">Core</button>
-          <button id="tab-cardio" onclick="switchTrainingTab('cardio')" style="background:none;border:none;padding:12px 16px;font-size:14px;font-weight:600;color:var(--g600);cursor:pointer;border-bottom:3px solid transparent;font-family:Inter,sans-serif;">Cardio</button>
-          <button id="tab-stretch" onclick="switchTrainingTab('stretch')" style="background:none;border:none;padding:12px 16px;font-size:14px;font-weight:600;color:var(--g600);cursor:pointer;border-bottom:3px solid transparent;font-family:Inter,sans-serif;">Stretches</button>
-          <button id="tab-pain" onclick="switchTrainingTab('pain')" style="background:none;border:none;padding:12px 16px;font-size:14px;font-weight:600;color:var(--g600);cursor:pointer;border-bottom:3px solid transparent;font-family:Inter,sans-serif;">Pain Management</button>
+          <button id="tab-workouts" class="training-tab-btn" onclick="switchTrainingTab('workouts')" style="background:none;border:none;padding:12px 16px;font-size:14px;font-weight:600;color:var(--navy);cursor:pointer;border-bottom:3px solid var(--orange);font-family:Inter,sans-serif;white-space:nowrap;">Workout Plans</button>
+          <button id="tab-core" class="training-tab-btn" onclick="switchTrainingTab('core')" style="background:none;border:none;padding:12px 16px;font-size:14px;font-weight:600;color:var(--g600);cursor:pointer;border-bottom:3px solid transparent;font-family:Inter,sans-serif;white-space:nowrap;">Core</button>
+          <button id="tab-cardio" class="training-tab-btn" onclick="switchTrainingTab('cardio')" style="background:none;border:none;padding:12px 16px;font-size:14px;font-weight:600;color:var(--g600);cursor:pointer;border-bottom:3px solid transparent;font-family:Inter,sans-serif;white-space:nowrap;">Cardio</button>
+          <button id="tab-stretch" class="training-tab-btn" onclick="switchTrainingTab('stretch')" style="background:none;border:none;padding:12px 16px;font-size:14px;font-weight:600;color:var(--g600);cursor:pointer;border-bottom:3px solid transparent;font-family:Inter,sans-serif;white-space:nowrap;">Stretches</button>
+          <button id="tab-pain" class="training-tab-btn" onclick="switchTrainingTab('pain')" style="background:none;border:none;padding:12px 16px;font-size:14px;font-weight:600;color:var(--g600);cursor:pointer;border-bottom:3px solid transparent;font-family:Inter,sans-serif;white-space:nowrap;">Pain Management</button>
         </div>
 
         <!-- WORKOUT PLANS TAB -->
