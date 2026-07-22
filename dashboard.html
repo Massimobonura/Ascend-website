@@ -1866,13 +1866,14 @@ function showPage(name) {
 // ── DAILY CHECKLIST ──
 async function loadDailyChecklist() {
   const today = localToday();
-  const [w, n, wt, h, customHabitsRes, coachingClientRes] = await Promise.all([
+  const [w, n, wt, h, customHabitsRes, coachingClientRes, profileRes] = await Promise.all([
     sb.from('workouts').select('id').eq('user_id', user.id).eq('date', today),
     sb.from('nutrition').select('id').eq('user_id', user.id).eq('date', today),
     sb.from('weight_logs').select('id').eq('user_id', user.id).eq('date', today),
     sb.from('habits').select('*').eq('user_id', user.id).eq('date', today).maybeSingle(),
     sb.from('custom_habits').select('*').eq('user_id', user.id).order('created_at'),
-    sb.from('coaching_clients').select('check_in_day').eq('user_id', user.id).maybeSingle()
+    sb.from('coaching_clients').select('check_in_day').eq('user_id', user.id).maybeSingle(),
+    sb.from('profiles').select('workout_schedule').eq('id', user.id).single()
   ]);
   const habits = h.data;
   const customHabitsList = customHabitsRes.data || [];
@@ -1883,8 +1884,18 @@ async function loadDailyChecklist() {
     (customLogs || []).forEach(l => { customLogsMap[l.habit_id] = l.value; });
   }
 
+  const todayWeekday = new Date(today + 'T12:00:00').getDay();
+  const schedule = (profileRes.data?.workout_schedule || []).map(Number);
+  const isScheduledLiftDay = schedule.includes(todayWeekday);
+  let workoutLabel = 'Log today\'s workout';
+  if (!isScheduledLiftDay) {
+    const { data: coreItems } = await sb.from('user_core').select('days').eq('user_id', user.id);
+    const hasCoreToday = (coreItems || []).some(c => (c.days || []).map(Number).includes(todayWeekday));
+    if (hasCoreToday) workoutLabel = 'Log today\'s core workout';
+  }
+
   const items = [
-    { icon: 'ti-barbell', label: 'Log today\'s workout', done: w.data && w.data.length > 0, page: 'workouts' },
+    { icon: 'ti-barbell', label: workoutLabel, done: w.data && w.data.length > 0, page: 'workouts' },
     { icon: 'ti-clock', label: 'Log your nutrition', done: n.data && n.data.length > 0, page: 'nutrition' },
     { icon: 'ti-scale', label: 'Log your weight', done: wt.data && wt.data.length > 0, page: 'weight' },
     { icon: 'ti-droplet', label: habits ? 'Water — ' + (habits.water_cups || 0) + ' oz logged' : 'Log your water intake', done: habits && habits.water_cups >= habitTargets.water, page: 'habits' },
@@ -2052,7 +2063,31 @@ async function loadWorkoutSession() {
     if (idx !== -1) activeDayIndex = idx;
   }
 
-  let html = '<div style="background:white;border:1px solid var(--g200);border-radius:14px;padding:24px;margin-bottom:20px;">' +
+  // If today isn't one of their scheduled lift days, but they've got core exercises
+  // assigned for today anyway, show a simple standalone Core Day panel above the
+  // regular lift-day view so they're not left without a way to log it.
+  let offScheduleCoreHtml = '';
+  if (!scheduledDayNum) {
+    const { data: coreItems } = await sb.from('user_core').select('*').eq('user_id', user.id);
+    const todaysCore = (coreItems || []).filter(c => (c.days || []).map(Number).includes(todayWeekday));
+    if (todaysCore.length) {
+      offScheduleCoreHtml = '<div style="background:white;border:1px solid var(--orange);border-radius:14px;padding:24px;margin-bottom:20px;">' +
+        '<div style="font-size:16px;font-weight:700;color:var(--navy);margin-bottom:4px;">Today\'s Core Workout</div>' +
+        '<div style="font-size:13px;color:var(--g600);margin-bottom:16px;">You\'re not scheduled to lift today, but you\'ve got core work on the books.</div>' +
+        todaysCore.map(c =>
+          '<div style="background:var(--off);border-radius:10px;padding:14px 16px;margin-bottom:10px;">' +
+          '<div style="font-size:14px;font-weight:700;color:var(--navy);margin-bottom:4px;">' + c.exercise_name + '</div>' +
+          (c.sets_reps ? '<div style="font-size:12px;color:var(--g400);margin-bottom:10px;">' + c.sets_reps + '</div>' : '') +
+          '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--g800);font-weight:600;">' +
+          '<input type="checkbox" id="offcore-done-' + c.id + '" data-exercise-name="' + c.exercise_name.replace(/"/g, '&quot;') + '" onchange="markCoreDone(\'' + c.id.replace(/'/g, "\\'") + '\', \'' + c.exercise_name.replace(/'/g, "\\'") + '\', this.checked)" style="width:18px;height:18px;accent-color:var(--orange);cursor:pointer;"> Done' +
+          '</label>' +
+          '</div>'
+        ).join('') +
+        '</div>';
+    }
+  }
+
+  let html = offScheduleCoreHtml + '<div style="background:white;border:1px solid var(--g200);border-radius:14px;padding:24px;margin-bottom:20px;">' +
     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">' +
     '<div><div style="font-size:16px;font-weight:700;color:var(--navy);">' + plan.name + '</div>' +
     '<div style="font-size:13px;color:var(--g600);">Pick a day to log today\'s workout</div></div>' +
@@ -2072,6 +2107,15 @@ async function loadWorkoutSession() {
 
   container.innerHTML = html;
   document.getElementById('session-date').value = localToday();
+
+  if (offScheduleCoreHtml) {
+    const { data: loggedToday } = await sb.from('workouts').select('exercise').eq('user_id', user.id).eq('date', localToday());
+    const loggedNames = new Set((loggedToday || []).map(w => w.exercise));
+    document.querySelectorAll('[id^="offcore-done-"]').forEach(cb => {
+      if (loggedNames.has(cb.dataset.exerciseName)) cb.checked = true;
+    });
+  }
+
   renderDayExercises();
 }
 
@@ -2086,7 +2130,7 @@ let savedExerciseState = {}; // key -> true once saved this session
 let currentDraftData = {}; // key -> { numSets, sets: [{reps,weight}], notes }
 let draftSaveTimer = null;
 
-function renderDayExercises() {
+async function renderDayExercises() {
   if (!activePlan) return;
   const day = activePlan.plan_days[activeDayIndex];
   sessionExerciseInputs = {};
@@ -2153,6 +2197,52 @@ function renderDayExercises() {
   // Build initial set rows for each exercise (applies any saved draft automatically)
   flatList.forEach((ex, i) => rebuildSetRows(activeDayIndex + '_' + i));
   loadWorkoutDraft();
+
+  await appendCoreSectionForPlanDay(container, day.day);
+}
+
+async function appendCoreSectionForPlanDay(container, planDayNumber) {
+  const { data: profile } = await sb.from('profiles').select('workout_schedule').eq('id', user.id).single();
+  const schedule = (profile?.workout_schedule || []).map(Number).sort((a, b) => a - b);
+  const weekday = schedule[planDayNumber - 1];
+  if (weekday === undefined) return;
+
+  const { data: coreItems } = await sb.from('user_core').select('*').eq('user_id', user.id);
+  const todaysCore = (coreItems || []).filter(c => (c.days || []).map(Number).includes(weekday));
+  if (!todaysCore.length) return;
+
+  const coreHtml = '<div style="font-size:11px;font-weight:700;color:var(--orange);text-transform:uppercase;letter-spacing:0.06em;margin:14px 0 8px;">Core</div>' +
+    todaysCore.map((c, i) => {
+      const doneKey = 'core-done-' + c.id;
+      return '<div style="background:var(--off);border-radius:10px;padding:14px 16px;margin-bottom:10px;">' +
+        '<div style="font-size:14px;font-weight:700;color:var(--navy);margin-bottom:4px;">' + c.exercise_name + '</div>' +
+        (c.sets_reps ? '<div style="font-size:12px;color:var(--g400);margin-bottom:10px;">' + c.sets_reps + '</div>' : '') +
+        '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--g800);font-weight:600;">' +
+        '<input type="checkbox" id="' + doneKey + '" onchange="markCoreDone(\'' + c.id.replace(/'/g, "\\'") + '\', \'' + c.exercise_name.replace(/'/g, "\\'") + '\', this.checked)" style="width:18px;height:18px;accent-color:var(--orange);cursor:pointer;"> Done' +
+        '</label>' +
+        '</div>';
+    }).join('');
+
+  container.innerHTML += coreHtml;
+
+  // Reflect already-logged state for today
+  const today = localToday();
+  const { data: loggedToday } = await sb.from('workouts').select('exercise').eq('user_id', user.id).eq('date', today);
+  const loggedNames = new Set((loggedToday || []).map(w => w.exercise));
+  todaysCore.forEach(c => {
+    const cb = document.getElementById('core-done-' + c.id);
+    if (cb && loggedNames.has(c.exercise_name)) cb.checked = true;
+  });
+}
+
+async function markCoreDone(coreId, exerciseName, isDone) {
+  const today = localToday();
+  if (isDone) {
+    await sb.from('workouts').insert({ user_id: user.id, date: today, exercise: exerciseName, sets: 1, reps: '', weight_lbs: null });
+  } else {
+    await sb.from('workouts').delete().eq('user_id', user.id).eq('date', today).eq('exercise', exerciseName);
+  }
+  loadDailyChecklist();
 }
 
 function rebuildSetRows(key) {
@@ -3177,6 +3267,17 @@ async function addCore(coreId, exerciseName) {
   if (selectedDays.length === 0) {
     alert('Please select at least one day');
     return;
+  }
+
+  const { data: profile } = await sb.from('profiles').select('workout_schedule').eq('id', user.id).single();
+  const schedule = (profile?.workout_schedule || []).map(Number);
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const offScheduleDays = selectedDays.filter(d => !schedule.includes(Number(d)));
+
+  if (offScheduleDays.length > 0) {
+    const names = offScheduleDays.map(d => dayNames[Number(d)]).join(', ');
+    const confirmed = confirm('You\'re not scheduled to work out on ' + names + '. Add core exercises for that day anyway? A "Log today\'s core workout" reminder will show on your checklist that day.');
+    if (!confirmed) return;
   }
 
   const setsReps = document.getElementById('core-setsreps-' + coreId).value.trim();
