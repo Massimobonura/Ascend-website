@@ -1597,6 +1597,16 @@ async function saveHabitGoals() {
   }).eq('id', user.id);
 
   if (!error) {
+    // Record exactly when this change took effect, so future lookups can
+    // automatically reconstruct what the goal was on any given day.
+    await sb.from('habit_goal_history').insert({
+      user_id: user.id,
+      water_goal: water,
+      steps_goal: steps,
+      sleep_goal: sleep,
+      effective_date: localToday()
+    });
+
     habitTargets = { water, steps, sleep };
     applyHabitTargetLabels();
     toggleHabitGoalsPanel();
@@ -2956,8 +2966,26 @@ function updateDevo(checked) {
   document.getElementById('lbl-devo').textContent = checked ? '✓' : '—';
 }
 
+async function getGoalsForDate(dateStr) {
+  const { data } = await sb.from('habit_goal_history')
+    .select('*')
+    .eq('user_id', user.id)
+    .lte('effective_date', dateStr)
+    .order('effective_date', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (data) {
+    return { water: data.water_goal, steps: data.steps_goal, sleep: data.sleep_goal };
+  }
+  // No history recorded yet (e.g. goals were never changed since this feature
+  // was added) — fall back to whatever's currently set.
+  return habitTargets;
+}
+
 async function saveHabits() {
   const dateToSave = habitsLogDate || localToday();
+  const goalsForThisDate = await getGoalsForDate(dateToSave);
   const { error } = await sb.from('habits').upsert({
     user_id: user.id,
     date: dateToSave,
@@ -2965,9 +2993,9 @@ async function saveHabits() {
     steps: parseInt(document.getElementById('h-steps').value) || 0,
     sleep_hrs: parseFloat(document.getElementById('h-sleep').value) || 0,
     devotional_done: document.getElementById('h-devo').checked,
-    water_goal: habitTargets.water,
-    steps_goal: habitTargets.steps,
-    sleep_goal: habitTargets.sleep
+    water_goal: goalsForThisDate.water,
+    steps_goal: goalsForThisDate.steps,
+    sleep_goal: goalsForThisDate.sleep
   }, { onConflict: 'user_id,date' });
   if (error) { alert('Error: ' + error.message); return; }
 
@@ -5793,7 +5821,8 @@ async function saveHabitsForDate(dateStr) {
   const steps = parseInt(document.getElementById('habit-steps')?.value || 0);
   const sleep = parseFloat(document.getElementById('habit-sleep')?.value || 0);
   const devotional = document.getElementById('habit-devotional')?.checked || false;
-  
+  const goalsForThisDate = await getGoalsForDate(dateStr);
+
   const { error } = await sb.from('habits').upsert({
     user_id: user.id,
     date: dateStr,
@@ -5801,9 +5830,9 @@ async function saveHabitsForDate(dateStr) {
     steps: steps,
     sleep_hrs: sleep,
     devotional_done: devotional,
-    water_goal: habitTargets.water,
-    steps_goal: habitTargets.steps,
-    sleep_goal: habitTargets.sleep,
+    water_goal: goalsForThisDate.water,
+    steps_goal: goalsForThisDate.steps,
+    sleep_goal: goalsForThisDate.sleep,
     updated_at: new Date().toISOString()
   });
   
