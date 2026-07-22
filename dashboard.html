@@ -989,6 +989,7 @@
 
         <!-- CORE TAB -->
         <div id="training-tab-core" style="display:none;">
+          <div id="core-current-routine" style="margin-bottom:20px;"></div>
           <div autocomplete="off" style="margin-bottom:16px;">
             <input type="text" id="core-search" name="core-search" placeholder="Search core exercises..." autocomplete="off" style="width:100%;max-width:400px;padding:8px 12px;border:1.5px solid var(--g200);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;" onkeyup="filterCoreOptions()" />
           </div>
@@ -3180,10 +3181,36 @@ async function loadCoreOptions() {
   const { data: coreData } = await sb.from('exercises').select('*').eq('is_core', true).order('name');
   allCoreOptions = coreData || [];
 
-  const { data: userCore } = await sb.from('user_core').select('*').eq('user_id', user.id);
+  const { data: userCore } = await sb.from('user_core').select('*').eq('user_id', user.id).order('created_at');
   userCoreSelection = userCore || [];
 
+  renderCurrentCoreRoutine();
   filterCoreOptions();
+}
+
+function renderCurrentCoreRoutine() {
+  const el = document.getElementById('core-current-routine');
+  if (!userCoreSelection.length) { el.innerHTML = ''; return; }
+
+  const dayAbbrev = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  el.innerHTML = '<div style="font-size:13px;font-weight:700;color:var(--g600);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;">Your Current Core Routine</div>' +
+    userCoreSelection.map(c => {
+      const days = (c.days || []).map(Number).sort((a, b) => a - b).map(d => dayAbbrev[d]).join(', ');
+      return '<div style="background:white;border:1px solid var(--g200);border-radius:10px;padding:14px 16px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">' +
+        '<div>' +
+        '<div style="font-size:14px;font-weight:700;color:var(--navy);">' + c.exercise_name + '</div>' +
+        '<div style="font-size:12px;color:var(--g400);">' + days + (c.sets_reps ? ' · ' + c.sets_reps : '') + '</div>' +
+        '</div>' +
+        '<button onclick="removeCore(\'' + c.id + '\')" style="background:none;border:1.5px solid #FECACA;color:#DC2626;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;">Remove</button>' +
+        '</div>';
+    }).join('');
+}
+
+async function removeCore(id) {
+  if (!confirm('Remove this core exercise from the routine?')) return;
+  const { error } = await sb.from('user_core').delete().eq('id', id);
+  if (error) { alert('Error: ' + error.message); return; }
+  loadCoreOptions();
 }
 
 function filterCoreOptions() {
