@@ -442,10 +442,13 @@
 <div id="mobile-sidebar-overlay" onclick="toggleMobileSidebar()" style="display:none;position:fixed;inset:0;background:rgba(8,15,23,0.5);z-index:199;"></div>
 
 <!-- Announcement Banner -->
-<div id="announcement-banner" style="display:none;background:var(--orange);padding:12px 24px;align-items:center;justify-content:space-between;gap:16px;">
-  <div style="display:flex;align-items:center;gap:10px;flex:1;">
-    <i class="ti ti-speakerphone" style="color:white;font-size:18px;flex-shrink:0;" aria-hidden="true"></i>
-    <span id="announcement-text" style="font-size:14px;font-weight:600;color:white;line-height:1.5;"></span>
+<div id="announcement-banner" style="display:none;background:var(--orange);padding:14px 24px;align-items:flex-start;justify-content:space-between;gap:16px;">
+  <div style="display:flex;align-items:flex-start;gap:10px;flex:1;">
+    <i class="ti ti-speakerphone" style="color:white;font-size:18px;flex-shrink:0;margin-top:2px;" aria-hidden="true"></i>
+    <div style="flex:1;">
+      <div id="announcement-title" style="font-size:15px;font-weight:800;color:white;margin-bottom:4px;display:none;"></div>
+      <div id="announcement-text" style="font-size:13px;font-weight:500;color:rgba(255,255,255,0.95);line-height:1.6;"></div>
+    </div>
   </div>
   <button onclick="dismissAnnouncement()" style="background:rgba(255,255,255,0.2);border:none;color:white;width:28px;height:28px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;">
     <i class="ti ti-x" aria-hidden="true"></i>
@@ -3658,13 +3661,33 @@ async function markDevotionalComplete(devotionalId) {
 }
 
 // ── ANNOUNCEMENTS ──
+function formatAnnouncementBody(message, bulletColor) {
+  const lines = (message || '').split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  if (lines.length <= 1) return '<div>' + (lines[0] || '') + '</div>';
+  return lines.map(line =>
+    '<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:4px;">' +
+    '<span style="color:' + bulletColor + ';flex-shrink:0;line-height:1.6;">•</span>' +
+    '<span>' + line + '</span>' +
+    '</div>'
+  ).join('');
+}
+
 async function loadAnnouncement() {
   const { data } = await sb.from('announcements').select('*').eq('active', true).order('created_at', { ascending: false }).limit(1);
   if (!data || !data.length) return;
   const ann = data[0];
   const dismissed = localStorage.getItem('ascend_dismissed_announcement');
   if (dismissed === ann.id) return;
-  document.getElementById('announcement-text').textContent = ann.message;
+
+  const titleEl = document.getElementById('announcement-title');
+  if (ann.title) {
+    titleEl.textContent = ann.title;
+    titleEl.style.display = 'block';
+  } else {
+    titleEl.style.display = 'none';
+  }
+
+  document.getElementById('announcement-text').innerHTML = formatAnnouncementBody(ann.message, 'rgba(255,255,255,0.8)');
   document.getElementById('announcement-banner').style.display = 'flex';
   window._currentAnnouncementId = ann.id;
 }
@@ -5146,7 +5169,8 @@ async function loadMemberAnnouncements() {
       '</div>' +
       (isNew ? '<span style="background:#FFF7ED;color:var(--orange);font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;">Latest</span>' : '') +
       '</div>' +
-      '<div style="font-size:15px;color:var(--g800);line-height:1.65;">' + a.message + '</div>' +
+      (a.title ? '<div style="font-size:17px;font-weight:800;color:var(--navy);margin-bottom:8px;">' + a.title + '</div>' : '') +
+      '<div style="font-size:15px;color:var(--g800);line-height:1.65;">' + formatAnnouncementBody(a.message, 'var(--orange)') + '</div>' +
       '</div>';
   }).join('');
 }
