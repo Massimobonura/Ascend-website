@@ -669,7 +669,10 @@
           <div class="lg" id="n-carbs-field"><label>Carbs (g)</label><input type="number" inputmode="decimal" id="n-carbs" placeholder="200" /></div>
           <div class="lg" id="n-fats-field"><label>Fats (g)</label><input type="number" inputmode="decimal" id="n-fats" placeholder="65" /></div>
         </div>
-        <button class="log-btn" onclick="logNutrition()">Log nutrition</button>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="log-btn" onclick="logNutrition()" style="flex:1;min-width:160px;">Log nutrition</button>
+          <button onclick="logFastingDay()" style="flex:1;min-width:160px;background:var(--navy);color:white;border:none;padding:13px;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">🌙 Log Fasting Day</button>
+        </div>
       </div>
 
       <!-- Tabs -->
@@ -871,12 +874,22 @@
 
       <!-- Weight chart -->
       <div style="background:white;border:1px solid var(--g200);border-radius:14px;padding:24px;margin-bottom:20px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
           <div>
             <div style="font-size:16px;font-weight:700;color:var(--navy);">Weight trend</div>
-            <div style="font-size:13px;color:var(--g600);margin-top:2px;">Last 30 days</div>
+            <div style="font-size:13px;color:var(--g600);margin-top:2px;" id="wt-chart-range-label">Last 30 days</div>
           </div>
           <div id="wt-change-badge" style="font-size:13px;font-weight:700;padding:6px 14px;border-radius:20px;display:none;"></div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;">
+          <button type="button" class="wt-range-btn" data-range="1w" onclick="setWeightChartRange('1w')" style="background:var(--g100);color:var(--navy);border:none;padding:7px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;">1 Week</button>
+          <button type="button" class="wt-range-btn" data-range="1m" onclick="setWeightChartRange('1m')" style="background:var(--orange);color:white;border:none;padding:7px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;">1 Month</button>
+          <button type="button" class="wt-range-btn" data-range="90d" onclick="setWeightChartRange('90d')" style="background:var(--g100);color:var(--navy);border:none;padding:7px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;">90 Days</button>
+          <button type="button" class="wt-range-btn" data-range="custom" onclick="setWeightChartRange('custom')" style="background:var(--g100);color:var(--navy);border:none;padding:7px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;">Custom</button>
+        </div>
+        <div id="wt-custom-range" style="display:none;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:16px;">
+          <div class="lg" style="margin-bottom:0;"><label>From</label><input type="date" id="wt-range-from" onchange="loadWeightChart()" /></div>
+          <div class="lg" style="margin-bottom:0;"><label>To</label><input type="date" id="wt-range-to" onchange="loadWeightChart()" /></div>
         </div>
         <div style="overflow-x:auto;">
           <div id="wt-chart" style="min-width:300px;height:200px;position:relative;"></div>
@@ -2716,13 +2729,32 @@ async function logNutrition() {
   } else alert('Error: ' + error.message);
 }
 
+async function logFastingDay() {
+  const date = document.getElementById('n-date').value || localToday();
+  const { error } = await sb.from('nutrition').insert({
+    user_id: user.id, date, calories: 0,
+    protein_g: 0, carbs_g: 0, fats_g: 0,
+    calorie_goal: userNutritionGoal?.nutrition_goal_calories || null,
+    is_fasting: true
+  });
+  if (!error) {
+    loadNutritionHistory();
+    loadNutritionChart();
+    loadStats();
+    alert('Fasting day logged! 🌙');
+  } else alert('Error: ' + error.message);
+}
+
 async function loadNutritionHistory() {
   const { data } = await sb.from('nutrition').select('*').eq('user_id', user.id).order('date', { ascending: false }).limit(14);
   const el = document.getElementById('n-history');
   if (!data || !data.length) { el.innerHTML = '<div class="empty">No nutrition logged yet.</div>'; return; }
   el.innerHTML = '<table><thead><tr><th>Date</th><th>Calories</th><th>Protein</th><th>Carbs</th><th>Fats</th><th></th></tr></thead><tbody>' +
-    data.map(n => '<tr><td>' + n.date + '</td><td>' + n.calories + ' kcal</td><td>' + n.protein_g + 'g</td><td>' + n.carbs_g + 'g</td><td>' + n.fats_g + 'g</td>' +
-      '<td><button class="edit-btn" onclick=\'openEditModal("nutrition","' + n.id + '")\'><i class="ti ti-pencil" aria-hidden="true"></i></button></td></tr>'
+    data.map(n => n.is_fasting
+      ? '<tr><td>' + n.date + '</td><td colspan="3" style="color:var(--navy);font-weight:600;">🌙 Fasting Day</td><td></td>' +
+        '<td><button class="edit-btn" onclick=\'openEditModal("nutrition","' + n.id + '")\'><i class="ti ti-pencil" aria-hidden="true"></i></button></td></tr>'
+      : '<tr><td>' + n.date + '</td><td>' + n.calories + ' kcal</td><td>' + n.protein_g + 'g</td><td>' + n.carbs_g + 'g</td><td>' + n.fats_g + 'g</td>' +
+        '<td><button class="edit-btn" onclick=\'openEditModal("nutrition","' + n.id + '")\'><i class="ti ti-pencil" aria-hidden="true"></i></button></td></tr>'
     ).join('') +
     '</tbody></table>';
 }
@@ -2838,7 +2870,10 @@ async function saveHabits() {
     water_cups: parseFloat(document.getElementById('h-water').value) || 0,
     steps: parseInt(document.getElementById('h-steps').value) || 0,
     sleep_hrs: parseFloat(document.getElementById('h-sleep').value) || 0,
-    devotional_done: document.getElementById('h-devo').checked
+    devotional_done: document.getElementById('h-devo').checked,
+    water_goal: habitTargets.water,
+    steps_goal: habitTargets.steps,
+    sleep_goal: habitTargets.sleep
   }, { onConflict: 'user_id,date' });
   if (error) { alert('Error: ' + error.message); return; }
 
@@ -2903,6 +2938,8 @@ function getDayExerciseList(day) {
   }
   return (day.exercises || []).map(ex => ({ ...ex, section: null }));
 }
+
+let currentWeightRange = '1m';
 
 // ── TRAINING TABS ──
 let allWorkoutPlans = [];
@@ -4174,9 +4211,9 @@ async function renderCalendar() {
     const h = calDayData[dateStr]?.habits;
     let habitsCompleted = 0, habitsTotal = 4; // water, steps, sleep, devotional
     if (h) {
-      if (h.water_cups >= habitTargets.water) habitsCompleted++;
-      if (h.steps >= habitTargets.steps) habitsCompleted++;
-      if (h.sleep_hrs >= habitTargets.sleep) habitsCompleted++;
+      if (h.water_cups >= (h.water_goal ?? habitTargets.water)) habitsCompleted++;
+      if (h.steps >= (h.steps_goal ?? habitTargets.steps)) habitsCompleted++;
+      if (h.sleep_hrs >= (h.sleep_goal ?? habitTargets.sleep)) habitsCompleted++;
       if (h.devotional_done) habitsCompleted++;
     }
     // Factor in custom habits too
@@ -4283,24 +4320,27 @@ async function renderCalendar() {
     html += '<div>';
     
     // Water
-    const waterDone = h && h.water_cups >= habitTargets.water;
+    const waterGoal = h?.water_goal ?? habitTargets.water;
+    const waterDone = h && h.water_cups >= waterGoal;
     html += '<div style="display:flex;align-items:center;gap:5px;margin-bottom:3px;">' +
       '<span style="width:5px;height:5px;border-radius:50%;background:' + (waterDone ? 'var(--navy)' : 'transparent') + ';border:' + (waterDone ? 'none' : '1.5px solid var(--g300)') + ';flex-shrink:0;"></span>' +
-      '<span style="color:' + (waterDone ? 'var(--navy)' : 'var(--g600)') + ';font-size:9px;font-weight:' + (waterDone ? '600' : '400') + ';">Water ' + habitTargets.water + 'oz</span>' +
+      '<span style="color:' + (waterDone ? 'var(--navy)' : 'var(--g600)') + ';font-size:9px;font-weight:' + (waterDone ? '600' : '400') + ';">Water ' + waterGoal + 'oz</span>' +
       '</div>';
     
     // Steps  
-    const stepsDone = h && h.steps >= habitTargets.steps;
+    const stepsGoal = h?.steps_goal ?? habitTargets.steps;
+    const stepsDone = h && h.steps >= stepsGoal;
     html += '<div style="display:flex;align-items:center;gap:5px;margin-bottom:3px;">' +
       '<span style="width:5px;height:5px;border-radius:50%;background:' + (stepsDone ? 'var(--navy)' : 'transparent') + ';border:' + (stepsDone ? 'none' : '1.5px solid var(--g300)') + ';flex-shrink:0;"></span>' +
-      '<span style="color:' + (stepsDone ? 'var(--navy)' : 'var(--g600)') + ';font-size:9px;font-weight:' + (stepsDone ? '600' : '400') + ';">Steps ' + habitTargets.steps.toLocaleString() + '</span>' +
+      '<span style="color:' + (stepsDone ? 'var(--navy)' : 'var(--g600)') + ';font-size:9px;font-weight:' + (stepsDone ? '600' : '400') + ';">Steps ' + stepsGoal.toLocaleString() + '</span>' +
       '</div>';
     
     // Sleep
-    const sleepDone = h && h.sleep_hrs >= habitTargets.sleep;
+    const sleepGoal = h?.sleep_goal ?? habitTargets.sleep;
+    const sleepDone = h && h.sleep_hrs >= sleepGoal;
     html += '<div style="display:flex;align-items:center;gap:5px;margin-bottom:3px;">' +
       '<span style="width:5px;height:5px;border-radius:50%;background:' + (sleepDone ? 'var(--navy)' : 'transparent') + ';border:' + (sleepDone ? 'none' : '1.5px solid var(--g300)') + ';flex-shrink:0;"></span>' +
-      '<span style="color:' + (sleepDone ? 'var(--navy)' : 'var(--g600)') + ';font-size:9px;font-weight:' + (sleepDone ? '600' : '400') + ';">Sleep ' + habitTargets.sleep + 'hrs</span>' +
+      '<span style="color:' + (sleepDone ? 'var(--navy)' : 'var(--g600)') + ';font-size:9px;font-weight:' + (sleepDone ? '600' : '400') + ';">Sleep ' + sleepGoal + 'hrs</span>' +
       '</div>';
     
     // Devotional
@@ -4454,10 +4494,13 @@ async function showCalDayDetail(dateStr) {
 
   // Show ALL habits with checkmarks
   const h = day.habits;
+  const dayWaterGoal = h?.water_goal ?? habitTargets.water;
+  const dayStepsGoal = h?.steps_goal ?? habitTargets.steps;
+  const daySleepGoal = h?.sleep_goal ?? habitTargets.sleep;
   const habitRows = [
-    { icon: 'ti-droplet', label: 'Water', target: habitTargets.water + ' oz', done: h && h.water_cups >= habitTargets.water, logged: h?.water_cups },
-    { icon: 'ti-shoe', label: 'Steps', target: habitTargets.steps.toLocaleString(), done: h && h.steps >= habitTargets.steps, logged: h?.steps },
-    { icon: 'ti-moon', label: 'Sleep', target: habitTargets.sleep + ' hrs', done: h && h.sleep_hrs >= habitTargets.sleep, logged: h?.sleep_hrs },
+    { icon: 'ti-droplet', label: 'Water', target: dayWaterGoal + ' oz', done: h && h.water_cups >= dayWaterGoal, logged: h?.water_cups },
+    { icon: 'ti-shoe', label: 'Steps', target: dayStepsGoal.toLocaleString(), done: h && h.steps >= dayStepsGoal, logged: h?.steps },
+    { icon: 'ti-moon', label: 'Sleep', target: daySleepGoal + ' hrs', done: h && h.sleep_hrs >= daySleepGoal, logged: h?.sleep_hrs },
     { icon: 'ti-cross', label: 'Devotional', target: '', done: h && h.devotional_done, logged: null }
   ];
 
@@ -5109,11 +5152,63 @@ async function loadMemberAnnouncements() {
 }
 
 // ── WEIGHT CHART ──
+function setWeightChartRange(range) {
+  currentWeightRange = range;
+  document.querySelectorAll('.wt-range-btn').forEach(btn => {
+    const active = btn.getAttribute('data-range') === range;
+    btn.style.background = active ? 'var(--orange)' : 'var(--g100)';
+    btn.style.color = active ? 'white' : 'var(--navy)';
+  });
+  document.getElementById('wt-custom-range').style.display = range === 'custom' ? 'flex' : 'none';
+
+  if (range === 'custom') {
+    // Wait for the user to actually pick both dates before loading
+    if (document.getElementById('wt-range-from').value && document.getElementById('wt-range-to').value) {
+      loadWeightChart();
+    }
+  } else {
+    loadWeightChart();
+  }
+}
+
 async function loadWeightChart() {
-  const { data } = await sb.from('weight_logs').select('*').eq('user_id', user.id).order('date', { ascending: true }).limit(30);
+  const today = localToday();
+  let query = sb.from('weight_logs').select('*').eq('user_id', user.id).order('date', { ascending: true });
+  let label = 'Last 30 days';
+
+  if (currentWeightRange === '1w') {
+    const from = new Date(today + 'T12:00:00');
+    from.setDate(from.getDate() - 7);
+    query = query.gte('date', from.toISOString().split('T')[0]);
+    label = 'Last 7 days';
+  } else if (currentWeightRange === '1m') {
+    const from = new Date(today + 'T12:00:00');
+    from.setDate(from.getDate() - 30);
+    query = query.gte('date', from.toISOString().split('T')[0]);
+    label = 'Last 30 days';
+  } else if (currentWeightRange === '90d') {
+    const from = new Date(today + 'T12:00:00');
+    from.setDate(from.getDate() - 90);
+    query = query.gte('date', from.toISOString().split('T')[0]);
+    label = 'Last 90 days';
+  } else if (currentWeightRange === 'custom') {
+    const from = document.getElementById('wt-range-from').value;
+    const to = document.getElementById('wt-range-to').value;
+    if (!from || !to) {
+      document.getElementById('wt-chart').innerHTML = '<div class="empty" style="padding:40px;text-align:center;">Pick a start and end date above to see this range.</div>';
+      document.getElementById('wt-chart-range-label').textContent = 'Custom range';
+      return;
+    }
+    query = query.gte('date', from).lte('date', to);
+    label = new Date(from + 'T12:00:00').toLocaleDateString() + ' – ' + new Date(to + 'T12:00:00').toLocaleDateString();
+  }
+
+  document.getElementById('wt-chart-range-label').textContent = label;
+
+  const { data } = await query;
   const el = document.getElementById('wt-chart');
   if (!data || data.length < 2) {
-    el.innerHTML = '<div class="empty" style="padding:40px;text-align:center;">Log at least 2 weigh-ins to see your trend chart!</div>';
+    el.innerHTML = '<div class="empty" style="padding:40px;text-align:center;">Log at least 2 weigh-ins in this range to see a trend chart!</div>';
     return;
   }
 
@@ -5253,9 +5348,9 @@ async function loadAdherence() {
     if (nutritionDays.has(d)) nutritionHits++;
     const h = habitsByDate[d];
     if (h) {
-      waterSum += Math.min(100, Math.round((h.water_cups || 0) / habitTargets.water * 100));
-      stepsSum += Math.min(100, Math.round((h.steps || 0) / habitTargets.steps * 100));
-      sleepSum += Math.min(100, Math.round((h.sleep_hrs || 0) / habitTargets.sleep * 100));
+      waterSum += Math.min(100, Math.round((h.water_cups || 0) / (h.water_goal ?? habitTargets.water) * 100));
+      stepsSum += Math.min(100, Math.round((h.steps || 0) / (h.steps_goal ?? habitTargets.steps) * 100));
+      sleepSum += Math.min(100, Math.round((h.sleep_hrs || 0) / (h.sleep_goal ?? habitTargets.sleep) * 100));
       if (h.devotional_done) devoHits++;
     }
   });
@@ -5554,6 +5649,9 @@ async function saveHabitsForDate(dateStr) {
     steps: steps,
     sleep_hrs: sleep,
     devotional_done: devotional,
+    water_goal: habitTargets.water,
+    steps_goal: habitTargets.steps,
+    sleep_goal: habitTargets.sleep,
     updated_at: new Date().toISOString()
   });
   
