@@ -3576,10 +3576,9 @@ function filterPainPlans() {
       return '<div style="background:white;border:1px solid var(--g200);border-radius:14px;padding:24px;margin-bottom:16px;">' +
         '<div style="font-size:18px;font-weight:700;color:var(--navy);margin-bottom:12px;">' + p.name + '</div>' +
         (p.description ? '<div style="font-size:14px;color:var(--g600);margin-bottom:12px;">' + p.description + '</div>' : '') +
-        '<div onclick="event.stopPropagation(); togglePainExercises(\'' + p.id + '\')" style="display:flex;align-items:center;gap:8px;background:var(--off);border:1px solid var(--g200);border-radius:8px;padding:10px 14px;cursor:pointer;margin-bottom:14px;">' +
-        '<span style="font-size:14px;font-weight:600;color:var(--navy);">View Full Workout</span>' +
-        '<i class="ti ti-chevron-down" id="pain-chevron-' + p.id + '" style="margin-left:auto;color:var(--g400);transition:transform 0.2s;" aria-hidden="true"></i>' +
-        '</div>' +
+        '<button onclick="event.stopPropagation(); togglePainExercises(\'' + p.id + '\')" id="pain-toggle-' + p.id + '" style="display:flex;align-items:center;gap:6px;background:none;border:none;color:var(--orange);font-size:13px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;padding:10px 0;margin-bottom:12px;">' +
+        '<i class="ti ti-chevron-down" aria-hidden="true"></i> View full workout' +
+        '</button>' +
         '<div id="pain-exercises-' + p.id + '" style="display:none;margin-bottom:14px;">' + exercisesHtml + '</div>' +
         '<div style="margin-bottom:12px;"><label style="font-size:12px;font-weight:600;color:var(--g600);display:block;margin-bottom:8px;">Select Days:</label>' +
         '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;" id="pain-days-' + p.id + '">' +
@@ -3595,10 +3594,12 @@ function filterPainPlans() {
 
 function togglePainExercises(id) {
   const container = document.getElementById('pain-exercises-' + id);
-  const chevron = document.getElementById('pain-chevron-' + id);
+  const btn = document.getElementById('pain-toggle-' + id);
   const isOpen = container.style.display === 'block';
   container.style.display = isOpen ? 'none' : 'block';
-  chevron.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+  btn.innerHTML = isOpen
+    ? '<i class="ti ti-chevron-down" aria-hidden="true"></i> View full workout'
+    : '<i class="ti ti-chevron-up" aria-hidden="true"></i> Hide workout';
 }
 
 function togglePainDay(btn, painId) {
