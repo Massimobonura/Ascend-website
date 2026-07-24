@@ -1399,6 +1399,15 @@
         <i id="foundational-videos-chevron" class="ti ti-chevron-down" style="color:var(--g400);font-size:20px;margin-left:auto;transition:transform 0.2s;" aria-hidden="true"></i>
       </div>
       <div id="foundational-videos-dropdown" style="display:none;background:var(--off);border:1px solid var(--g200);border-radius:12px;padding:16px;margin-top:-6px;margin-bottom:14px;"></div>
+      <div class="resource-item" style="margin-top:16px;cursor:pointer;" onclick="toggleMacrosVideos()">
+        <div class="resource-icon"><i class="ti ti-chart-pie" style="color:white;font-size:20px;" aria-hidden="true"></i></div>
+        <div class="resource-info">
+          <h4>How to Set Your Calories / Deep Dive Into Macros</h4>
+          <p>A closer look at calories, protein, carbs, and fats.</p>
+        </div>
+        <i id="macros-videos-chevron" class="ti ti-chevron-down" style="color:var(--g400);font-size:20px;margin-left:auto;transition:transform 0.2s;" aria-hidden="true"></i>
+      </div>
+      <div id="macros-videos-dropdown" style="display:none;background:var(--off);border:1px solid var(--g200);border-radius:12px;padding:16px;margin-top:-6px;margin-bottom:14px;"></div>
       <div class="resource-item" style="margin-top:16px;">
         <div class="resource-icon"><i class="ti ti-player-play" style="color:white;font-size:20px;" aria-hidden="true"></i></div>
         <div class="resource-info">
@@ -4222,6 +4231,59 @@ function toggleVideoEmbed(i) {
   }
 
   const id = foundationalVideos[i].split('/share/')[1];
+  container.innerHTML = '<div style="position:relative;padding-bottom:56.25%;height:0;"><iframe src="https://www.loom.com/embed/' + id + '" frameborder="0" allowfullscreen style="position:absolute;top:0;left:0;width:100%;height:100%;border-radius:8px;"></iframe></div>';
+  container.style.display = 'block';
+  chevron.style.transform = 'rotate(180deg)';
+}
+
+const macrosVideos = [
+  { url: 'https://www.loom.com/share/a4628f751f7c471996cce98a89fe837f', title: 'How To Set Calories For Your Goals' },
+  { url: 'https://www.loom.com/share/6c8974989815400fa81a5bb79561b0bd', title: 'Why Protein Matters for Fat Loss' },
+  { url: 'https://www.loom.com/share/619895989db14f539a52e42318ca67c2', title: 'Why You Should Not Ultra-Restrict Carbs and Fats' },
+  { url: 'https://www.loom.com/share/29eab930828c4f37a312a7579762a5a1', title: 'All things Carbs' }
+];
+
+function toggleMacrosVideos() {
+  const dropdown = document.getElementById('macros-videos-dropdown');
+  const chevron = document.getElementById('macros-videos-chevron');
+  const isOpen = dropdown.style.display === 'block';
+
+  if (isOpen) {
+    dropdown.style.display = 'none';
+    chevron.style.transform = 'rotate(0deg)';
+    return;
+  }
+
+  if (!dropdown.dataset.built) {
+    dropdown.innerHTML = macrosVideos.map((v, i) =>
+      '<div style="margin-bottom:8px;">' +
+      '<div onclick="event.stopPropagation(); toggleMacrosVideoEmbed(' + i + ')" style="display:flex;align-items:center;gap:10px;background:white;border:1px solid var(--g200);border-radius:8px;padding:10px 14px;cursor:pointer;">' +
+      '<div style="width:24px;height:24px;border-radius:50%;background:var(--orange);color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' + (i + 1) + '</div>' +
+      '<span style="font-size:14px;font-weight:600;color:var(--navy);">' + v.title + '</span>' +
+      '<i class="ti ti-chevron-down" id="macros-video-chevron-' + i + '" style="margin-left:auto;color:var(--g400);transition:transform 0.2s;flex-shrink:0;" aria-hidden="true"></i>' +
+      '</div>' +
+      '<div id="macros-video-embed-' + i + '" style="display:none;margin-top:8px;"></div>' +
+      '</div>'
+    ).join('');
+    dropdown.dataset.built = 'true';
+  }
+  dropdown.style.display = 'block';
+  chevron.style.transform = 'rotate(180deg)';
+}
+
+function toggleMacrosVideoEmbed(i) {
+  const container = document.getElementById('macros-video-embed-' + i);
+  const chevron = document.getElementById('macros-video-chevron-' + i);
+  const isOpen = container.style.display === 'block';
+
+  if (isOpen) {
+    container.style.display = 'none';
+    container.innerHTML = '';
+    chevron.style.transform = 'rotate(0deg)';
+    return;
+  }
+
+  const id = macrosVideos[i].url.split('/share/')[1];
   container.innerHTML = '<div style="position:relative;padding-bottom:56.25%;height:0;"><iframe src="https://www.loom.com/embed/' + id + '" frameborder="0" allowfullscreen style="position:absolute;top:0;left:0;width:100%;height:100%;border-radius:8px;"></iframe></div>';
   container.style.display = 'block';
   chevron.style.transform = 'rotate(180deg)';
