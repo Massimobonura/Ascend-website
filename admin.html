@@ -457,6 +457,17 @@
     </div>
 
     <!-- CLIENT DETAIL MODAL -->
+    <!-- PHOTO COMPARE MODAL -->
+    <div id="compare-modal" style="display:none;position:fixed;inset:0;background:rgba(8,15,23,0.8);z-index:1001;align-items:center;justify-content:center;padding:20px;">
+      <div style="background:white;border-radius:16px;padding:24px;max-width:800px;width:100%;max-height:90vh;overflow-y:auto;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <div style="font-size:16px;font-weight:800;color:var(--navy);">Before / After Comparison</div>
+          <button onclick="document.getElementById('compare-modal').style.display='none';" style="background:none;border:none;cursor:pointer;color:var(--gray-400);font-size:20px;">✕</button>
+        </div>
+        <div id="compare-modal-body"></div>
+      </div>
+    </div>
+
     <div id="client-detail-modal" style="display:none;position:fixed;inset:0;background:rgba(8,15,23,0.7);z-index:999;align-items:flex-start;justify-content:center;padding:40px 20px;overflow-y:auto;">
       <div style="background:white;border-radius:16px;padding:28px;max-width:720px;width:100%;margin-bottom:40px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
@@ -860,14 +871,132 @@ async function loadClientPhotos(uid) {
     return { ...p, signedUrl: signed?.signedUrl };
   }));
 
-  el.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px;">' +
-    withUrls.map(p =>
-      '<div>' +
+  window._clientPhotosCache = window._clientPhotosCache || {};
+  window._clientPhotosCache[uid] = withUrls;
+  window._compareSelection = window._compareSelection || {};
+  window._compareSelection[uid] = [];
+
+  el.innerHTML =
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">' +
+    '<div style="font-size:11px;color:var(--g400);">Check up to 2 photos to build a before/after comparison</div>' +
+    '<button id="compare-btn-' + uid + '" onclick="openPhotoCompare(\'' + uid + '\')" style="display:none;background:var(--navy);color:white;border:none;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">Compare Selected</button>' +
+    '</div>' +
+    '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px;">' +
+    withUrls.map((p, i) =>
+      '<div style="position:relative;">' +
       '<img src="' + p.signedUrl + '" style="width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:8px;border:1px solid var(--g200);cursor:pointer;" onclick="window.open(\'' + p.signedUrl + '\',\'_blank\')" />' +
+      '<label style="position:absolute;top:6px;left:6px;background:rgba(255,255,255,0.9);border-radius:6px;padding:3px 6px;display:flex;align-items:center;gap:4px;font-size:10px;font-weight:600;cursor:pointer;">' +
+      '<input type="checkbox" onchange="toggleCompareSelect(\'' + uid + '\', ' + i + ', this)" style="width:14px;height:14px;cursor:pointer;"> Select' +
+      '</label>' +
+      '<button onclick="event.stopPropagation(); downloadImage(\'' + p.signedUrl + '\', \'progress-' + p.date + '.jpg\')" title="Download" style="position:absolute;bottom:24px;right:6px;background:rgba(13,27,42,0.85);color:white;border:none;width:26px;height:26px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;"><i class="ti ti-download" style="font-size:14px;" aria-hidden="true"></i></button>' +
       '<div style="font-size:10px;color:var(--g400);margin-top:4px;text-align:center;">' + new Date(p.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + '</div>' +
       '</div>'
     ).join('') +
     '</div>';
+}
+
+function toggleCompareSelect(uid, index, checkboxEl) {
+  const sel = window._compareSelection[uid];
+  if (checkboxEl.checked) {
+    if (sel.length >= 2) {
+      checkboxEl.checked = false;
+      alert('You can only compare 2 photos at a time — deselect one first.');
+      return;
+    }
+    sel.push(index);
+  } else {
+    const idx = sel.indexOf(index);
+    if (idx > -1) sel.splice(idx, 1);
+  }
+  document.getElementById('compare-btn-' + uid).style.display = sel.length === 2 ? 'inline-block' : 'none';
+}
+
+function openPhotoCompare(uid) {
+  const sel = window._compareSelection[uid];
+  const photos = window._clientPhotosCache[uid];
+  const photo1 = photos[sel[0]];
+  const photo2 = photos[sel[1]];
+  const [before, after] = new Date(photo1.date) <= new Date(photo2.date) ? [photo1, photo2] : [photo2, photo1];
+
+  document.getElementById('compare-modal-body').innerHTML = '<div style="text-align:center;padding:40px;color:var(--gray-600);">Building comparison...</div>';
+  document.getElementById('compare-modal').style.display = 'flex';
+
+  buildComparisonCanvas(before, after).then(canvas => {
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+    window._currentComparisonDataUrl = dataUrl;
+    document.getElementById('compare-modal-body').innerHTML =
+      '<img src="' + dataUrl + '" style="width:100%;border-radius:10px;margin-bottom:16px;border:1px solid var(--gray-200);" />' +
+      '<button onclick="downloadComparisonImage()" style="width:100%;background:var(--orange);color:white;border:none;padding:12px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">Download Comparison</button>';
+  }).catch(err => {
+    document.getElementById('compare-modal-body').innerHTML = '<div style="color:#DC2626;padding:20px;text-align:center;">Could not build the comparison image (' + err.message + '). Try downloading each photo individually instead.</div>';
+  });
+}
+
+function buildComparisonCanvas(before, after) {
+  return new Promise((resolve, reject) => {
+    const img1 = new Image();
+    const img2 = new Image();
+    img1.crossOrigin = 'anonymous';
+    img2.crossOrigin = 'anonymous';
+    let loaded = 0;
+    const onOneLoaded = () => {
+      loaded++;
+      if (loaded < 2) return;
+      try {
+        const height = 800;
+        const w1 = Math.round(img1.width / img1.height * height);
+        const w2 = Math.round(img2.width / img2.height * height);
+        const gap = 10;
+        const labelHeight = 50;
+        const canvas = document.createElement('canvas');
+        canvas.width = w1 + w2 + gap;
+        canvas.height = height + labelHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img1, 0, labelHeight, w1, height);
+        ctx.drawImage(img2, w1 + gap, labelHeight, w2, height);
+        ctx.fillStyle = '#0D1B2A';
+        ctx.font = 'bold 28px Arial, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('BEFORE', w1 / 2, 35);
+        ctx.fillText('AFTER', w1 + gap + w2 / 2, 35);
+        resolve(canvas);
+      } catch (e) { reject(e); }
+    };
+    img1.onload = onOneLoaded;
+    img2.onload = onOneLoaded;
+    img1.onerror = () => reject(new Error('could not load the first photo'));
+    img2.onerror = () => reject(new Error('could not load the second photo'));
+    img1.src = before.signedUrl;
+    img2.src = after.signedUrl;
+  });
+}
+
+function downloadComparisonImage() {
+  const a = document.createElement('a');
+  a.href = window._currentComparisonDataUrl;
+  a.download = 'before-after-comparison.jpg';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+async function downloadImage(url, filename) {
+  try {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(blobUrl);
+  } catch (err) {
+    alert('Could not download image: ' + err.message);
+  }
 }
 
 async function tagCoachingClient() {
