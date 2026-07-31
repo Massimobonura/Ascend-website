@@ -2068,14 +2068,14 @@ let activeDayIndex = 0;
 let sessionExerciseInputs = {};
 let pendingSessionDate = null;
 
-async function renderTodaysTrainingPanels(todayWeekday) {
+async function renderTodaysTrainingPanels(todayWeekday, isLiftDay) {
   const [coreRes, cardioRes, painRes] = await Promise.all([
     sb.from('user_core').select('*').eq('user_id', user.id),
     sb.from('user_cardio').select('*').eq('user_id', user.id),
     sb.from('user_pain_management').select('*').eq('user_id', user.id)
   ]);
 
-  const todaysCore = (coreRes.data || []).filter(c => (c.days || []).map(Number).includes(todayWeekday));
+  const todaysCore = isLiftDay ? [] : (coreRes.data || []).filter(c => (c.days || []).map(Number).includes(todayWeekday));
   const todaysCardio = (cardioRes.data || []).filter(c => (c.days || []).map(Number).includes(todayWeekday));
   const todaysPainAssignments = (painRes.data || []).filter(p => (p.days || []).map(Number).includes(todayWeekday));
 
@@ -2206,10 +2206,11 @@ async function loadWorkoutSession() {
     if (idx !== -1) activeDayIndex = idx;
   }
 
-  // "Today's Training" — Core, Cardio, and Pain Management are all independent
-  // of the lift schedule, so show whichever of these are assigned for today's
-  // actual weekday, regardless of whether today is also a scheduled lift day.
-  const todaysTrainingHtml = await renderTodaysTrainingPanels(todayWeekday);
+  // "Today's Training" — Cardio and Pain Management are independent of the
+  // lift schedule and always shown here if assigned. Core is the exception:
+  // on a scheduled lift day it already appears inline within the exercise
+  // list below, so we skip it here to avoid showing it twice.
+  const todaysTrainingHtml = await renderTodaysTrainingPanels(todayWeekday, !!scheduledDayNum);
 
   let html = todaysTrainingHtml + '<div style="background:white;border:1px solid var(--g200);border-radius:14px;padding:24px;margin-bottom:20px;">' +
     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">' +
@@ -2585,6 +2586,13 @@ async function saveExerciseSwap() {
   const newName = document.getElementById('swap-input').value.trim();
   if (!newName) { alert('Please enter what you did instead, or tap "Reset to original".'); return; }
 
+  // Flush any pending debounced draft save immediately, using the DOM as it
+  // currently stands, and cancel the pending timer — otherwise it can fire
+  // later (after the re-render below resets everything) and overwrite
+  // whatever was actually logged with blank data.
+  clearTimeout(draftSaveTimer);
+  await saveWorkoutDraft();
+
   exerciseSubstitutions[currentSwapOriginal] = newName;
   const { error } = await sb.from('profiles').update({ exercise_substitutions: exerciseSubstitutions }).eq('id', user.id);
   if (!error) {
@@ -2595,6 +2603,10 @@ async function saveExerciseSwap() {
 
 async function resetExerciseSwap() {
   if (!currentSwapOriginal) return;
+
+  clearTimeout(draftSaveTimer);
+  await saveWorkoutDraft();
+
   delete exerciseSubstitutions[currentSwapOriginal];
   const { error } = await sb.from('profiles').update({ exercise_substitutions: exerciseSubstitutions }).eq('id', user.id);
   if (!error) {
