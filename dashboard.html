@@ -2020,7 +2020,10 @@ async function loadGettingStarted() {
     { label: 'Explore the resources tab', done: !!profile?.has_visited_resources, page: 'resources' }
   ];
   const done = items.filter(i => i.done).length;
-  if (done === items.length) return;
+  if (done === items.length) {
+    document.getElementById('getting-started').style.display = 'none';
+    return;
+  }
   document.getElementById('getting-started').style.display = 'block';
   document.getElementById('gs-bar').style.width = Math.round(done / items.length * 100) + '%';
   const el = document.getElementById('gs-items');
@@ -3950,6 +3953,7 @@ async function markDevotionalComplete(devotionalId) {
 
   loadDevotionals();
   if (typeof loadDailyChecklist === 'function') loadDailyChecklist();
+  if (typeof loadGettingStarted === 'function') loadGettingStarted();
 }
 
 // ── ANNOUNCEMENTS ──
