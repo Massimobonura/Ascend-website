@@ -42,14 +42,17 @@
       -webkit-backdrop-filter: blur(10px);
       padding: 0 32px;
       height: 68px;
-      display: flex;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
       align-items: center;
-      justify-content: space-between;
       position: sticky;
       top: 0;
       z-index: 100;
       border-bottom: 1px solid rgba(255,255,255,0.06);
     }
+    nav > .nav-logo { justify-self: start; }
+    nav > .nav-links { justify-self: center; }
+    nav > .nav-right { justify-self: end; }
     .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
     .nav-links { display: flex; gap: 30px; list-style: none; }
     .nav-links a { color: rgba(255,255,255,0.65); text-decoration: none; font-size: 14px; font-weight: 500; transition: color 0.2s; }
@@ -87,6 +90,15 @@
     .btn-primary:hover { background: var(--orange-dark); transform: translateY(-1px); }
     .btn-ghost { background: transparent; color: var(--white); border: 1.5px solid rgba(255,255,255,0.3); padding: 16px 40px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-block; transition: all 0.2s; }
     .btn-ghost:hover { border-color: rgba(255,255,255,0.7); background: rgba(255,255,255,0.04); }
+
+    /* SCROLL REVEAL */
+    .reveal { opacity: 0; transform: translateY(22px); transition: opacity 0.7s ease, transform 0.7s ease; }
+    .reveal.in-view { opacity: 1; transform: translateY(0); }
+    @media (prefers-reduced-motion: reduce) { .reveal { opacity: 1; transform: none; transition: none; } }
+
+    /* NAV SCROLLED STATE */
+    nav { transition: background 0.3s ease, box-shadow 0.3s ease; }
+    nav.scrolled { background: rgba(8,15,23,0.97); box-shadow: 0 8px 24px -12px rgba(0,0,0,0.4); }
 
     /* PILLARS */
     .pillars { background: var(--orange); padding: 18px 24px; display: flex; justify-content: center; flex-wrap: wrap; }
@@ -273,13 +285,14 @@
 
     .chk { width: 9px; height: 9px; }
   </style>
+  <noscript><style>.reveal { opacity: 1 !important; transform: none !important; }</style></noscript>
 </head>
 <body>
 
 <!-- NAV -->
 <nav>
   <a href="#" class="nav-logo">
-    <img src="Ascend_logo_.png" alt="Ascend Faith &amp; Fitness" style="height:42px;width:auto;mix-blend-mode:screen;" />
+    <img src="Ascend_logo_transparent.png" alt="Ascend Faith &amp; Fitness" style="height:42px;width:auto;" />
   </a>
   <ul class="nav-links">
     <li><a href="#showcase">Inside the app</a></li>
@@ -288,7 +301,7 @@
     <li><a href="#faith">Faith</a></li>
     <li><a href="#follow">Follow</a></li>
   </ul>
-  <div style="display:flex;align-items:center;gap:16px;">
+  <div class="nav-right" style="display:flex;align-items:center;gap:16px;">
     <div class="nav-social">
       <a href="https://www.instagram.com/massimobonura/" target="_blank" aria-label="Instagram"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="5" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.8"/><circle cx="17.2" cy="6.8" r="1.1" fill="currentColor"/></svg></a>
       <a href="https://www.youtube.com/@massimo_bonura" target="_blank" aria-label="YouTube"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="2.5" y="5.5" width="19" height="13" rx="4" stroke="currentColor" stroke-width="1.8"/><path d="M10.5 9.5L15 12L10.5 14.5V9.5Z" fill="currentColor"/></svg></a>
@@ -301,7 +314,7 @@
 
 <!-- HERO -->
 <section class="hero">
-  <div class="hero-logo-wrap"><img src="Ascend_logo_.png" alt="Ascend Faith &amp; Fitness" style="width:min(640px,80vw);height:auto;display:block;margin:0 auto;mix-blend-mode:screen;" />
+  <div class="hero-logo-wrap"><img src="Ascend_logo_transparent.png" alt="Ascend Faith &amp; Fitness" style="width:min(640px,80vw);height:auto;display:block;margin:0 auto;" />
   </div>
   <h1>Train your body.<br><em>Strengthen your faith.</em></h1>
   <p class="hero-sub">A complete coaching platform that puts your workouts, nutrition, habits, and daily walk with God in one place — built by a coach, not a generic app.</p>
@@ -323,7 +336,7 @@
 
 <!-- DASHBOARD SHOWCASE -->
 <section class="showcase" id="showcase">
-  <div class="showcase-inner">
+  <div class="showcase-inner reveal">
     <div class="section-eyebrow">Take a look inside</div>
     <h2 class="section-title">This isn't a workout log.<br>It's your whole week, in one place.</h2>
     <p class="section-sub">A real look at what opens up the moment you sign in — your actual training, your actual nutrition, your actual walk with God, tracked together instead of scattered across five different apps.</p>
@@ -450,7 +463,7 @@
 
 <!-- FEATURES -->
 <section class="section" id="features">
-  <div class="section-inner">
+  <div class="section-inner reveal">
     <div class="section-eyebrow">Everything included</div>
     <h2 class="section-title">More than a fitness program.<br>A complete lifestyle system.</h2>
     <p class="section-sub">Built for people who want to grow physically and spiritually — with the tools to actually stay consistent, not just motivated for a week.</p>
@@ -506,7 +519,7 @@
 
 <!-- HOW IT WORKS -->
 <section class="section section-alt">
-  <div class="section-inner">
+  <div class="section-inner reveal">
     <div class="section-eyebrow">How it works</div>
     <h2 class="section-title">Up and running in minutes.</h2>
     <p class="section-sub">No complicated setup. No guesswork. Just show up and the platform guides you.</p>
@@ -521,7 +534,7 @@
 
 <!-- PRICING -->
 <section class="section" id="pricing">
-  <div class="section-inner">
+  <div class="section-inner reveal">
     <div class="section-eyebrow">Pricing</div>
     <h2 class="section-title">Simple, honest pricing.</h2>
     <p class="section-sub">No hidden fees. Everything included from day one. Cancel anytime on the monthly plan.</p>
@@ -569,7 +582,7 @@
 
 <!-- TESTIMONIALS -->
 <section class="section section-alt" id="testimonials">
-  <div class="section-inner">
+  <div class="section-inner reveal">
     <div class="section-eyebrow">Member stories</div>
     <h2 class="section-title">Real people. Real results.</h2>
     <p class="section-sub">Hear from members who are building strength in body and faith.</p>
@@ -597,7 +610,7 @@
 
 <!-- FAITH -->
 <section class="section" id="faith">
-  <div class="section-inner">
+  <div class="section-inner reveal">
     <div class="section-eyebrow">Faith &amp; devotionals</div>
     <h2 class="section-title">Grounded in something greater.</h2>
     <p class="section-sub">Fitness is a tool, not the goal. At Ascend, faith is woven into everything we do — because lasting change starts from the inside out.</p>
@@ -612,7 +625,7 @@
 
 <!-- FOLLOW / LINKTREE -->
 <section class="section section-alt" id="follow">
-  <div class="section-inner">
+  <div class="section-inner reveal">
     <div class="section-eyebrow">Follow along</div>
     <h2 class="section-title">More from Ascend.</h2>
     <p class="section-sub">Free content, behind-the-scenes, and everything else Ascend, all in one spot.</p>
@@ -647,7 +660,7 @@
 
 <!-- COACHING FORM -->
 <section class="section" id="coaching">
-  <div class="section-inner">
+  <div class="section-inner reveal">
     <div class="section-eyebrow">1-on-1 coaching</div>
     <h2 class="section-title">Want a coach in your corner?</h2>
     <p class="section-sub">Apply for personalized coaching. Limited spots available.</p>
@@ -675,7 +688,7 @@
 
 <!-- FOOTER -->
 <footer>
-  <img src="Ascend_logo_.png" alt="Ascend Faith & Fitness" class="footer-svg" style="width:200px;height:auto;mix-blend-mode:screen;" />
+  <img src="Ascend_logo_transparent.png" alt="Ascend Faith & Fitness" class="footer-svg" style="width:200px;height:auto;" />
   <div class="footer-social">
     <a href="https://www.instagram.com/massimobonura/" target="_blank" aria-label="Instagram"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="5" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.8"/><circle cx="17.2" cy="6.8" r="1.1" fill="currentColor"/></svg></a>
     <a href="https://www.youtube.com/@massimo_bonura" target="_blank" aria-label="YouTube"><svg width="21" height="21" viewBox="0 0 24 24" fill="none"><rect x="2.5" y="5.5" width="19" height="13" rx="4" stroke="currentColor" stroke-width="1.8"/><path d="M10.5 9.5L15 12L10.5 14.5V9.5Z" fill="currentColor"/></svg></a>
@@ -705,6 +718,23 @@
     document.getElementById('coaching-form').style.display = 'none';
     document.getElementById('coaching-success').style.display = 'block';
   }
+
+  // Scroll reveal
+  const revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('in-view');
+        revealObserver.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.15 });
+  document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+
+  // Nav solidifies once you've scrolled past the hero
+  const navEl = document.querySelector('nav');
+  window.addEventListener('scroll', () => {
+    navEl.classList.toggle('scrolled', window.scrollY > 60);
+  });
 </script>
 </body>
 </html>
