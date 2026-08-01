@@ -65,6 +65,7 @@
     @media (max-width: 860px) {
       .nav-links { display: none; }
       .hamburger-btn { display: flex !important; }
+      .nav-book-call, .nav-signin { display: none !important; }
     }
     .hamburger-btn {
       display: none;
@@ -344,6 +345,7 @@
   </a>
   <ul class="nav-links">
     <li><a href="#showcase">Inside the app</a></li>
+    <li><a href="#faq">Still Unsure?</a></li>
     <li><a href="#pricing">Pricing</a></li>
     <li><a href="https://ascend-12682.myshopify.com" target="_blank">Shop</a></li>
     <li><a href="#testimonials">Stories</a></li>
@@ -356,20 +358,22 @@
       <a href="https://www.youtube.com/@massimo_bonura" target="_blank" aria-label="YouTube"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="2.5" y="5.5" width="19" height="13" rx="4" stroke="currentColor" stroke-width="1.8"/><path d="M10.5 9.5L15 12L10.5 14.5V9.5Z" fill="currentColor"/></svg></a>
       <a href="https://www.tiktok.com/@massimobonura_?is_from_webapp=1&sender_device=pc" target="_blank" aria-label="TikTok"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M16 3c.4 2.4 2 4 4.5 4.2V10c-1.6 0-3.1-.5-4.5-1.4v6.7a5.8 5.8 0 1 1-5-5.7v3.1a2.7 2.7 0 1 0 2 2.6V3h3Z" fill="currentColor"/></svg></a>
     </div>
-    <a href="https://calendly.com/ascend-ff-coaching/strategy-meeting" target="_blank" style="color:white;font-size:14px;font-weight:700;text-decoration:none;border:1.5px solid rgba(255,255,255,0.3);padding:9px 18px;border-radius:8px;white-space:nowrap;">Book a call</a>
-    <a href="/login.html" style="color:rgba(255,255,255,0.7);font-size:14px;font-weight:600;text-decoration:none;">Sign in</a>
+    <a href="https://calendly.com/ascend-ff-coaching/strategy-meeting" target="_blank" class="nav-book-call" style="color:white;font-size:14px;font-weight:700;text-decoration:none;border:1.5px solid rgba(255,255,255,0.3);padding:9px 18px;border-radius:8px;white-space:nowrap;">Book a call</a>
+    <a href="/login.html" class="nav-signin" style="color:rgba(255,255,255,0.7);font-size:14px;font-weight:600;text-decoration:none;">Sign in</a>
     <a href="/signup.html" class="nav-cta">Join now</a>
     <button class="hamburger-btn" onclick="toggleMobileMenu()" aria-label="Open menu"><span></span><span></span><span></span></button>
   </div>
 </nav>
 <div class="mobile-menu" id="mobile-menu">
   <a href="#showcase" onclick="toggleMobileMenu()">Inside the app</a>
+  <a href="#faq" onclick="toggleMobileMenu()">Still Unsure?</a>
   <a href="#pricing" onclick="toggleMobileMenu()">Pricing</a>
   <a href="https://ascend-12682.myshopify.com" target="_blank">Shop</a>
   <a href="#testimonials" onclick="toggleMobileMenu()">Stories</a>
   <a href="#faith" onclick="toggleMobileMenu()">Faith</a>
   <a href="#follow" onclick="toggleMobileMenu()">Follow</a>
   <a href="https://calendly.com/ascend-ff-coaching/strategy-meeting" target="_blank" style="color:var(--orange);">Book a free call</a>
+  <a href="/login.html">Sign in</a>
   <a href="https://www.instagram.com/massimobonura/" target="_blank">Instagram</a>
   <a href="https://www.youtube.com/@massimo_bonura" target="_blank">YouTube</a>
   <a href="https://www.tiktok.com/@massimobonura_?is_from_webapp=1&sender_device=pc" target="_blank">TikTok</a>
@@ -616,7 +620,7 @@
 </section>
 
 <!-- FAQ -->
-<section class="section section-alt">
+<section class="section section-alt" id="faq">
   <div class="section-inner reveal">
     <div class="section-eyebrow">Questions</div>
     <h2 class="section-title">Before you join.</h2>
