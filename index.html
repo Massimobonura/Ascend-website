@@ -65,7 +65,16 @@
     @media (max-width: 860px) {
       .nav-links { display: none; }
       .hamburger-btn { display: flex !important; }
-      .nav-book-call, .nav-signin { display: none !important; }
+    }
+    @media (max-width: 600px) {
+      nav { padding: 0 14px; display: flex; justify-content: space-between; }
+      .nav-right { gap: 6px !important; }
+      .nav-book-call { padding: 6px 9px !important; font-size: 11px !important; border-width: 1.2px !important; }
+      .nav-signin { font-size: 12px !important; }
+      .nav-cta { padding: 7px 12px !important; font-size: 12px !important; }
+      .hamburger-btn { padding: 4px !important; margin-left: 0 !important; }
+      .hamburger-btn span { width: 18px !important; }
+      .nav-logo img { height: 30px !important; }
     }
     .hamburger-btn {
       display: none;
@@ -372,8 +381,6 @@
   <a href="#testimonials" onclick="toggleMobileMenu()">Stories</a>
   <a href="#faith" onclick="toggleMobileMenu()">Faith</a>
   <a href="#follow" onclick="toggleMobileMenu()">Follow</a>
-  <a href="https://calendly.com/ascend-ff-coaching/strategy-meeting" target="_blank" style="color:var(--orange);">Book a free call</a>
-  <a href="/login.html">Sign in</a>
   <a href="https://www.instagram.com/massimobonura/" target="_blank">Instagram</a>
   <a href="https://www.youtube.com/@massimo_bonura" target="_blank">YouTube</a>
   <a href="https://www.tiktok.com/@massimobonura_?is_from_webapp=1&sender_device=pc" target="_blank">TikTok</a>
