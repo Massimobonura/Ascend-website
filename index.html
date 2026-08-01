@@ -100,6 +100,20 @@
     nav { transition: background 0.3s ease, box-shadow 0.3s ease; }
     nav.scrolled { background: rgba(8,15,23,0.97); box-shadow: 0 8px 24px -12px rgba(0,0,0,0.4); }
 
+    /* MEET YOUR COACH */
+    .coach-section { padding: 100px 24px; background: var(--white); }
+    .coach-grid { display: grid; grid-template-columns: 320px 1fr; gap: 60px; align-items: center; max-width: 980px; margin: 0 auto; }
+    .coach-photo-wrap { position: relative; }
+    .coach-photo-accent { position: absolute; top: 20px; left: 20px; right: -20px; bottom: -20px; background: var(--orange); border-radius: 18px; z-index: 0; }
+    .coach-photo-wrap img { position: relative; z-index: 1; width: 100%; border-radius: 18px; display: block; box-shadow: 0 24px 48px -20px rgba(13,27,42,0.3); }
+    .coach-bio p { font-size: 16px; color: var(--gray-600); line-height: 1.75; margin-bottom: 18px; }
+    .coach-badges { display: flex; gap: 10px; margin-top: 22px; flex-wrap: wrap; }
+    .coach-badge { background: var(--off-white); border: 1px solid var(--gray-200); border-radius: 20px; padding: 7px 16px; font-size: 12.5px; font-weight: 700; color: var(--navy); }
+    @media (max-width: 760px) {
+      .coach-grid { grid-template-columns: 1fr; gap: 36px; }
+      .coach-photo-wrap { max-width: 260px; margin: 0 auto; }
+    }
+
     /* PILLARS */
     .pillars { background: var(--orange); padding: 18px 24px; display: flex; justify-content: center; flex-wrap: wrap; }
     .pillar { color: var(--white); font-size: 11px; font-weight: 700; letter-spacing: 0.16em; padding: 6px 22px; border-right: 1px solid rgba(255,255,255,0.35); }
@@ -528,6 +542,26 @@
       <div class="step"><div class="step-num">2</div><h3>Pick your plan</h3><p>Browse workout plans for your goals — 3 to 6 days a week, full-gym or at-home, every level.</p></div>
       <div class="step"><div class="step-num">3</div><h3>Track everything</h3><p>Log your workouts, meals, water, sleep, and weight. Your dashboard shows your progress in real time.</p></div>
       <div class="step"><div class="step-num">4</div><h3>Stay consistent</h3><p>Daily devotionals and habit tracking keep you grounded and moving forward every single day.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- MEET YOUR COACH -->
+<section class="coach-section">
+  <div class="coach-grid reveal">
+    <div class="coach-photo-wrap">
+      <div class="coach-photo-accent"></div>
+      <img src="coach-photo.jpg" alt="Massimo Bonura, founder and coach at Ascend Faith & Fitness" />
+    </div>
+    <div class="coach-bio">
+      <div class="section-eyebrow">Meet your coach</div>
+      <h2 class="section-title">Massimo Bonura</h2>
+      <p>I grew up playing baseball, and for most of my life I was the guy who thought some people just couldn't put on weight — I figured I was one of them. Everything changed once I actually got serious about my nutrition, and that shift is the whole reason Ascend exists.</p>
+      <p>I got certified as a coach about two years ago, and I've spent every day since helping people build the same kind of discipline — in the gym and in their walk with God. This isn't a program built from a textbook. It's the one I wish I'd had.</p>
+      <div class="coach-badges">
+        <div class="coach-badge">Certified Personal Trainer</div>
+        <div class="coach-badge">2+ Years Coaching</div>
+      </div>
     </div>
   </div>
 </section>
