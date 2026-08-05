@@ -1886,7 +1886,7 @@ function showPage(name) {
 // ── DAILY CHECKLIST ──
 async function loadDailyChecklist() {
   const today = localToday();
-  const [w, n, wt, h, customHabitsRes, coachingClientRes, profileRes, coreRes, cardioRes, painRes] = await Promise.all([
+  const [w, n, wt, h, customHabitsRes, coachingClientRes, profileRes, coreRes, cardioRes, painRes, stretchRes] = await Promise.all([
     sb.from('workouts').select('exercise').eq('user_id', user.id).eq('date', today),
     sb.from('nutrition').select('id').eq('user_id', user.id).eq('date', today),
     sb.from('weight_logs').select('id').eq('user_id', user.id).eq('date', today),
@@ -1896,7 +1896,8 @@ async function loadDailyChecklist() {
     sb.from('profiles').select('workout_schedule').eq('id', user.id).single(),
     sb.from('user_core').select('exercise_name,days').eq('user_id', user.id),
     sb.from('user_cardio').select('exercise_name,days').eq('user_id', user.id),
-    sb.from('user_pain_management').select('pain_plan_id,days').eq('user_id', user.id)
+    sb.from('user_pain_management').select('pain_plan_id,days').eq('user_id', user.id),
+    sb.from('user_stretch').select('exercise_name,days').eq('user_id', user.id)
   ]);
   const habits = h.data;
   const customHabitsList = customHabitsRes.data || [];
@@ -1916,6 +1917,7 @@ async function loadDailyChecklist() {
   const todaysCore = (coreRes.data || []).filter(c => (c.days || []).map(Number).includes(todayWeekday));
   const todaysCardio = (cardioRes.data || []).filter(c => (c.days || []).map(Number).includes(todayWeekday));
   const todaysPain = (painRes.data || []).filter(p => (p.days || []).map(Number).includes(todayWeekday));
+  const todaysStretch = (stretchRes.data || []).filter(s => (s.days || []).map(Number).includes(todayWeekday));
 
   const items = [];
 
@@ -1942,6 +1944,12 @@ async function loadDailyChecklist() {
     const sessionLabels = (painPlans || []).map(p => p.name + ' (Pain Management)');
     const painDone = sessionLabels.length > 0 && sessionLabels.every(l => loggedNamesToday.has(l));
     items.push({ icon: 'ti-first-aid-kit', label: 'Complete today\'s pain management', done: painDone, page: 'workouts' });
+  }
+
+  // Only show stretches if something's actually assigned for today
+  if (todaysStretch.length) {
+    const stretchDone = todaysStretch.every(s => loggedNamesToday.has(s.exercise_name));
+    items.push({ icon: 'ti-yoga', label: 'Log today\'s stretches', done: stretchDone, page: 'workouts' });
   }
 
   items.push(
@@ -2072,15 +2080,17 @@ let sessionExerciseInputs = {};
 let pendingSessionDate = null;
 
 async function renderTodaysTrainingPanels(todayWeekday, isLiftDay) {
-  const [coreRes, cardioRes, painRes] = await Promise.all([
+  const [coreRes, cardioRes, painRes, stretchRes] = await Promise.all([
     sb.from('user_core').select('*').eq('user_id', user.id),
     sb.from('user_cardio').select('*').eq('user_id', user.id),
-    sb.from('user_pain_management').select('*').eq('user_id', user.id)
+    sb.from('user_pain_management').select('*').eq('user_id', user.id),
+    sb.from('user_stretch').select('*').eq('user_id', user.id)
   ]);
 
   const todaysCore = isLiftDay ? [] : (coreRes.data || []).filter(c => (c.days || []).map(Number).includes(todayWeekday));
   const todaysCardio = (cardioRes.data || []).filter(c => (c.days || []).map(Number).includes(todayWeekday));
   const todaysPainAssignments = (painRes.data || []).filter(p => (p.days || []).map(Number).includes(todayWeekday));
+  const todaysStretch = (stretchRes.data || []).filter(s => (s.days || []).map(Number).includes(todayWeekday));
 
   let painPlansById = {};
   if (todaysPainAssignments.length) {
@@ -2142,7 +2152,32 @@ async function renderTodaysTrainingPanels(todayWeekday, isLiftDay) {
     }).join('');
   }
 
+  if (todaysStretch.length) {
+    html += '<div style="background:white;border:1px solid var(--orange);border-radius:14px;padding:24px;margin-bottom:20px;">' +
+      '<div style="font-size:16px;font-weight:700;color:var(--navy);margin-bottom:16px;">Today\'s Stretches</div>' +
+      todaysStretch.map(s =>
+        '<div style="background:var(--off);border-radius:10px;padding:14px 16px;margin-bottom:10px;">' +
+        '<div style="font-size:14px;font-weight:700;color:var(--navy);margin-bottom:4px;">' + s.exercise_name + '</div>' +
+        (s.notes ? '<div style="font-size:12px;color:var(--g400);margin-bottom:10px;">' + s.notes + '</div>' : '') +
+        '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--g800);font-weight:600;">' +
+        '<input type="checkbox" data-exercise-name="' + s.exercise_name.replace(/"/g, '&quot;') + '" onchange="markStretchDone(\'' + s.exercise_name.replace(/'/g, "\\'") + '\', this.checked)" style="width:18px;height:18px;accent-color:var(--orange);cursor:pointer;"> Done' +
+        '</label>' +
+        '</div>'
+      ).join('') +
+      '</div>';
+  }
+
   return html;
+}
+
+async function markStretchDone(exerciseName, isDone) {
+  const today = localToday();
+  if (isDone) {
+    await sb.from('workouts').insert({ user_id: user.id, date: today, exercise: exerciseName, sets: 1, reps: '', weight_lbs: null });
+  } else {
+    await sb.from('workouts').delete().eq('user_id', user.id).eq('date', today).eq('exercise', exerciseName);
+  }
+  loadDailyChecklist();
 }
 
 async function markCardioDone(exerciseName, isDone) {
@@ -2168,14 +2203,27 @@ async function markPainSessionDone(sessionLabel, isDone) {
 async function loadWorkoutSession() {
   const { data: profile } = await sb.from('profiles').select('active_workout_plan_id,workout_schedule').eq('id', user.id).single();
   const container = document.getElementById('workout-session-container');
+  const todayWeekday = new Date().getDay();
 
   if (!profile?.active_workout_plan_id) {
-    container.innerHTML = '<div style="background:white;border:1px dashed var(--g200);border-radius:14px;padding:28px;text-align:center;margin-bottom:20px;">' +
+    // Core/Cardio/Pain Management/Stretches are all independent of having a
+    // formal lift plan selected — someone might only want those, so they
+    // must still show up here even with no active plan.
+    const todaysTrainingHtml = await renderTodaysTrainingPanels(todayWeekday, false);
+    container.innerHTML = todaysTrainingHtml + '<div style="background:white;border:1px dashed var(--g200);border-radius:14px;padding:28px;text-align:center;margin-bottom:20px;">' +
       '<i class="ti ti-list" style="font-size:32px;color:var(--g200);" aria-hidden="true"></i>' +
       '<div style="font-size:15px;font-weight:700;color:var(--navy);margin:10px 0 4px;">No active workout plan</div>' +
       '<div style="font-size:13px;color:var(--g600);margin-bottom:16px;">Select a plan to unlock structured day-by-day logging.</div>' +
       '<button onclick="showPage(\'plans\')" style="background:var(--orange);color:white;border:none;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">Choose a plan</button>' +
       '</div>';
+
+    if (todaysTrainingHtml) {
+      const { data: loggedToday } = await sb.from('workouts').select('exercise').eq('user_id', user.id).eq('date', localToday());
+      const loggedNames = new Set((loggedToday || []).map(w => w.exercise));
+      document.querySelectorAll('[data-exercise-name]').forEach(cb => {
+        if (loggedNames.has(cb.dataset.exerciseName)) cb.checked = true;
+      });
+    }
     return;
   }
 
@@ -2185,7 +2233,6 @@ async function loadWorkoutSession() {
 
   // Default to today's scheduled day if the schedule maps to one, accounting for
   // any one-time move that affects today (matches the calendar's logic)
-  const todayWeekday = new Date().getDay();
   const schedule = profile.workout_schedule || [];
   const todayStr = localToday();
   const todayWeekStart = getWeekStart(todayStr);
