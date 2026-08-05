@@ -2175,31 +2175,37 @@ async function renderTodaysTrainingPanels(todayWeekday, isLiftDay) {
 
 async function markStretchDone(exerciseName, isDone) {
   const today = localToday();
+  let error;
   if (isDone) {
-    await sb.from('workouts').insert({ user_id: user.id, date: today, exercise: exerciseName, sets: 1, reps: '', weight_lbs: null });
+    ({ error } = await sb.from('workouts').insert({ user_id: user.id, date: today, exercise: exerciseName, sets: 1, reps: 0, weight_lbs: null }));
   } else {
-    await sb.from('workouts').delete().eq('user_id', user.id).eq('date', today).eq('exercise', exerciseName);
+    ({ error } = await sb.from('workouts').delete().eq('user_id', user.id).eq('date', today).eq('exercise', exerciseName));
   }
+  if (error) { alert('Error saving: ' + error.message); return; }
   loadDailyChecklist();
 }
 
 async function markCardioDone(exerciseName, isDone) {
   const today = localToday();
+  let error;
   if (isDone) {
-    await sb.from('workouts').insert({ user_id: user.id, date: today, exercise: exerciseName, sets: 1, reps: '', weight_lbs: null });
+    ({ error } = await sb.from('workouts').insert({ user_id: user.id, date: today, exercise: exerciseName, sets: 1, reps: 0, weight_lbs: null }));
   } else {
-    await sb.from('workouts').delete().eq('user_id', user.id).eq('date', today).eq('exercise', exerciseName);
+    ({ error } = await sb.from('workouts').delete().eq('user_id', user.id).eq('date', today).eq('exercise', exerciseName));
   }
+  if (error) { alert('Error saving: ' + error.message); return; }
   loadDailyChecklist();
 }
 
 async function markPainSessionDone(sessionLabel, isDone) {
   const today = localToday();
+  let error;
   if (isDone) {
-    await sb.from('workouts').insert({ user_id: user.id, date: today, exercise: sessionLabel, sets: 1, reps: '', weight_lbs: null });
+    ({ error } = await sb.from('workouts').insert({ user_id: user.id, date: today, exercise: sessionLabel, sets: 1, reps: 0, weight_lbs: null }));
   } else {
-    await sb.from('workouts').delete().eq('user_id', user.id).eq('date', today).eq('exercise', sessionLabel);
+    ({ error } = await sb.from('workouts').delete().eq('user_id', user.id).eq('date', today).eq('exercise', sessionLabel));
   }
+  if (error) { alert('Error saving: ' + error.message); return; }
   loadDailyChecklist();
 }
 
@@ -2472,11 +2478,13 @@ async function appendExtraTrainingForPlanDay(container, planDayNumber) {
 
 async function markCoreDone(coreId, exerciseName, isDone) {
   const today = localToday();
+  let error;
   if (isDone) {
-    await sb.from('workouts').insert({ user_id: user.id, date: today, exercise: exerciseName, sets: 1, reps: '', weight_lbs: null });
+    ({ error } = await sb.from('workouts').insert({ user_id: user.id, date: today, exercise: exerciseName, sets: 1, reps: 0, weight_lbs: null }));
   } else {
-    await sb.from('workouts').delete().eq('user_id', user.id).eq('date', today).eq('exercise', exerciseName);
+    ({ error } = await sb.from('workouts').delete().eq('user_id', user.id).eq('date', today).eq('exercise', exerciseName));
   }
+  if (error) { alert('Error saving: ' + error.message); return; }
   loadDailyChecklist();
 }
 
