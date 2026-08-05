@@ -998,6 +998,7 @@
 
         <!-- CARDIO TAB -->
         <div id="training-tab-cardio" style="display:none;">
+          <div id="cardio-current-routine" style="margin-bottom:20px;"></div>
           <div autocomplete="off" style="margin-bottom:16px;">
             <input type="text" id="cardio-search" name="cardio-search" placeholder="Search cardio..." autocomplete="off" style="width:100%;max-width:400px;padding:8px 12px;border:1.5px solid var(--g200);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;" onkeyup="filterCardioOptions()" />
           </div>
@@ -1006,6 +1007,7 @@
 
         <!-- STRETCHES TAB -->
         <div id="training-tab-stretch" style="display:none;">
+          <div id="stretch-current-routine" style="margin-bottom:20px;"></div>
           <div autocomplete="off" style="margin-bottom:16px;">
             <input type="text" id="stretch-search" name="stretch-search" placeholder="Search stretches..." autocomplete="off" style="width:100%;max-width:400px;padding:8px 12px;border:1.5px solid var(--g200);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;" onkeyup="filterStretchOptions()" />
           </div>
@@ -1014,6 +1016,7 @@
 
         <!-- PAIN MANAGEMENT TAB -->
         <div id="training-tab-pain" style="display:none;">
+          <div id="pain-current-routine" style="margin-bottom:20px;"></div>
           <div style="margin-bottom:16px;">
             <input type="text" id="pain-search" name="pain-search" placeholder="Search pain management..." style="width:100%;max-width:400px;padding:8px 12px;border:1.5px solid var(--g200);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;" onkeyup="filterPainPlans()" />
           </div>
@@ -3535,10 +3538,36 @@ async function loadCardioOptions() {
   const { data: cardioData } = await sb.from('exercises').select('*').eq('is_cardio', true).order('name');
   allCardioOptions = cardioData || [];
   
-  const { data: userCardio } = await sb.from('user_cardio').select('*').eq('user_id', user.id);
+  const { data: userCardio } = await sb.from('user_cardio').select('*').eq('user_id', user.id).order('created_at');
   userCardioSelection = userCardio || [];
   
+  renderCurrentCardioRoutine();
   filterCardioOptions();
+}
+
+function renderCurrentCardioRoutine() {
+  const el = document.getElementById('cardio-current-routine');
+  if (!userCardioSelection.length) { el.innerHTML = ''; return; }
+
+  const dayAbbrev = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  el.innerHTML = '<div style="font-size:13px;font-weight:700;color:var(--g600);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;">Your Current Cardio Routine</div>' +
+    userCardioSelection.map(c => {
+      const days = (c.days || []).map(Number).sort((a, b) => a - b).map(d => dayAbbrev[d]).join(', ');
+      return '<div style="background:white;border:1px solid var(--g200);border-radius:10px;padding:14px 16px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">' +
+        '<div>' +
+        '<div style="font-size:14px;font-weight:700;color:var(--navy);">' + c.exercise_name + '</div>' +
+        '<div style="font-size:12px;color:var(--g400);">' + days + (c.duration_minutes ? ' · ' + c.duration_minutes + ' min' : '') + '</div>' +
+        '</div>' +
+        '<button onclick="removeCardio(\'' + c.id + '\')" style="background:none;border:1.5px solid #FECACA;color:#DC2626;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;">Remove</button>' +
+        '</div>';
+    }).join('');
+}
+
+async function removeCardio(id) {
+  if (!confirm('Remove this cardio exercise from the routine?')) return;
+  const { error } = await sb.from('user_cardio').delete().eq('id', id);
+  if (error) { alert('Error: ' + error.message); return; }
+  loadCardioOptions();
 }
 
 function filterCardioOptions() {
@@ -3633,10 +3662,36 @@ async function loadStretchOptions() {
   const { data: stretchData } = await sb.from('exercises').select('*').eq('is_stretch', true).order('name');
   allStretchOptions = stretchData || [];
 
-  const { data: userStretch } = await sb.from('user_stretch').select('*').eq('user_id', user.id);
+  const { data: userStretch } = await sb.from('user_stretch').select('*').eq('user_id', user.id).order('created_at');
   userStretchSelection = userStretch || [];
 
+  renderCurrentStretchRoutine();
   filterStretchOptions();
+}
+
+function renderCurrentStretchRoutine() {
+  const el = document.getElementById('stretch-current-routine');
+  if (!userStretchSelection.length) { el.innerHTML = ''; return; }
+
+  const dayAbbrev = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  el.innerHTML = '<div style="font-size:13px;font-weight:700;color:var(--g600);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;">Your Current Stretch Routine</div>' +
+    userStretchSelection.map(s => {
+      const days = (s.days || []).map(Number).sort((a, b) => a - b).map(d => dayAbbrev[d]).join(', ');
+      return '<div style="background:white;border:1px solid var(--g200);border-radius:10px;padding:14px 16px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">' +
+        '<div>' +
+        '<div style="font-size:14px;font-weight:700;color:var(--navy);">' + s.exercise_name + '</div>' +
+        '<div style="font-size:12px;color:var(--g400);">' + days + (s.notes ? ' · ' + s.notes : '') + '</div>' +
+        '</div>' +
+        '<button onclick="removeStretch(\'' + s.id + '\')" style="background:none;border:1.5px solid #FECACA;color:#DC2626;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;">Remove</button>' +
+        '</div>';
+    }).join('');
+}
+
+async function removeStretch(id) {
+  if (!confirm('Remove this stretch from the routine?')) return;
+  const { error } = await sb.from('user_stretch').delete().eq('id', id);
+  if (error) { alert('Error: ' + error.message); return; }
+  loadStretchOptions();
 }
 
 function filterStretchOptions() {
@@ -3718,10 +3773,37 @@ async function loadPainPlans() {
   const { data: painData } = await sb.from('pain_management_plans').select('*').order('name');
   allPainPlans = painData || [];
   
-  const { data: userPain } = await sb.from('user_pain_management').select('*').eq('user_id', user.id);
+  const { data: userPain } = await sb.from('user_pain_management').select('*').eq('user_id', user.id).order('created_at');
   userPainSelection = userPain || [];
   
+  renderCurrentPainRoutine();
   filterPainPlans();
+}
+
+function renderCurrentPainRoutine() {
+  const el = document.getElementById('pain-current-routine');
+  if (!userPainSelection.length) { el.innerHTML = ''; return; }
+
+  const dayAbbrev = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  el.innerHTML = '<div style="font-size:13px;font-weight:700;color:var(--g600);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;">Your Current Pain Management Routine</div>' +
+    userPainSelection.map(p => {
+      const plan = allPainPlans.find(pl => pl.id === p.pain_plan_id);
+      const days = (p.days || []).map(Number).sort((a, b) => a - b).map(d => dayAbbrev[d]).join(', ');
+      return '<div style="background:white;border:1px solid var(--g200);border-radius:10px;padding:14px 16px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">' +
+        '<div>' +
+        '<div style="font-size:14px;font-weight:700;color:var(--navy);">' + (plan ? plan.name : 'Unknown plan') + '</div>' +
+        '<div style="font-size:12px;color:var(--g400);">' + days + '</div>' +
+        '</div>' +
+        '<button onclick="removePainAssignment(\'' + p.id + '\')" style="background:none;border:1.5px solid #FECACA;color:#DC2626;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;">Remove</button>' +
+        '</div>';
+    }).join('');
+}
+
+async function removePainAssignment(id) {
+  if (!confirm('Remove this pain management plan from the routine?')) return;
+  const { error } = await sb.from('user_pain_management').delete().eq('id', id);
+  if (error) { alert('Error: ' + error.message); return; }
+  loadPainPlans();
 }
 
 function filterPainPlans() {
