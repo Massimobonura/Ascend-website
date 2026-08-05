@@ -2091,9 +2091,9 @@ async function renderTodaysTrainingPanels(todayWeekday, isLiftDay) {
   ]);
 
   const todaysCore = isLiftDay ? [] : (coreRes.data || []).filter(c => (c.days || []).map(Number).includes(todayWeekday));
-  const todaysCardio = (cardioRes.data || []).filter(c => (c.days || []).map(Number).includes(todayWeekday));
-  const todaysPainAssignments = (painRes.data || []).filter(p => (p.days || []).map(Number).includes(todayWeekday));
-  const todaysStretch = (stretchRes.data || []).filter(s => (s.days || []).map(Number).includes(todayWeekday));
+  const todaysCardio = isLiftDay ? [] : (cardioRes.data || []).filter(c => (c.days || []).map(Number).includes(todayWeekday));
+  const todaysPainAssignments = isLiftDay ? [] : (painRes.data || []).filter(p => (p.days || []).map(Number).includes(todayWeekday));
+  const todaysStretch = isLiftDay ? [] : (stretchRes.data || []).filter(s => (s.days || []).map(Number).includes(todayWeekday));
 
   let painPlansById = {};
   if (todaysPainAssignments.length) {
@@ -2376,40 +2376,97 @@ async function renderDayExercises() {
   flatList.forEach((ex, i) => rebuildSetRows(activeDayIndex + '_' + i));
   loadWorkoutDraft();
 
-  await appendCoreSectionForPlanDay(container, day.day);
+  await appendExtraTrainingForPlanDay(container, day.day);
 }
 
-async function appendCoreSectionForPlanDay(container, planDayNumber) {
+async function appendExtraTrainingForPlanDay(container, planDayNumber) {
   const { data: profile } = await sb.from('profiles').select('workout_schedule').eq('id', user.id).single();
   const schedule = (profile?.workout_schedule || []).map(Number).sort((a, b) => a - b);
   const weekday = schedule[planDayNumber - 1];
   if (weekday === undefined) return;
 
-  const { data: coreItems } = await sb.from('user_core').select('*').eq('user_id', user.id);
-  const todaysCore = (coreItems || []).filter(c => (c.days || []).map(Number).includes(weekday));
-  if (!todaysCore.length) return;
+  const [coreRes, cardioRes, stretchRes, painRes] = await Promise.all([
+    sb.from('user_core').select('*').eq('user_id', user.id),
+    sb.from('user_cardio').select('*').eq('user_id', user.id),
+    sb.from('user_stretch').select('*').eq('user_id', user.id),
+    sb.from('user_pain_management').select('*').eq('user_id', user.id)
+  ]);
 
-  const coreHtml = '<div style="font-size:11px;font-weight:700;color:var(--orange);text-transform:uppercase;letter-spacing:0.06em;margin:14px 0 8px;">Core</div>' +
-    todaysCore.map((c, i) => {
-      const doneKey = 'core-done-' + c.id;
-      return '<div style="background:var(--off);border-radius:10px;padding:14px 16px;margin-bottom:10px;">' +
-        '<div style="font-size:14px;font-weight:700;color:var(--navy);margin-bottom:4px;">' + c.exercise_name + '</div>' +
-        (c.sets_reps ? '<div style="font-size:12px;color:var(--g400);margin-bottom:10px;">' + c.sets_reps + '</div>' : '') +
-        '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--g800);font-weight:600;">' +
-        '<input type="checkbox" id="' + doneKey + '" onchange="markCoreDone(\'' + c.id.replace(/'/g, "\\'") + '\', \'' + c.exercise_name.replace(/'/g, "\\'") + '\', this.checked)" style="width:18px;height:18px;accent-color:var(--orange);cursor:pointer;"> Done' +
-        '</label>' +
-        '</div>';
+  const todaysCore = (coreRes.data || []).filter(c => (c.days || []).map(Number).includes(weekday));
+  const todaysCardio = (cardioRes.data || []).filter(c => (c.days || []).map(Number).includes(weekday));
+  const todaysStretch = (stretchRes.data || []).filter(s => (s.days || []).map(Number).includes(weekday));
+  const todaysPainAssignments = (painRes.data || []).filter(p => (p.days || []).map(Number).includes(weekday));
+
+  let painPlansById = {};
+  if (todaysPainAssignments.length) {
+    const planIds = [...new Set(todaysPainAssignments.map(p => p.pain_plan_id))];
+    const { data: plans } = await sb.from('pain_management_plans').select('*').in('id', planIds);
+    (plans || []).forEach(p => { painPlansById[p.id] = p; });
+  }
+
+  const sectionLabel = (label) => '<div style="font-size:11px;font-weight:700;color:var(--orange);text-transform:uppercase;letter-spacing:0.06em;margin:14px 0 8px;">' + label + '</div>';
+  const doneCheckbox = (exerciseName, onClickFn) =>
+    '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--g800);font-weight:600;">' +
+    '<input type="checkbox" data-exercise-name="' + exerciseName.replace(/"/g, '&quot;') + '" onchange="' + onClickFn + '" style="width:18px;height:18px;accent-color:var(--orange);cursor:pointer;"> Done' +
+    '</label>';
+
+  let html = '';
+
+  if (todaysCore.length) {
+    html += sectionLabel('Core') + todaysCore.map(c =>
+      '<div style="background:var(--off);border-radius:10px;padding:14px 16px;margin-bottom:10px;">' +
+      '<div style="font-size:14px;font-weight:700;color:var(--navy);margin-bottom:4px;">' + c.exercise_name + '</div>' +
+      (c.sets_reps ? '<div style="font-size:12px;color:var(--g400);margin-bottom:10px;">' + c.sets_reps + '</div>' : '') +
+      doneCheckbox(c.exercise_name, "markCoreDone('" + c.id.replace(/'/g, "\\'") + "', '" + c.exercise_name.replace(/'/g, "\\'") + "', this.checked)") +
+      '</div>'
+    ).join('');
+  }
+
+  if (todaysCardio.length) {
+    html += sectionLabel('Cardio') + todaysCardio.map(c =>
+      '<div style="background:var(--off);border-radius:10px;padding:14px 16px;margin-bottom:10px;">' +
+      '<div style="font-size:14px;font-weight:700;color:var(--navy);margin-bottom:4px;">' + c.exercise_name + '</div>' +
+      (c.duration_minutes ? '<div style="font-size:12px;color:var(--g400);margin-bottom:10px;">' + c.duration_minutes + ' minutes</div>' : '') +
+      doneCheckbox(c.exercise_name, "markCardioDone('" + c.exercise_name.replace(/'/g, "\\'") + "', this.checked)") +
+      '</div>'
+    ).join('');
+  }
+
+  if (todaysStretch.length) {
+    html += sectionLabel('Stretches') + todaysStretch.map(s =>
+      '<div style="background:var(--off);border-radius:10px;padding:14px 16px;margin-bottom:10px;">' +
+      '<div style="font-size:14px;font-weight:700;color:var(--navy);margin-bottom:4px;">' + s.exercise_name + '</div>' +
+      (s.notes ? '<div style="font-size:12px;color:var(--g400);margin-bottom:10px;">' + s.notes + '</div>' : '') +
+      doneCheckbox(s.exercise_name, "markStretchDone('" + s.exercise_name.replace(/'/g, "\\'") + "', this.checked)") +
+      '</div>'
+    ).join('');
+  }
+
+  if (todaysPainAssignments.length) {
+    html += todaysPainAssignments.map(pa => {
+      const plan = painPlansById[pa.pain_plan_id];
+      if (!plan) return '';
+      const sessionLabel = plan.name + ' (Pain Management)';
+      return sectionLabel('Pain Management — ' + plan.name) +
+        (plan.exercises || []).map(ex =>
+          '<div style="display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--g200);font-size:13px;">' +
+          '<span style="font-weight:600;color:var(--navy);">' + ex.exercise + '</span>' +
+          '<span style="color:var(--g600);white-space:nowrap;">' + (ex.sets ? ex.sets + ' x ' : '') + (ex.reps || '') + (ex.notes ? ' · ' + ex.notes : '') + '</span>' +
+          '</div>'
+        ).join('') +
+        '<div style="margin-top:10px;margin-bottom:10px;">' + doneCheckbox(sessionLabel, "markPainSessionDone('" + sessionLabel.replace(/'/g, "\\'") + "', this.checked)").replace('Done', "Mark today's session done") + '</div>';
     }).join('');
+  }
 
-  container.innerHTML += coreHtml;
+  if (!html) return;
+  container.innerHTML += html;
 
   // Reflect already-logged state for today
   const today = localToday();
   const { data: loggedToday } = await sb.from('workouts').select('exercise').eq('user_id', user.id).eq('date', today);
   const loggedNames = new Set((loggedToday || []).map(w => w.exercise));
-  todaysCore.forEach(c => {
-    const cb = document.getElementById('core-done-' + c.id);
-    if (cb && loggedNames.has(c.exercise_name)) cb.checked = true;
+  document.querySelectorAll('[data-exercise-name]').forEach(cb => {
+    if (loggedNames.has(cb.dataset.exerciseName)) cb.checked = true;
   });
 }
 
